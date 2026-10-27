@@ -11,7 +11,6 @@ import { Alert, Breadcrumb, ErrorPanel, Loading, PageHeader, StatusBadge } from 
 // en una superficie separada y rotulada; nunca como entradas de menú ni con datos. Lo ya implementado no aparece aquí.
 const PENDING_BY_ROLE: Record<string, Array<{ capability: string; story: string }>> = {
   FIELD_TECHNICIAN: [{ capability: 'Trabajo de campo sin conexión', story: 'App móvil (P0-023/P0-024): el ensayo en teléfono físico sigue pendiente; la web no guarda datos sin conexión' }],
-  EXPORT_MANAGER: [{ capability: 'Despacho de embarques', story: 'Preparar y reservar ya es posible; despachar sigue bloqueado hasta definir las condiciones de paquete y fecha de despacho (D-34)' }],
 };
 const PLATFORM_PENDING = { capability: 'Acceso a datos operativos de una organización', story: 'La elevación supervisada y aprobada existe en el servidor, pero la web aún no tiene la pantalla para solicitarla. La administración de plataforma no da acceso implícito' };
 

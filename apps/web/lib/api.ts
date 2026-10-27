@@ -225,7 +225,7 @@ export function recoveryHint(err: ApiError): string {
     case 'SELF_ROLE_CHANGE':
       return 'Pide a otro administrador que realice el cambio.';
     case 'ELEVATION_REQUIRED':
-      return 'Esta acción necesita una política de elevación auditada que aún no existe.';
+      return 'Esta acción necesita un acceso de plataforma aprobado: solicítalo en «Acceso de plataforma» de la organización.';
     case 'ORGANIZATION_TYPE_UNKNOWN':
       return 'Elige un tipo de la lista.';
     case 'PRODUCER_CODE_TAKEN':

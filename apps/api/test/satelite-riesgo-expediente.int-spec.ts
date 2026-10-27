@@ -146,6 +146,15 @@ describeDb('AJ-08 análisis satelital → riesgo → expediente', () => {
     expect(s4.readiness.captured).not.toBe('READY');   // otros requisitos siguen pendientes
     expect(s4.content.profiles.satellite_analysis.analyses.length).toBeGreaterThan(0);
 
+    // Regresión: un resultado anterior COVERED no sostiene el requisito cuando el VIGENTE (más reciente, mismo proveedor y versión) no declara cobertura.
+    await new Promise((ok) => setTimeout(ok, 20));
+    await resultado({ provider: 'WHISP', synthetic: false, coverage: 'UNKNOWN' });
+    const s5 = await capture();
+    expect(req(s5).status).toBe('PENDING');
+    expect(req(s5).detail).toMatch(/cobertura UNKNOWN/);
+    const vigente = s5.content.profiles.satellite_analysis.analyses.filter((a: { provider_code: string; is_synthetic: boolean }) => a.provider_code === 'WHISP' && !a.is_synthetic);
+    expect(vigente.every((a: { coverage_status: string }) => a.coverage_status === 'UNKNOWN')).toBe(true);   // la instantánea y el requisito usan el mismo resultado
+
     // Los expedientes anteriores conservan su contenido y su hash.
     const filas = await h.db.selectFrom('dd_snapshots').select(['id', 'content_hash']).where('case_id', '=', c.id).orderBy('snapshot_number').execute();
     expect(new Set(filas.map((f) => f.content_hash)).size).toBe(filas.length);

@@ -11,7 +11,7 @@ import { kg } from '../../../../../lib/lots';
 import { SHIPMENT_STATUS, type Preflight, type Shipment, type ShipmentOptions } from '../../../../../lib/shipments';
 
 // P0-029 Detalle de embarque: ítems, reservas en el ledger, preflight y despacho (bloqueado mientras falte cualquier
-// comprobación; hoy, siempre por D-34). Despachar no presenta una DDS.
+// comprobación; los bloqueos vigentes se listan en el preflight). Despachar no presenta una DDS.
 export default function ShipmentDetailPage() {
   const ws = useWorkspace();
   const { shipmentId } = useParams<{ shipmentId: string }>();

@@ -148,11 +148,11 @@ export class DdService {
       if (!selected) return null;
       const versionIds = plots.map((p) => p.version_id).filter((v): v is string => !!v);
       if (!versionIds.length || versionIds.length !== plots.length) return null;
-      // El resultado debe ser DEL PROVEEDOR seleccionado (antes se aceptaba el de cualquier proveedor), real y con cobertura declarada COVERED.
-      const covered = (await sql<{ plot_version_id: string }>`
-        SELECT DISTINCT j.plot_version_id FROM satellite_jobs j JOIN satellite_results r ON r.job_id = j.id
-         WHERE j.organization_id = ${orgId} AND j.plot_version_id = ANY(${versionIds}::uuid[])
-           AND j.outcome = 'RESULT_AVAILABLE' AND r.provider_code = ${selected.code} AND r.is_synthetic = false AND r.coverage_status = 'COVERED'`.execute(db)).rows.map((r) => r.plot_version_id);
+      // El resultado aplicable es el MÁS RECIENTE del proveedor seleccionado, real (no sintético), por versión de parcela: el mismo que muestra la instantánea.
+      // Un resultado anterior COVERED no sostiene el requisito si el vigente declara otra cobertura. Debe declarar COVERED.
+      const covered = (await satelliteInputs(db as never, orgId, versionIds))
+        .filter((a) => a.provider_code === selected.code && !a.is_synthetic && a.coverage_status === 'COVERED')
+        .map((a) => a.plot_version_id);
       if (!versionIds.every((v) => covered.includes(v))) return null;
       return `Proveedor ${selected.code}: resultado con cobertura para todas las versiones de parcela de origen. Insumo con sus límites; no es conclusión regulatoria.`;
     })();

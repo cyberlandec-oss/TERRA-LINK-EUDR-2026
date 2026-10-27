@@ -123,6 +123,9 @@ function navFor(ws: Workspace, orgId: string | null, t: (es: string) => string):
     if (ws.can('membership:read') || onboardingOnly) {
       admin.push({ href: `${base}/miembros`, label: onboardingOnly ? t('Incorporar administrador') : t('Miembros e invitaciones'), match: (p) => p.startsWith(`${base}/miembros`) });
     }
+    if (ws.can('membership:assign') || ws.isPlatformAdmin) {
+      admin.push({ href: `${base}/acceso-plataforma`, label: t('Acceso de plataforma'), match: (p) => p.startsWith(`${base}/acceso-plataforma`) });
+    }
     if (ws.can('traceability:read_catalog')) admin.push({ href: `${base}/perfil-juridico`, label: t('Perfil jurídico (configuración técnica)'), match: (p) => p.startsWith(`${base}/perfil-juridico`) });
     if (ws.can('import:manage')) admin.push({ href: `${base}/importaciones`, label: t('Importar datos (Excel)'), match: (p) => p.startsWith(`${base}/importaciones`) });
     if (ws.can('location:manage')) admin.push({ href: `${base}/centros`, label: t('Centros de acopio'), match: (p) => p.startsWith(`${base}/centros`) });
@@ -139,6 +142,7 @@ function navFor(ws: Workspace, orgId: string | null, t: (es: string) => string):
   if (ws.isPlatformAdmin) general.push({ href: '/plataforma/geolocalizacion', label: t('Reglas de geolocalización'), match: (p) => p.startsWith('/plataforma/geolocalizacion') });
   if (ws.isPlatformAdmin) general.push({ href: '/plataforma/perfil-juridico', label: t('Revisión de perfiles jurídicos'), match: (p) => p.startsWith('/plataforma/perfil-juridico') });
   if (ws.isPlatformAdmin) general.push({ href: '/plataforma/catalogo-riesgo', label: t('Catálogo de riesgo y perfil jurídico'), match: (p) => p.startsWith('/plataforma/catalogo-riesgo') });
+  if (ws.isPlatformAdmin) general.push({ href: '/plataforma/observabilidad', label: t('Observabilidad'), match: (p) => p.startsWith('/plataforma/observabilidad') });
   // Portal del destinatario: la pantalla existe para cualquier cuenta; sin concesión vigente muestra un vacío explicado.
   if (!ws.isPlatformAdmin) general.push({ href: '/compartido', label: t('Compartido conmigo'), match: (p) => p.startsWith('/compartido') });
   general.push({ href: '/cuenta', label: t('Mi cuenta'), match: (p) => p.startsWith('/cuenta') });
