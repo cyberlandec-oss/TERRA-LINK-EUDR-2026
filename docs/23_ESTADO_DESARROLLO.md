@@ -1,6 +1,6 @@
 # Estado compartido de desarrollo
 
-Última actualización: **2026-10-20** (continuidad; ver «Próxima acción (2026-10-20)»). Repositorio `cyberlandec-oss/TERRA-LINK-2025`, rama de trabajo `feat/tech-001-ci-p0-002` (PR #1 abierto como respaldo y revisión; `main` en `03bb2f6`).
+Última actualización: **2026-10-20** (continuidad; ver «Próxima acción (2026-10-20)»). Repositorio de referencia `cyberlandec-oss/TERRA-LINK-EUDR-2026` (`TERRA-LINK-2025` queda como histórico), rama de trabajo `fix/next-seguridad-16-4-2` (`main` en `03bb2f6`, atrasada). Estado más reciente: sección «AJ-07b y AJ-08» al final.
 
 **Seguimiento por historias (cifras al 2026-10-19, ver `sesiones/REANUDAR_2026-10-19.md`)** (cuenta **historias del MVP**, no esfuerzo):
 
@@ -735,3 +735,8 @@ Candidato `29ab9bf`: `npm run validate` **APROBADA** (`validation-results/2026-1
 
 ## AJ-07 Whisp: envío incierto, original y descarga (2026-10-25)
 `210d8f5`: `npm run validate` **APROBADA** desde copia limpia en SSD con base de pruebas en memoria (cuatro ejecuciones previas FALLIDAS por la latencia del disco USB del proyecto y de Docker; conservadas en `validation-results/`). Migración `0068` desplegada y respaldada con restauración aislada; demostración 7/7 solo lectura. **Whisp real NO EJECUTADO.** Pendiente: entrega 2 (riesgo/expediente). Detalle: `qa/EVIDENCIA_AJ07_ENVIO_INCIERTO_ORIGINAL_Y_DESCARGA_2026-10-25.md`.
+
+## AJ-07b y AJ-08: comprobación dirigida (2026-10-27)
+Sobre `acec2cc` (AJ-07b `e4b5db9`/`7b48c1f`; AJ-08 `bd60914`/`ff0df37`; ya subidos). **Pruebas dirigidas, no `npm run validate`**: unitarias `src/satellite`, `src/dd`, `src/risk` e integración `test/satellite.int-spec.ts`, `test/satelite-riesgo-expediente.int-spec.ts`, `test/dd.int-spec.ts` contra PostgreSQL/PostGIS real (`terra_link_test`): **7 suites aprobadas, 111 pruebas OK, 55 omitidas** (ensayos que requieren el servicio real; **ensayo Whisp real NO EJECUTADO**). Typecheck y lint de la API sin errores.
+Hallazgo: la prueba de integración AJ-08 (`bd60914`) no había llegado a ejecutarse con éxito y fallaba por dos defectos del fixture, no del producto: insertaba `raw_sha256` sin `raw_object_key` (viola `satellite_results_raw`) y usaba la columna inexistente `satellite_providers.selected_at`. Corregidos solo en la prueba; tras ello H7 (instantánea de riesgo con frescura; sintético rotulado) y H8 (expediente: «recibido» frente a «criterio satisfecho») pasan.
+Estado: **implementado y comprobado localmente de forma dirigida**. Falta la validación integral del candidato (`npm run validate`) y la aceptación con servicio real. Entorno: faltaba el runtime de Visual C++ (Jest no cargaba `unrs-resolver`; instalado `Microsoft.VCRedist.2015+.x64`) y la base `terra_link_test` (al recrear el volumen, el script de inicio no se montó por la ruta con espacios y se aplicó a mano).

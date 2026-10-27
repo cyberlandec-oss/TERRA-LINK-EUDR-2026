@@ -46,15 +46,15 @@ describeDb('AJ-08 análisis satelital → riesgo → expediente', () => {
       finished_at: new Date(), requested_by: uid, operation_id: randomUUID(),
     } as never).execute();
     const res = randomUUID();
-    await sql`INSERT INTO satellite_results (id, organization_id, job_id, provider_code, is_synthetic, method, coverage_status, coverage_note, limitations, indicators, raw_sha256)
-      VALUES (${res}, ${orgA}, ${job}, ${over.provider}, ${over.synthetic}, 'metodo de prueba', ${over.coverage}, 'nota de cobertura de prueba', 'Resultado sintético de prueba AJ-08.', '{}'::jsonb, ${'a'.repeat(64)})`.execute(h.db);
+    await sql`INSERT INTO satellite_results (id, organization_id, job_id, provider_code, is_synthetic, method, coverage_status, coverage_note, limitations, indicators, raw_object_key, raw_sha256)
+      VALUES (${res}, ${orgA}, ${job}, ${over.provider}, ${over.synthetic}, 'metodo de prueba', ${over.coverage}, 'nota de cobertura de prueba', 'Resultado sintético de prueba AJ-08.', '{}'::jsonb, ${`aj08/${res}.json`}, ${'a'.repeat(64)})`.execute(h.db);
     return { job, res };
   }
   const setSelected = async (code: string | null) => {
-    await sql`UPDATE satellite_providers SET selection_status = 'PROPOSED', selected_by = NULL, decision_reference = NULL, selected_at = NULL WHERE selection_status = 'SELECTED'`.execute(h.db).catch(() => undefined);
+    await sql`UPDATE satellite_providers SET selection_status = 'PROPOSED', selected_by = NULL, decision_reference = NULL WHERE selection_status = 'SELECTED'`.execute(h.db).catch(() => undefined);
     if (!code) return;
     const uid = (await h.db.selectFrom('users').select('id').where('email', '=', ADMIN).executeTakeFirstOrThrow()).id;
-    await sql`UPDATE satellite_providers SET selection_status = 'SELECTED', selected_by = ${uid}, decision_reference = 'prueba AJ-08', selected_at = now() WHERE code = ${code}`.execute(h.db);
+    await sql`UPDATE satellite_providers SET selection_status = 'SELECTED', selected_by = ${uid}, decision_reference = 'prueba AJ-08' WHERE code = ${code}`.execute(h.db);
   };
 
   beforeAll(async () => {
