@@ -1,5 +1,7 @@
 # Estado, fuentes y nivel de certeza
 
+> **Nota (2026-10-20):** este documento describe la **línea base de la primera entrega** y se conserva como referencia histórica. El estado actual del repositorio, las historias y la cobertura están en `23_ESTADO_DESARROLLO.md` y `sesiones/REANUDAR_2026-10-19.md`.
+
 ## Lo que se ha revisado
 
 Se leyeron los cuatro archivos entregados: documentación técnica maestra v0.1, negocio real, mapa competitivo y workflows. Se consultó la guía de DataCamp por su URL canónica porque el enlace corto no abrió; se contrastó el mecanismo de instrucciones con la documentación oficial de Claude Code. Se consultaron páginas oficiales de la Comisión Europea para separar preparación interna de presentación regulatoria.

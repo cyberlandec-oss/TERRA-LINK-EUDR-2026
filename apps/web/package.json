@@ -2,7 +2,9 @@
   "name": "@terra-link/web",
   "private": true,
   "scripts": {
+    "predev": "node scripts/copiar-maplibre.mjs",
     "dev": "next dev -p 3000",
+    "prebuild": "node scripts/copiar-maplibre.mjs",
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
@@ -19,7 +21,9 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
+    "maplibre-gl": "^6.15.0",
     "next": "^16.4.0",
+    "pmtiles": "^4.5.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   }

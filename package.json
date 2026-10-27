@@ -2,17 +2,19 @@
   "name": "terra-link",
   "private": true,
   "description": "Terra Link — trazabilidad y debida diligencia de cacao (AG TECH EC)",
-  "workspaces": ["apps/api", "apps/web"],
-  "engines": { "node": ">=22" },
+  "workspaces": ["apps/api", "apps/web", "e2e"],
+  "engines": { "node": ">=22.9" },
   "scripts": {
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",
     "db:migrate": "npm run migrate --workspace apps/api",
     "dev:api": "npm run dev --workspace apps/api",
     "dev:web": "npm run dev --workspace apps/web",
-    "typecheck": "npm run typecheck --workspaces",
-    "lint": "npm run lint --workspaces",
-    "test": "npm run test --workspaces",
-    "build": "npm run build --workspaces"
+    "typecheck": "npm run typecheck -w apps/api -w apps/web",
+    "lint": "npm run lint -w apps/api -w apps/web",
+    "test": "npm run test -w apps/api -w apps/web",
+    "build": "npm run build -w apps/api -w apps/web",
+    "test:e2e": "npm run test -w e2e",
+    "validate": "node scripts/validate-local.mjs"
   }
 }

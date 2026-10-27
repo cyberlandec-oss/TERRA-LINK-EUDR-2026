@@ -28,7 +28,7 @@ import { CurrentUser, type AuthUser, type AuthedRequest } from '../auth/auth';
 class CreateOrganizationDto {
   @ApiProperty() @IsString() @Length(1, 200) name!: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(300) legal_name?: string;
-  @ApiProperty({ description: 'Código en mayúsculas; catálogo pendiente (D-18)', example: 'EXPORTER' })
+  @ApiProperty({ description: 'Código del catálogo provisional D-18 (GET /api/v1/catalog/organization-types)', example: 'EXPORTER' })
   @Matches(/^[A-Z_]{2,40}$/)
   organization_type!: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(40) tax_id?: string;
@@ -96,6 +96,12 @@ export class OrganizationsService {
   async create(user: AuthUser, dto: CreateOrganizationDto, requestId?: string) {
     this.authz.requirePlatform(user, 'organization:create');
     return this.db.transaction().execute(async (trx) => {
+      const type = await trx.selectFrom('organization_types').select('status').where('code', '=', dto.organization_type).executeTakeFirst();
+      if (!type || type.status === 'RETIRED' || type.status === 'LEGACY') {
+        throw new AppError(422, 'ORGANIZATION_TYPE_UNKNOWN', 'Elige un tipo de organización del catálogo.', [
+          { field: 'organization_type', reason: 'NOT_IN_CATALOG' },
+        ]);
+      }
       let adminId: string | null = null;
       if (dto.initial_admin_email) {
         const admin = await trx
@@ -279,5 +285,23 @@ export class OrganizationsController {
   @HttpCode(200)
   reactivate(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: StatusChangeDto, @Req() req: AuthedRequest) {
     return this.service.changeStatus(user, id, 'ACTIVE', dto.reason, req.requestId);
+  }
+}
+
+@ApiTags('catalog')
+@ApiBearerAuth()
+@Controller('api/v1/catalog')
+export class CatalogController {
+  constructor(@Inject(DB) private readonly db: Kysely<Database>) {}
+
+  // D-18: catálogo PROVISIONAL (no ratificado). El tipo no concede permisos.
+  @Get('organization-types')
+  async organizationTypes() {
+    return this.db
+      .selectFrom('organization_types')
+      .select(['code', 'label_es', 'status'])
+      .where('status', 'in', ['PROVISIONAL', 'RATIFIED'])
+      .orderBy('sort_order')
+      .execute();
   }
 }

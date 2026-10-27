@@ -25,6 +25,18 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+  # Escáner antimalware local (P0-018): ClamAV clamd por TCP (INSTREAM). Firmas en volumen propio.
+  scanner:
+    image: clamav/clamav:1.4
+    # Solo accesible desde este equipo (API/pruebas locales) y la red interna de compose; no desde la LAN.
+    ports: ["127.0.0.1:${SCANNER_PORT:-3310}:3310"]
+    volumes: ["scanner-db:/var/lib/clamav", "./infra/clamav/clamd.conf:/etc/clamav/clamd.conf:ro"]
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 120s
   # S3 compatible local (VersityGW, backend posix). MinIO ya no publica imágenes en Docker Hub.
   object-storage:
     image: versity/versitygw:v1.8.0
@@ -34,6 +46,163 @@ services:
       ROOT_SECRET_KEY: ${S3_SECRET_KEY:?definir en .env}
     ports: ["${S3_PORT:-9000}:9000"]
     volumes: [object-data:/data]
+  # Aplicación en contenedores (opcional): `docker compose --profile app up -d --build --wait`.
+  # Secretos desde .env en tiempo de ejecución; nunca se copian a las imágenes.
+  migrate:
+    profiles: [app]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        # La calcula `scripts/desplegar.mjs`; vacío si se construye a mano, y entonces /version lo declara así.
+        APP_COMMIT: "${APP_COMMIT:-}"
+    image: terra-link-api:local
+    command: ["node", "dist/db/migrate-cli.js"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      PII_KEYS: ${PII_KEYS:?definir en .env}
+      PII_ACTIVE_KEY_ID: ${PII_ACTIVE_KEY_ID:?definir en .env}
+      PII_INDEX_KEY: ${PII_INDEX_KEY:?definir en .env}
+      S3_ENDPOINT: http://object-storage:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?definir en .env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?definir en .env}
+      S3_BUCKET: ${S3_BUCKET:-terra-link-private}
+      SCANNER_HOST: scanner
+    depends_on:
+      postgres: { condition: service_healthy }
+  api:
+    profiles: [app]
+    image: terra-link-api:local
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:?definir en .env}
+      JWT_TTL_SECONDS: ${JWT_TTL_SECONDS:-3600}
+      PII_KEYS: ${PII_KEYS:?definir en .env}
+      PII_ACTIVE_KEY_ID: ${PII_ACTIVE_KEY_ID:?definir en .env}
+      PII_INDEX_KEY: ${PII_INDEX_KEY:?definir en .env}
+      S3_ENDPOINT: http://object-storage:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?definir en .env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?definir en .env}
+      S3_BUCKET: ${S3_BUCKET:-terra-link-private}
+      WEB_ORIGIN: http://localhost:${WEB_HOST_PORT:-3000}
+      API_PORT: 4000
+      SCANNER_HOST: scanner
+      # Llamadas satelitales REALES. Encenderlas envía geometrías de productores a un tercero y exige la
+      # aprobación de D-09 parte B. Se declara `disabled` EXPLÍCITAMENTE y no por omisión: el valor por defecto
+      # del código ya es desactivado, pero un despliegue no debe depender de que nadie haya definido la variable.
+      # `${SATELLITE_LIVE_CALLS:-disabled}` deja la decisión en .env sin que el olvido la encienda.
+      # Destinos de webhook en direcciones INTERNAS (P1-008). Un destino que resuelve a la red privada
+      # permitiría usar la configuración para alcanzar servicios internos, así que por defecto se RECHAZA.
+      # Se declara `false` explícitamente y no por omisión: el valor por defecto del código ya es rechazar,
+      # pero un despliegue no debe depender de que nadie haya definido la variable. Solo se enciende para
+      # demostrar el recorrido contra un receptor local, y la API lo DECLARA en su respuesta cuando está así.
+      WEBHOOK_ALLOW_LOCAL: ${WEBHOOK_ALLOW_LOCAL:-false}
+      SATELLITE_LIVE_CALLS: ${SATELLITE_LIVE_CALLS:-disabled}
+      # A-01: proveedor local de ENSAYO (datos sintéticos rotulados). Apagado por omisión; solo se enciende para la demostración.
+      SATELLITE_FIXTURE_ENABLED: ${SATELLITE_FIXTURE_ENABLED:-false}
+      # Acceso federado OIDC (P1-015 / D-54). Deshabilitado por omisión; con `SSO_ENABLED=true` en .env y el perfil
+      # `sso` (Keycloak local de ensayo) el acceso con contraseña sigue disponible. El emisor es el que ve el
+      # navegador (localhost); la API descubre al proveedor por el nombre de servicio dentro de Docker.
+      SSO_ENABLED: ${SSO_ENABLED:-false}
+      SSO_OIDC_ISSUER: ${SSO_OIDC_ISSUER:-}
+      SSO_OIDC_DISCOVERY_URL: ${SSO_OIDC_DISCOVERY_URL:-}
+      SSO_OIDC_CLIENT_ID: ${SSO_OIDC_CLIENT_ID:-terra-link-web}
+      SSO_REDIRECT_URIS: ${SSO_REDIRECT_URIS:-}
+      SSO_LABEL: ${SSO_LABEL:-Keycloak (ensayo local)}
+    ports: ["${API_HOST_PORT:-4000}:4000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+      object-storage: { condition: service_started }
+      scanner: { condition: service_healthy }
+  # Proveedor de identidad LOCAL DE ENSAYO (P1-015 / D-54): Keycloak autoalojado. No es un proveedor de un cliente.
+  # Perfil propio (`--profile sso`), sin volumen (la base H2 es efímera) y solo en localhost. El administrador inicial
+  # sale de .env (KEYCLOAK_ADMIN_PASSWORD); los usuarios de ensayo se crean con `e2e/review/sso-keycloak.mjs`, sin
+  # contraseñas en el repositorio.
+  keycloak:
+    profiles: [sso]
+    image: quay.io/keycloak/keycloak:26.0.7
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-}
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_HOST_PORT:-8180}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./infra/sso/realm-terra-link-dev.json:/opt/keycloak/data/import/realm-terra-link-dev.json:ro
+    ports: ["127.0.0.1:${KEYCLOAK_HOST_PORT:-8180}:8080"]
+  worker:
+    profiles: [app]
+    image: terra-link-api:local
+    command: ["node", "dist/worker-main.js"]
+    # La imagen de la API comprueba /health/live, que el worker no sirve; se reinicia si el proceso cae.
+    healthcheck: { disable: true }
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      OUTBOX_POLL_MS: ${OUTBOX_POLL_MS:-1000}
+      # Desde P1-008 el worker DESCIFRA el secreto de firma de cada destino de webhook, con el mismo
+      # mecanismo que los datos personales. Sin estas claves el worker no arranca, y debe ser así: entregar
+      # sin firmar sería peor que no entregar.
+      PII_KEYS: ${PII_KEYS:?definir en .env}
+      PII_ACTIVE_KEY_ID: ${PII_ACTIVE_KEY_ID:?definir en .env}
+      PII_INDEX_KEY: ${PII_INDEX_KEY:?definir en .env}
+      S3_ENDPOINT: http://object-storage:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?definir en .env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?definir en .env}
+      S3_BUCKET: ${S3_BUCKET:-terra-link-private}
+      STORAGE_SWEEP_MS: ${STORAGE_SWEEP_MS:-600000}
+      # El worker ejecuta los trabajos satelitales: aquí importa igual o más que en la API.
+      SATELLITE_LIVE_CALLS: ${SATELLITE_LIVE_CALLS:-disabled}
+      # A-01: proveedor local de ENSAYO (datos sintéticos rotulados). Apagado por omisión; solo se enciende para la demostración.
+      SATELLITE_FIXTURE_ENABLED: ${SATELLITE_FIXTURE_ENABLED:-false}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    # Se puede escalar (`--scale worker=2`): el reclamo usa FOR UPDATE SKIP LOCKED.
+  web:
+    profiles: [app]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${API_HOST_PORT:-4000}
+        # Cartografía LOCAL (A-01): la web nunca consulta teselas, estilos ni fuentes de un tercero.
+        NEXT_PUBLIC_MAPS_URL: http://localhost:${MAPS_HOST_PORT:-8090}
+    image: terra-link-web:local
+    ports: ["${WEB_HOST_PORT:-3000}:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+  # A-01 — Cartografía local. Sirve teselas vectoriales (PMTiles), estilo y fuentes tipográficas desde el volumen map-data, que se llena con
+  # `node infra/maps/preparar-mapa.mjs` (datos públicos de OpenStreetMap, Geofabrik). Sin datos, responde 404 y la web lo declara.
+  maps:
+    profiles: [app]
+    image: nginx:1.27-alpine
+    ports: ["${MAPS_HOST_PORT:-8090}:80"]
+    volumes:
+      - map-data:/usr/share/nginx/html:ro
+      - ./infra/maps/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/salud"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  # Preparación del mapa (perfil maps-prep; no forma parte del despliegue normal). Ver infra/maps/README.md.
+  map-fuentes:
+    profiles: [maps-prep]
+    image: alpine:3.20
+    volumes:
+      - map-data:/data
+      - ./infra/maps:/infra:ro
+  map-teselas:
+    profiles: [maps-prep]
+    image: ghcr.io/onthegomap/planetiler:0.10.2
+    volumes:
+      - map-data:/data
 volumes:
   postgres-data:
   object-data:
+  scanner-db:
+  map-data:

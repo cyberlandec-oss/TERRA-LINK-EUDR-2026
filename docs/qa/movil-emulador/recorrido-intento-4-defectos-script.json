@@ -1,0 +1,184 @@
+{
+  "entorno": "EMULADOR Android (no teléfono físico)",
+  "pasos": [
+    {
+      "paso": "preparar",
+      "en": "2026-10-11T18:54:25.440Z",
+      "ok": true,
+      "detalle": "Permisos de ubicación y cámara concedidos por adb; posición EMULADA -0.8479, -80.1601; proxy en modo pass",
+      "captura": null
+    },
+    {
+      "paso": "login",
+      "en": "2026-10-11T18:55:48.830Z",
+      "ok": true,
+      "detalle": "Inicio de sesión online como tecnico1 (DEMO) y organización DEMO · Cooperativa",
+      "captura": "docs/qa/capturas/movil-emulador/01-mi-jornada.png"
+    },
+    {
+      "paso": "descargar-asignaciones",
+      "en": "2026-10-11T18:56:04.929Z",
+      "ok": true,
+      "detalle": "5 parcela(s) autorizadas descargadas",
+      "captura": "docs/qa/capturas/movil-emulador/02-descarga.png"
+    },
+    {
+      "paso": "capturar",
+      "en": "2026-10-11T18:57:14.439Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Ubicación guardada en el borrador/ en 40000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/03-fallo-capturar.png"
+    },
+    {
+      "paso": "foto",
+      "en": "2026-10-11T18:58:13.615Z",
+      "ok": true,
+      "detalle": "Foto de la cámara VIRTUAL del emulador (escena sintética); metadatos quitados por la app",
+      "captura": "docs/qa/capturas/movil-emulador/04-foto.png"
+    },
+    {
+      "paso": "capturar-ubicacion (verificación posterior)",
+      "en": "2026-10-11T18:58:53.846Z",
+      "ok": true,
+      "detalle": "Muestra EMULADA registrada en el borrador (Lat -0.847900, Lon -80.160098, precisión 5 m informada, procedencia «servicio de ubicación del dispositivo»); llegó después de los 40 s de espera del paso automático (arranque en frío del proveedor fused)",
+      "captura": "docs/qa/capturas/movil-emulador/05-ubicacion-verificada.png"
+    },
+    {
+      "paso": "guardar-offline",
+      "en": "2026-10-11T19:01:10.816Z",
+      "ok": true,
+      "detalle": {
+        "modo_red": "offline (proxy)",
+        "operaciones": [
+          "Muestra de ubicación:07b0a762",
+          "Foto:a87abdb5"
+        ]
+      },
+      "captura": "docs/qa/capturas/movil-emulador/07-pendientes-offline.png"
+    },
+    {
+      "paso": "cierre-forzado-y-reapertura",
+      "en": "2026-10-11T19:01:42.366Z",
+      "ok": true,
+      "detalle": {
+        "antes": [
+          "Muestra de ubicación:07b0a762",
+          "Foto:a87abdb5"
+        ],
+        "despues": [
+          "Muestra de ubicación:07b0a762",
+          "Foto:a87abdb5"
+        ]
+      },
+      "captura": "docs/qa/capturas/movil-emulador/08-tras-reapertura.png"
+    },
+    {
+      "paso": "interrupcion-tras-commit",
+      "en": "2026-10-11T19:02:08.974Z",
+      "ok": true,
+      "detalle": {
+        "respuesta_cortada": true,
+        "operaciones_confirmadas_en_servidor": 2,
+        "muestras_creadas": 1
+      },
+      "captura": "docs/qa/capturas/movil-emulador/09-sync-cortada.png"
+    },
+    {
+      "paso": "reintento-sin-duplicar",
+      "en": "2026-10-11T19:02:40.112Z",
+      "ok": true,
+      "detalle": {
+        "muestras_tras_reintento": 1,
+        "filas_sync": 2,
+        "ids_mostrados": [
+          "Muestra de ubicación:07b0a762",
+          "Foto:a87abdb5"
+        ],
+        "mismos_ids": true
+      },
+      "captura": "docs/qa/capturas/movil-emulador/10-sync-reintento.png"
+    },
+    {
+      "paso": "foto-sin-analisis-no-disponible",
+      "en": "2026-10-11T19:02:57.373Z",
+      "ok": true,
+      "detalle": {
+        "app": "archivo recibido, análisis pendiente",
+        "documentos": "SCAN_FAILED",
+        "descargable": false,
+        "tipo": "FIELD_PHOTO"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/11-foto-analisis-pendiente.png"
+    },
+    {
+      "paso": "foto-disponible-tras-analisis",
+      "en": "2026-10-11T19:03:48.611Z",
+      "ok": true,
+      "detalle": {
+        "reintento_analisis": 200,
+        "documentos": "AVAILABLE",
+        "app": "archivo disponible en el servidor"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/12-foto-disponible.png"
+    },
+    {
+      "paso": "conflicto-visible",
+      "en": "2026-10-11T19:04:58.348Z",
+      "ok": true,
+      "detalle": {
+        "edicion_web_http": 201,
+        "version_servidor": 5
+      },
+      "captura": "docs/qa/capturas/movil-emulador/13-conflicto.png"
+    },
+    {
+      "paso": "conflicto-resuelto",
+      "en": "2026-10-11T19:05:31.410Z",
+      "ok": true,
+      "detalle": {
+        "servidor": [
+          "ACCEPTED:895b8218-c033-433a-8d94-31758ece1ee4",
+          "CONFLICT:-"
+        ]
+      },
+      "captura": "docs/qa/capturas/movil-emulador/14-conflicto-resuelto.png"
+    },
+    {
+      "paso": "cambioCuenta",
+      "en": "2026-10-11T19:05:56.940Z",
+      "ok": false,
+      "detalle": "excepción: Cannot read properties of undefined (reading 'bounds')",
+      "captura": "docs/qa/capturas/movil-emulador/15-fallo-cambioCuenta.png"
+    },
+    {
+      "paso": "sesion-vencida-bloquea-sin-borrar",
+      "en": "2026-10-11T19:06:34.625Z",
+      "ok": false,
+      "detalle": "reloj del emulador +2 h: captura bloqueada; pendientes visibles",
+      "captura": "docs/qa/capturas/movil-emulador/16-sesion-vencida.png"
+    },
+    {
+      "paso": "reloj-atrasado-bloquea",
+      "en": "2026-10-11T19:06:59.009Z",
+      "ok": true,
+      "detalle": "reloj del emulador −1 día: bloqueo por reloj atrasado",
+      "captura": "docs/qa/capturas/movil-emulador/17-reloj-atrasado.png"
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-11T19:07:20.737Z",
+      "ok": false,
+      "detalle": "excepción: Command failed: C:/Users/mario/AppData/Local/Android/Sdk/platform-tools/adb.exe shell fallocate -l 5679M /data/local/tmp/tl-relleno\nfallocate: fallocate: No space left on device\r\n",
+      "captura": "docs/qa/capturas/movil-emulador/18-fallo-almacenamientoLleno.png"
+    },
+    {
+      "paso": "dispositivo-revocado",
+      "en": "2026-10-11T19:07:46.067Z",
+      "ok": false,
+      "detalle": {
+        "revocados": 1
+      },
+      "captura": "docs/qa/capturas/movil-emulador/19-revocado.png"
+    }
+  ]
+}

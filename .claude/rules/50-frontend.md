@@ -8,7 +8,9 @@ paths:
 ---
 # Web y UX
 
-Consulta docs/14_UX_ROLES_Y_WORKFLOWS.md y contratos del caso.
+Consulta docs/UX_UI.md (marca, tokens, componentes, estados, roles) y docs/14 (workflows) antes de cambiar una pantalla.
+Tokens únicos en apps/web/app/globals.css; no crear otra fuente de estilos. Sin logo oficial: identificación textual (UX-D01).
+Solo superficies conectadas a operaciones reales; módulos futuros fuera del menú.
 Home/menu/links/acciones derivan de permisos efectivos; backend sigue siendo autoridad.
 Separar loading, vacío, 403, error, datos incompletos y offline.
 No reemplazar acceso restringido por «sin datos» ni llenar KPIs con cifras ficticias.

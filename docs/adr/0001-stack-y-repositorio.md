@@ -16,17 +16,18 @@ La primera auditoría del 2026-10-09 inspeccionó por error otro proyecto (`cybe
 
 | Componente | Elección | Versión fijada (lockfile) | Motivo |
 | --- | --- | --- | --- |
-| Repositorio | Monorepo npm workspaces (`apps/api`, `apps/web`; `apps/mobile` en su historia) | npm 11, Node ≥22 (probado con 24.12) | Contratos y tipos compartidos; un CI |
-| API | NestJS 11 + Express | 11.x | S1. NestJS 12 se publica solo como ESM y es incompatible con el arnés CJS/ts-jest; actualizar es decisión aparte |
-| Acceso a datos | Kysely 0.28 + `pg` (SQL explícito, migraciones TS versionadas) | 0.28.x | PostGIS y FKs compuestas por tenant requieren SQL explícito; los ORM con tipos espaciales «Unsupported» lo dificultan. Kysely 0.29 es solo ESM |
+| Repositorio | Monorepo npm workspaces (`apps/api`, `apps/web`; `apps/mobile` en su historia) | npm 11, Node ≥22.9 (`--env-file-if-exists`; probado con 24.12) | Contratos y tipos compartidos; un CI |
+| API | NestJS 11 + Express | 11.x | S1. NestJS 12 se publica como ESM (`"type": "module"` en `@nestjs/core@12.1.2`): es una restricción del **arnés** (salida CommonJS + ts-jest), no un defecto del paquete. Migrar a NestJS 12 exige un arnés ESM; decisión aparte |
+| Acceso a datos | Kysely 0.28 + `pg` (SQL explícito, migraciones TS versionadas) | 0.28.17 | PostGIS y FKs compuestas por tenant requieren SQL explícito. Kysely 0.28.17 publica build dual (`exports['.'].require → dist/cjs`); 0.29.6 solo expone ESM (sin condición `require`). Mismo motivo de arnés |
 | Base | PostgreSQL 16 + PostGIS 3.4 (`postgis/postgis:16-3.4`) | — | S1 |
 | Web | Next.js 16 (App Router) + React 19 | 16.4 / 19.3 | S1 |
 | Móvil | React Native/Expo + SQLite | se fija en P0-023 | S1; no se crea hasta su historia |
-| Cola | Redis 7.4 (servicio levantado); BullMQ cuando exista el primer job | — | S1 |
-| Objetos | S3 compatible; local VersityGW `v1.8.0` | — | MinIO ya no publica imagen en Docker Hub (pull denegado el 2026-10-09) |
+| Cola / estado compartido | Redis 7.4 (`ioredis` 5): ya usado por el límite de intentos de login; BullMQ cuando exista el primer job | — | S1 |
+| Objetos | S3 compatible; local VersityGW `v1.8.0` | — | Reproducido el 2026-10-09: `docker pull minio/minio:latest` → «pull access denied» (control `redis:7.4-alpine` sí resuelve). Fuentes secundarias indican que MinIO dejó de publicar la imagen comunitaria en Docker Hub (oct. 2025); no se encontró comunicado oficial vigente. Alternativas: `quay.io/minio/minio` (congelada), Chainguard |
 | Auth | Local email/contraseña argon2id + JWT HS256 de corta vida | — | ADR-0005 (OIDC pendiente) |
-| Pruebas | Jest 30 + ts-jest (API, integración con PostgreSQL real); Vitest (web) | — | |
-| TypeScript | 5.9.3 | — | TS 7 no es compatible con ts-jest 29 |
+| Pruebas | Jest 30 + ts-jest (API, integración con PostgreSQL y Redis reales); Vitest (web); Playwright 1.64 + Chromium (E2E, `e2e/`) | — | |
+| Validación | **Local**: `npm run validate` (scripts/validate-local.mjs). Workflow de Actions inactivo como referencia en `infra/ci/github-actions-ci.yml` | — | Etapa de desarrollo local; mismas comprobaciones en el equipo |
+| TypeScript | 5.9.3 | — | `ts-jest@29.4.14` declara `peerDependencies.typescript: ">=4.3 <7"` (verificado con `npm view`) |
 
 Estructura: módulos por dominio en `apps/api/src/<módulo>` (dominio, caso de uso, persistencia y API). Las migraciones viven en `apps/api/src/db/migrations` y se registran explícitamente en `database.ts`.
 

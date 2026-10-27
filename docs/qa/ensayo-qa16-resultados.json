@@ -1,0 +1,67 @@
+{
+  "instancia": "ENSAYO_DE_RESTAURACION_QA16",
+  "api": "http://localhost:4010",
+  "fecha": "2026-10-15T02:32:23.278Z",
+  "resultados": [
+    {
+      "caso": "acceso y organización",
+      "estado": "OK",
+      "detalle": "cuatro sesiones abiertas contra la copia; organización «DEMO · Cooperativa Río Verde» legible"
+    },
+    {
+      "caso": "permisos por rol",
+      "estado": "OK",
+      "detalle": "ORG_ADMIN 77 permisos, AUDITOR 20; solo del admin: producer:create, producer:read_identity, lot:create; compartidos: producer:read, plot:read, report:read"
+    },
+    {
+      "caso": "denegación entre organizaciones",
+      "estado": "OK",
+      "detalle": "la administración de «DEMO · Acopio San Isidro» pide productores de la cooperativa → 404, sin datos"
+    },
+    {
+      "caso": "lectura del dato restaurado",
+      "estado": "OK",
+      "detalle": "productores=8 parcelas=6 entregas=3 lotes=3; conciliación de inventario: 0 diferencias"
+    },
+    {
+      "caso": "descifrado con permiso",
+      "estado": "OK",
+      "detalle": "el administrador lee la identidad restaurada (descifrada con las claves del respaldo); el auditor no la recibe"
+    },
+    {
+      "caso": "documentos restaurados",
+      "estado": "OK",
+      "detalle": "2/2 descargados del almacén restaurado con sha256 y tamaño exactos"
+    },
+    {
+      "caso": "historial, riesgo, expediente y reportes",
+      "estado": "OK",
+      "detalle": "lote LOT-2026-00003: 1 eventos, upstream y downstream legibles; evaluaciones de riesgo=0; expedientes=1; 11 indicadores (OK:7 CRITERION_UNDEFINED:1 UNKNOWN:3)"
+    },
+    {
+      "caso": "satélite tras la restauración",
+      "estado": "OK",
+      "detalle": "registro con 4 proveedores y selección SELECTED_FOR_DEVELOPMENT; live_calls_enabled=false; fixture_enabled=false. Trabajos y resultados: 0 en el respaldo (no había ninguno que recuperar)"
+    },
+    {
+      "caso": "recorrido operativo sobre la copia",
+      "estado": "OK",
+      "detalle": "productor → parcela → entrega (120 declarados) → recepción (115 recibidos) → lote LOT-2026-00004 con 115 KG en el ledger, todo rotulado «ENSAYO-QA16»"
+    },
+    {
+      "caso": "riesgo en la copia",
+      "estado": "BLOQUEO ESPERADO",
+      "detalle": "evaluación INCOMPLETE con severidad NOT_ASSESSED y conclusión UNDETERMINED (catálogo NOT_APPROVED)"
+    },
+    {
+      "caso": "satélite en la copia",
+      "estado": "BLOQUEO ESPERADO",
+      "detalle": "encargar un análisis → 409 SATELLITE_REQUESTS_NOT_AUTHORIZED; no se llamó a ningún proveedor"
+    },
+    {
+      "caso": "expediente en la copia",
+      "estado": "BLOQUEO ESPERADO",
+      "detalle": "readiness BLOCKED; 7 requisitos no evaluables: GEOLOCATION_PROFILE, DEFORESTATION_ANALYSIS, LEGAL_PROFILE, RISK_NO_BLOCKING_FINDINGS, RISK_CATALOG_APPROVED, REGULATORY_CONCLUSION, SHIPMENT_LINK"
+    }
+  ]
+}

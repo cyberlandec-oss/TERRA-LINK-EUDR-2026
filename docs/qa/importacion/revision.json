@@ -1,0 +1,68 @@
+{
+  "fecha": "2026-10-12T15:41:38.961Z",
+  "base": "http://localhost:3000",
+  "entorno": "DESARROLLO local (contenedores), datos DEMO",
+  "ok": true,
+  "casos": [
+    {
+      "caso": "admin: entrada de menú «Importar datos (Excel)»",
+      "ok": true,
+      "detalle": "",
+      "captura": null
+    },
+    {
+      "caso": "admin: descarga la plantilla",
+      "ok": true,
+      "detalle": "plantilla-productores_v1.xlsx",
+      "captura": "docs/qa/capturas/importacion/01-admin-plantilla.png"
+    },
+    {
+      "caso": "admin: columna sin equivalente queda «No importar»",
+      "ok": true,
+      "detalle": "columna G = ''",
+      "captura": null
+    },
+    {
+      "caso": "admin: archivo con errores muestra errores por fila y no se puede confirmar",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/02-admin-errores-por-fila.png"
+    },
+    {
+      "caso": "admin: vista previa del archivo válido (sin guardar)",
+      "ok": true,
+      "detalle": "reimportación: 2 sin cambios",
+      "captura": "docs/qa/capturas/importacion/03-admin-vista-previa.png"
+    },
+    {
+      "caso": "admin: confirmación con teclado (no aplicable: ya importado en una ejecución anterior)",
+      "ok": true,
+      "detalle": "ver reimportación",
+      "captura": null
+    },
+    {
+      "caso": "390 px: reimportación del mismo archivo = 2 sin cambios, nada que confirmar",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/05-390-reimportacion-sin-cambios.png"
+    },
+    {
+      "caso": "390 px: sin desplazamiento horizontal de la página",
+      "ok": true,
+      "detalle": "exceso 0px",
+      "captura": null
+    },
+    {
+      "caso": "supervisión (MANAGER): menú y plantilla disponibles",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/06-supervision-autorizado.png"
+    },
+    {
+      "caso": "técnico: sin entrada de menú y denegación explicada en la URL directa",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/07-tecnico-denegado.png"
+    }
+  ]
+}

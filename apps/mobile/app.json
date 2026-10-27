@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "Terra Link Campo",
+    "slug": "terra-link-campo",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Terra Link usa tu ubicación solo cuando capturas una muestra en una parcela.",
+        "NSCameraUsageDescription": "Terra Link usa la cámara para adjuntar fotos a una captura de campo."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F5F2E9",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "ec.agtech.terralink.campo",
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA"
+      ],
+      "allowBackup": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-sqlite",
+        {
+          "useSQLCipher": true
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Terra Link usa tu ubicación solo cuando capturas una muestra en una parcela."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Terra Link usa la cámara para adjuntar fotos a una captura de campo.",
+          "photosPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "scheme": "terralinkcampo"
+  }
+}

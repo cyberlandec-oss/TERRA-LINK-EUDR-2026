@@ -10,6 +10,8 @@ No copiar PII de producción a desarrollo. Datos sintéticos/anonimizados y cuen
 
 ## CI propuesto
 
+Etapa vigente: validación local con `npm run validate` (docs/20). El workflow de GitHub Actions queda como referencia inactiva en `infra/ci/github-actions-ci.yml` y se podrá reactivar en una etapa posterior.
+
 PR → lint/format-check → type/static-check → unitarias → integración DB/PostGIS → pruebas de seguridad pertinentes → contratos → build → staging → E2E → gate de producción. Usar checks concretos del repo y lockfile; cache no comparte datos/credenciales entre tenants.
 
 Especificar qué pruebas requieren servicios externos y qué fixtures se usan. Pipeline rojo no se «arregla» ignorando tests o habilitando flags que omiten validación. Versiones de runtime/dependencias deben fijarse en manifests y mantenerse con actualización comprobada.

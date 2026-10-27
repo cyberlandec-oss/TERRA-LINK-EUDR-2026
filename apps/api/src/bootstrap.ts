@@ -11,8 +11,9 @@ import type { Database } from './db/schema';
 export async function createApp(config: AppConfig, db: Kysely<Database>): Promise<INestApplication> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(config, db), { logger: ['error', 'warn', 'log'] });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
-  app.enableCors({ origin: config.webOrigin, credentials: false });
+  app.enableCors({ origin: config.webOrigin, credentials: false, exposedHeaders: ['Content-Disposition', 'X-Content-SHA256'] });
   app.useBodyParser('json', { limit: '1mb' });
+  app.set('trust proxy', config.trustProxy);
   return app;
 }
 
