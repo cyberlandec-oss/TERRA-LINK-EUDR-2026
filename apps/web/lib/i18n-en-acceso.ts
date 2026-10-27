@@ -32,6 +32,22 @@ export const EN_ACCESO: Record<string, string> = {
   'Tu contraseña (se comprueba de nuevo)': 'Your password (checked again)', 'Enviar solicitud': 'Send request',
 };
 
+// Gestión global de cuentas (listado mínimo, SUPER_ADMIN).
+export const EN_USUARIOS: Record<string, string> = {
+  'Usuarios de la plataforma': 'Platform users',
+  'Estado de las cuentas y organizaciones a las que pertenecen': 'Account status and the organizations they belong to',
+  'El listado es mínimo a propósito: nombre, estado y organizaciones. No muestra correos, roles ni datos operativos. Desactivar una cuenta cierra sus sesiones al instante, exige un motivo y queda en la auditoría.':
+    'The list is deliberately minimal: name, status and organizations. It shows no emails, roles or operational data. Deactivating an account closes its sessions immediately, requires a reason and is audited.',
+  'Cuenta desactivada: sus sesiones se cerraron.': 'Account deactivated: its sessions were closed.',
+  'Cuenta reactivada: deberá iniciar sesión de nuevo.': 'Account reactivated: the person must sign in again.',
+  'El cambio quedó registrado en la auditoría.': 'The change was recorded in the audit log.',
+  'Cargando usuarios…': 'Loading users…', 'No hay usuarios.': 'There are no users.',
+  'Aparecerán aquí cuando existan cuentas.': 'They will appear here when accounts exist.',
+  'Cuentas': 'Accounts', 'Nombre': 'Name', 'Organizaciones': 'Organizations', 'Plataforma': 'Platform',
+  'Activa': 'Active', 'Inactiva': 'Inactive', 'Tu cuenta': 'Your account', 'Desactivar': 'Deactivate', 'Reactivar': 'Reactivate',
+  'Motivo de la desactivación': 'Reason for deactivation', 'Motivo de la reactivación': 'Reason for reactivation',
+};
+
 // RNF-13 · observabilidad de la plataforma.
 export const EN_OBSERVABILIDAD: Record<string, string> = {
   'Observabilidad': 'Observability',

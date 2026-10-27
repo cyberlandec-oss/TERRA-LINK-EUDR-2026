@@ -1403,6 +1403,25 @@
         ]
       }
     },
+    "/api/v1/users": {
+      "get": {
+        "operationId": "UsersController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/api/v1/users/{userId}/deactivate": {
       "post": {
         "operationId": "UsersController_deactivate",

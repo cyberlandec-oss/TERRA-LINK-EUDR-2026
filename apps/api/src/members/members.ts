@@ -453,6 +453,31 @@ export class MembersService {
     });
   }
 
+  /**
+   * SUPER_ADMIN: listado global MÍNIMO para gestionar cuentas. Solo nombre, estado, si es de plataforma y nombres de
+   * organizaciones con membresía activa; sin correo, sin roles, sin datos operativos (decisión del propietario 2026-10-27).
+   */
+  async listUsers(user: AuthUser) {
+    this.authz.requirePlatform(user, 'user:deactivate');
+    const users = await this.db.selectFrom('users')
+      .select(['id', 'first_name', 'last_name', 'status', 'platform_role'])
+      .orderBy('last_name').orderBy('first_name').limit(500).execute();
+    const ms = await this.db.selectFrom('memberships as m')
+      .innerJoin('organizations as o', 'o.id', 'm.organization_id')
+      .select(['m.user_id', 'o.name'])
+      .where('m.status', '=', 'ACTIVE' as never)
+      .where('m.user_id', 'in', users.length ? users.map((u) => u.id) : ['00000000-0000-0000-0000-000000000000'])
+      .orderBy('o.name').execute();
+    const byUser = new Map<string, string[]>();
+    for (const r of ms) byUser.set(r.user_id, [...(byUser.get(r.user_id) ?? []), r.name]);
+    return {
+      users: users.map((u) => ({
+        user_id: u.id, name: `${u.first_name} ${u.last_name}`.trim(), status: u.status,
+        is_platform_admin: u.platform_role === 'SUPER_ADMIN', organizations: byUser.get(u.id) ?? [],
+      })),
+    };
+  }
+
   /** SUPER_ADMIN: desactiva/reactiva la cuenta global e invalida todas sus sesiones (token_version + 1). */
   async changeUser(user: AuthUser, userId: string, target: 'ACTIVE' | 'INACTIVE', reason: string, requestId?: string) {
     this.authz.requirePlatform(user, 'user:deactivate');
@@ -564,6 +589,11 @@ export class InvitationsController {
 @Controller('api/v1/users')
 export class UsersController {
   constructor(private readonly service: MembersService) {}
+
+  @Get()
+  list(@CurrentUser() user: AuthUser) {
+    return this.service.listUsers(user);
+  }
 
   @Post(':userId/deactivate')
   @HttpCode(200)

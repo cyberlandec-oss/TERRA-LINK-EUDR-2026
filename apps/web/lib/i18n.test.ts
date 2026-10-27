@@ -20,7 +20,7 @@ import { textosGuia } from './guia-documental';
 // P1-015 / D-54 — Español fuente, inglés segunda lengua (ADR-0007, opción B).
 const PANTALLAS = [
   'app/page.tsx', 'app/acceso/sso/page.tsx', 'app/cuenta/page.tsx', 'app/organizaciones/[id]/coste/page.tsx',
-  'app/organizaciones/[id]/limites/page.tsx', 'lib/workspace.tsx', 'lib/ui.tsx', 'lib/i18n.tsx', 'app/organizaciones/[id]/acceso-plataforma/page.tsx', 'app/plataforma/observabilidad/page.tsx',
+  'app/organizaciones/[id]/limites/page.tsx', 'lib/workspace.tsx', 'lib/ui.tsx', 'lib/i18n.tsx', 'app/organizaciones/[id]/acceso-plataforma/page.tsx', 'app/plataforma/observabilidad/page.tsx', 'app/plataforma/usuarios/page.tsx',
   // A-01: recorrido de captura de campo
   'app/organizaciones/[id]/captura/page.tsx', 'app/organizaciones/[id]/parcelas/page.tsx', 'app/organizaciones/[id]/parcelas/[plotId]/page.tsx',
   'lib/mi-ubicacion-panel.tsx', 'app/organizaciones/[id]/legalidad/page.tsx', 'lib/entity-documents.tsx', 'lib/document-upload.tsx', 'app/organizaciones/[id]/mi-finca/page.tsx', 'lib/field-capture.tsx', 'lib/field-evidence.tsx', 'lib/manual-capture.tsx', 'lib/location-capture.tsx', 'lib/polygon-capture.tsx',

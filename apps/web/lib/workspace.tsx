@@ -142,6 +142,7 @@ function navFor(ws: Workspace, orgId: string | null, t: (es: string) => string):
   if (ws.isPlatformAdmin) general.push({ href: '/plataforma/geolocalizacion', label: t('Reglas de geolocalización'), match: (p) => p.startsWith('/plataforma/geolocalizacion') });
   if (ws.isPlatformAdmin) general.push({ href: '/plataforma/perfil-juridico', label: t('Revisión de perfiles jurídicos'), match: (p) => p.startsWith('/plataforma/perfil-juridico') });
   if (ws.isPlatformAdmin) general.push({ href: '/plataforma/catalogo-riesgo', label: t('Catálogo de riesgo y perfil jurídico'), match: (p) => p.startsWith('/plataforma/catalogo-riesgo') });
+  if (ws.isPlatformAdmin) general.push({ href: '/plataforma/usuarios', label: t('Usuarios de la plataforma'), match: (p) => p.startsWith('/plataforma/usuarios') });
   if (ws.isPlatformAdmin) general.push({ href: '/plataforma/observabilidad', label: t('Observabilidad'), match: (p) => p.startsWith('/plataforma/observabilidad') });
   // Portal del destinatario: la pantalla existe para cualquier cuenta; sin concesión vigente muestra un vacío explicado.
   if (!ws.isPlatformAdmin) general.push({ href: '/compartido', label: t('Compartido conmigo'), match: (p) => p.startsWith('/compartido') });

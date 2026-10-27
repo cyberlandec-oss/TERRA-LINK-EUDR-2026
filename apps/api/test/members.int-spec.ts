@@ -187,6 +187,18 @@ describeDb('P0-002 usuarios e invitaciones (PostgreSQL real)', () => {
     await http().get('/api/v1/me').set(as('tecnico@test.local')).expect(200);
   });
 
+  it('el listado global de usuarios es solo de plataforma y no expone correo ni roles', async () => {
+    await http().get('/api/v1/users').set(as('admin-a@test.local')).expect(403);
+    const r = await http().get('/api/v1/users').set(as('super@test.local')).expect(200);
+    const lista = r.body.users as Array<Record<string, unknown>>;
+    expect(lista.length).toBeGreaterThan(0);
+    const tec = lista.find((x) => x.name !== undefined && Array.isArray(x.organizations) && (x.organizations as string[]).length > 0);
+    expect(tec).toBeDefined();
+    for (const x of lista) {
+      expect(Object.keys(x).sort()).toEqual(['is_platform_admin', 'name', 'organizations', 'status', 'user_id']);
+    }
+  });
+
   it('una organización suspendida no admite invitaciones nuevas ni aceptaciones', async () => {
     const inv = await invite('admin-a@test.local', orgA, 'tarde@test.local', 'AUDITOR').expect(201);
     await http().post(`/api/v1/organizations/${orgA}/suspend`).set(as('super@test.local')).send({ reason: 'Revisión' }).expect(200);
