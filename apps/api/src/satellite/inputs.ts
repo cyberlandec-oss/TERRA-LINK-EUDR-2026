@@ -14,7 +14,10 @@ export interface SatelliteInput {
   result_id: string;
   job_id: string;
   geometry_hash: string;
+  operation: string;
   coverage_status: 'COVERED' | 'PARTIAL' | 'NOT_COVERED' | 'UNKNOWN';
+  coverage_note: string | null;
+  limitations: string | null;
   analysis_date: string | null;
   method: string | null;
   raw_sha256: string | null;
@@ -26,7 +29,7 @@ export async function satelliteInputs(db: Kysely<Database> | { executeQuery: nev
   const rows = await sql<SatelliteInput>`
     SELECT DISTINCT ON (j.plot_version_id, r.provider_code, r.is_synthetic)
            j.plot_version_id, r.provider_code, r.is_synthetic, r.id AS result_id, j.id AS job_id, j.geometry_hash,
-           r.coverage_status, r.analysis_date::text AS analysis_date, r.method, r.raw_sha256, r.recorded_at::text AS recorded_at
+           j.operation, r.coverage_status, r.coverage_note, r.limitations, r.analysis_date::text AS analysis_date, r.method, r.raw_sha256, r.recorded_at::text AS recorded_at
       FROM satellite_results r
       JOIN satellite_jobs j ON j.id = r.job_id AND j.organization_id = r.organization_id
      WHERE r.organization_id = ${orgId} AND j.plot_version_id = ANY(${plotVersionIds}::uuid[]) AND j.outcome = 'RESULT_AVAILABLE'

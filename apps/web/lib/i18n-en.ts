@@ -216,6 +216,7 @@ export const EN: Record<string, string> = {
   'Administración': 'Administration',
   'Organizaciones (plataforma)': 'Organizations (platform)',
   'Mis organizaciones': 'My organizations',
+  'Compartido conmigo': 'Shared with me',
   'Plataforma': 'Platform',
   'General': 'General',
   'Cargando tu espacio de trabajo…': 'Loading your workspace…',

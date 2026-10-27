@@ -86,7 +86,7 @@ describeDb('AJ-08 análisis satelital → riesgo → expediente', () => {
     expect(v0.freshness.reason).toMatch(/análisis satelitales/);
     expect(v0.satellite_inputs).toMatchObject({ in_evaluation: [], changed_since_evaluation: true });
     expect(v0.satellite_inputs.now).toHaveLength(1);
-    expect(v0.satellite_inputs.now[0]).toMatchObject({ provider_code: 'WHISP', is_synthetic: false, coverage_status: 'UNKNOWN', plot_code: 'SR-1-P1', raw_sha256: 'a'.repeat(64) });
+    expect(v0.satellite_inputs.now[0]).toMatchObject({ provider_code: 'WHISP', is_synthetic: false, coverage_status: 'UNKNOWN', plot_code: 'SR-1-P1', raw_sha256: 'a'.repeat(64), operation: 'FOREST_COVER', coverage_note: 'nota de cobertura de prueba', limitations: 'Resultado sintético de prueba AJ-08.' });
     expect(v0.satellite_inputs.note).toMatch(/no es una conclusión de deforestación/);
     const despues = await dbRow(e0.id);
     expect(despues.snapshot_hash).toBe(antes.snapshot_hash);                                 // la evaluación pasada NO se reescribió

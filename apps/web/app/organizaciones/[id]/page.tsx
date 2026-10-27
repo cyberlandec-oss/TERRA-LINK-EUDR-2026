@@ -12,9 +12,8 @@ import { Alert, Breadcrumb, ErrorPanel, Loading, PageHeader, StatusBadge } from 
 const PENDING_BY_ROLE: Record<string, Array<{ capability: string; story: string }>> = {
   FIELD_TECHNICIAN: [{ capability: 'Trabajo de campo sin conexión', story: 'App móvil (P0-023/P0-024): el ensayo en teléfono físico sigue pendiente; la web no guarda datos sin conexión' }],
   EXPORT_MANAGER: [{ capability: 'Despacho de embarques', story: 'Preparar y reservar ya es posible; despachar sigue bloqueado hasta definir las condiciones de paquete y fecha de despacho (D-34)' }],
-  BUYER: [{ capability: 'Portal comprador', story: 'P1-001; requiere contrato de concesiones entre organizaciones (UX-D09). Sin concesión no hay acceso implícito' }],
 };
-const PLATFORM_PENDING = { capability: 'Acceso a datos operativos de una organización', story: 'Requiere elevación auditada (D-04, pendiente). La administración de plataforma no da acceso implícito' };
+const PLATFORM_PENDING = { capability: 'Acceso a datos operativos de una organización', story: 'La elevación supervisada y aprobada existe en el servidor, pero la web aún no tiene la pantalla para solicitarla. La administración de plataforma no da acceso implícito' };
 
 interface FilaTrabajo {
   code: string; title: string; queue: 'MINE' | 'SUPERVISION';
@@ -186,8 +185,13 @@ export default function OrganizationHomePage() {
       {!canRead ? (
         <>
           <PageHeader title="Mi espacio" meta={<>{ws.activeOrg.name} · {roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')}</>} />
-          <Alert tone="info" title="Tu rol todavía no tiene pantallas disponibles en esta etapa.">
-            <p>Tu cuenta y tu membresía están activas. Las funciones previstas para tu rol se habilitarán cuando existan sus operaciones y contratos.</p>
+          <Alert tone="info" title="Esta organización no tiene un resumen para tu rol.">
+            <p>Tu cuenta y tu membresía están activas. Entra por tus accesos:</p>
+            <ul>
+              {ws.can('producer:read_own') && <li><Link href={`/organizaciones/${ws.activeOrg.id}/mi-finca`}>Mi finca</Link></li>}
+              {(ws.can('delivery:read') || ws.can('delivery:read_assigned')) && <li><Link href={`/organizaciones/${ws.activeOrg.id}/entregas`}>Entregas</Link></li>}
+              <li><Link href="/compartido">Compartido conmigo</Link></li>
+            </ul>
           </Alert>
           {ws.activePerms && <MyWork orgId={ws.activeOrg.id} />}
         </>

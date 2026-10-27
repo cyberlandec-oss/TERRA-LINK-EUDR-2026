@@ -68,7 +68,7 @@ export interface DdContent {
      */
     satellite_analysis?: {
       selected_provider: string | null;
-      analyses: Array<{ plot_code: string | null; plot_version_id: string; provider_code: string; is_synthetic: boolean; coverage_status: 'COVERED' | 'PARTIAL' | 'NOT_COVERED' | 'UNKNOWN'; analysis_date: string | null; method: string | null; raw_sha256: string | null; result_id: string }>;
+      analyses: Array<{ plot_code: string | null; plot_version_id: string; provider_code: string; is_synthetic: boolean; operation?: string; coverage_status: 'COVERED' | 'PARTIAL' | 'NOT_COVERED' | 'UNKNOWN'; coverage_note?: string | null; limitations?: string | null; analysis_date: string | null; method: string | null; raw_sha256: string | null; result_id: string }>;
     };
   };
 }
