@@ -89,7 +89,7 @@ test('Mi finca (productor vinculado): menú, solo lo propio, pendientes derivado
 async function abrirDesdeMenu(ctx: BrowserContext): Promise<Page> {
   const page = await ctx.newPage();
   await page.goto(`/organizaciones/${orgId}`);
-  await page.getByRole('link', { name: 'Mi finca', exact: true }).click();
+  await page.getByRole('complementary', { name: 'Navegación principal' }).getByRole('link', { name: 'Mi finca', exact: true }).click();
   return page;
 }
 
@@ -219,7 +219,7 @@ test('cuenta sin vínculo: «configuración pendiente», distinta de «sin datos
 test('un auditor no tiene «Mi finca» (sin permiso) y la ruta directa lo explica', async ({ browser }) => {
   const ctx = await contexto(browser, audiTok);
   const page = await abrirParcelaOrg(ctx);
-  await expect(page.getByRole('link', { name: 'Mi finca', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('complementary', { name: 'Navegación principal' }).getByRole('link', { name: 'Mi finca', exact: true })).toHaveCount(0);
   await page.goto(`/organizaciones/${orgId}/mi-finca`);
   await expect(page.getByText(/Tu rol no incluye «Mi finca»/)).toBeVisible();
   await ctx.close();
