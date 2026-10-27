@@ -49,7 +49,7 @@ const hubLot = (lots.items ?? lots).find((l) => l.source === 'RECEPTIONS') ?? (l
 
 // Entradas de menú y permisos que las habilitan (misma regla que lib/workspace.tsx).
 const NAV = [
-  ['Productores', ['producer:read', 'producer:read_assigned']], ['Parcelas', ['plot:read', 'plot:read_assigned']], ['Entregas', ['delivery:read', 'delivery:read_assigned']],
+  ['Productores', ['producer:read', 'producer:read_assigned', 'producer:read_own']], ['Parcelas', ['plot:read', 'plot:read_assigned', 'plot:read_own']], ['Entregas', ['delivery:read', 'delivery:read_assigned']],
   ['Lotes', ['lot:read']], ['Inventario', ['stock:read']], ['Riesgo', ['risk:read']], ['Mitigaciones', ['mitigation:read']], ['Debida diligencia', ['dd:read']],
   ['Auditoría', ['audit:read']], ['Importar datos (Excel)', ['import:manage']],
 ];

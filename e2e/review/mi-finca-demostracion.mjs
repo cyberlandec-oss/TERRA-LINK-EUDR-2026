@@ -45,7 +45,7 @@ async function ctxCon(token, o = {}) {
 await caso('Productor DEMO (cuenta sin vínculo): «configuración pendiente», no «sin datos» ni «sin permiso»; dice cómo se resuelve y no muestra nada ajeno', async () => {
   const ctx = await ctxCon(productor); const page = await ctx.newPage();
   await page.goto(`${WEB}/organizaciones/${org.id}`);
-  await page.getByRole('link', { name: 'Mi finca', exact: true }).click();
+  await page.getByRole('complementary', { name: 'Navegación principal' }).getByRole('link', { name: 'Mi finca', exact: true }).click();
   await page.getByText('Tu cuenta todavía no está vinculada a un productor.').waitFor({ timeout: 20000 });
   const cuerpo = await page.locator('main').innerText();
   await page.screenshot({ path: join(SALIDA, '01-cuenta-sin-vinculo.png'), fullPage: true });
@@ -77,7 +77,7 @@ await caso('Técnico asignado: la parcela muestra «Documentos y soportes» con 
   await page.getByText('Qué puedes documentar y por qué (guía orientativa)').click();
   const guia = await page.locator('details.guia-documental').innerText();
   await page.screenshot({ path: join(SALIDA, '02-parcela-documentos-guia.png'), fullPage: true });
-  const enMenu = await page.getByRole('link', { name: 'Mi finca', exact: true }).count();
+  const enMenu = await page.getByRole('complementary', { name: 'Navegación principal' }).getByRole('link', { name: 'Mi finca', exact: true }).count();
   await ctx.close();
   return [/no una lista obligatoria|no es una lista obligatoria/.test(guia) && /Tenencia o derecho de uso/.test(guia) && /Referencia en las guías/.test(guia) && /Orientación, no un dictamen de aplicabilidad/.test(guia) && enMenu === 0 && estado() === antes, 'guía con fuente; sin «Mi finca» para el rol asignado'];
 });
