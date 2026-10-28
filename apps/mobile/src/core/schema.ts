@@ -43,6 +43,11 @@ const MIGRATIONS: string[] = [
    ALTER TABLE outbox ADD COLUMN resolved_by TEXT;
    ALTER TABLE outbox ADD COLUMN resolves TEXT;
    ALTER TABLE outbox ADD COLUMN content_hash TEXT;`,
+  // 3 (D): vértices de polígono capturados en el dispositivo. Tabla nueva (no toca lo guardado). Cada vértice conserva SU precisión y SU hora.
+  `CREATE TABLE polygon_vertices (
+     id TEXT PRIMARY KEY, draft_id TEXT NOT NULL REFERENCES drafts(id), seq INTEGER NOT NULL, latitude REAL NOT NULL, longitude REAL NOT NULL,
+     accuracy_m REAL, acquired_at TEXT NOT NULL, recorded_at TEXT NOT NULL, provider_detail TEXT NOT NULL, mocked INTEGER,
+     UNIQUE (draft_id, seq));`,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

@@ -136,6 +136,7 @@ Endpoints (`/api/v1/organizations/{org}`): `POST /devices`, `GET /devices`, `POS
 | Tipo | Servidor | Móvil |
 | --- | --- | --- |
 | `PLOT_LOCATION_SAMPLE_CREATE` | Sí (crea versión de geometría POINT; conflicto por versión) | Sí |
+| `PLOT_POLYGON_VERTEX_ADD` (D, 2026-10-27) | Sí (añade un vértice al BORRADOR de polígono de la parcela; no crea versión de geometría ni confirma; idempotente por `operation_id`; los vértices van encadenados por `depends_on`) | Sí |
 | `PLOT_PHOTO_ATTACH` | Sí (registro + archivo vía Documentos) | Sí (la nota viaja como leyenda) |
 | Productores, parcelas nuevas, entregas, recepciones, calidad, lotes, inventario | No (`UNSUPPORTED_OPERATION_TYPE`) | No |
 

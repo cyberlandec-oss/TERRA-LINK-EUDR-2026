@@ -11,7 +11,7 @@ import { fixtureJpeg, fixtureLocation } from '../core/fixtures';
 import { ApiFailure, SessionManager } from '../app/session-manager';
 import { EncryptionRequiredError, isStorageFull, storageFullMessage } from '../core/ports';
 import type { SyncSummary } from '../core/sync';
-import type { StoredSession } from '../core/session';
+import { sessionLimitNotice, type StoredSession } from '../core/session';
 import { SERVER_URL_HELP, validateServerUrl } from '../core/server-url';
 import { FRESH_MAX_AGE_S, ageSeconds, isFresh, locationErrorMessage, qualityNotice, qualityOf, readingFrom, type Reading } from '../core/ubicacion';
 import type { DatasetPlot, DraftView, LocalStore, RecoveryReport } from '../core/store';
@@ -178,6 +178,7 @@ function Home({ session, orgId, store, recovery, onCapture, onSwitch, onLogout }
     <>
       <Text accessibilityRole="header" style={s.h1}>Mi jornada</Text>
       {synthetic && <Notice tone="review" title={SYNTH_TITLE}>Solo fixtures sintéticos: ni cámara ni ubicación reales.{isWebPreview ? ' Descarga y sincronización usan el servidor SIMULADO del navegador.' : ''}</Notice>}
+      {gate.allowed && sessionLimitNotice(gate.until, new Date()) && <Notice tone="review" title="La sesión está por vencer">{sessionLimitNotice(gate.until, new Date())!}</Notice>}
       {gate.allowed ? <Notice tone="valid" title="Captura habilitada">{gate.note} Sesión vigente hasta {fmt(gate.until)}.</Notice>
         : <Notice tone="blocked" title="Captura bloqueada">{gate.note}</Notice>}
       {recovery && (recovery.recovered_operations.length > 0 || recovery.incomplete_temp_files.length > 0 || recovery.missing_files.length > 0) &&
@@ -195,7 +196,7 @@ function Home({ session, orgId, store, recovery, onCapture, onSwitch, onLogout }
         {summary && <Notice tone={summary.stopped ? 'review' : 'valid'} title={`${summary.stopped ? 'Sincronización detenida' : 'Sincronización terminada'}${isWebPreview ? ' (SIMULADA: nada se envió a Terra Link)' : ''}`}>
           {`${summary.synced} confirmada(s) por el ${SERVER} · ${summary.conflicts} en conflicto · ${summary.failed} rechazada(s) · ${summary.still_pending} pendiente(s) · ${summary.uploads} foto(s) subida(s)${summary.upload_errors ? ` · ${summary.upload_errors} foto(s) sin subir` : ''}${summary.pulled ? ` · datos: ${summary.pulled.changes} cambio(s), ${summary.pulled.tombstones} retirada(s)` : ''}${summary.stopped ? `. ${summary.stopped.message}` : ''}`}
         </Notice>}
-        <Button label="Nueva captura" disabled={!gate.allowed || plots === 0} onPress={() => onCapture(null)} hint={plots === 0 ? 'Primero descarga las parcelas asignadas' : undefined} />
+        <Button label="Nueva captura" disabled={!gate.allowed || plots === 0} onPress={() => onCapture(null)} hint={plots === 0 ? 'Primero descarga las parcelas de tu alcance (asignadas o propias)' : undefined} />
       </Card>
       <Button kind="secondary" label="Cambiar de organización" onPress={onSwitch} />
       {!confirmLogout ? <Button kind="secondary" label="Cerrar sesión" onPress={() => setConfirmLogout(true)} /> : (
@@ -277,6 +278,18 @@ function Capture({ session, orgId, store, draftId, onDraft, onQueued }: { sessio
     await store.setLocation(draft.id, { latitude: peek.latitude, longitude: peek.longitude, accuracy_m: peek.accuracy_m, acquired_at: peek.acquired_at, provider_detail: peek.provider_detail, mocked: peek.mocked });
     setPeek(null);
   }, 'Ubicación guardada en el borrador.');
+  /** Acción EXPLÍCITA: añade la lectura mostrada como vértice del polígono (al final). No cierra ni confirma el polígono. */
+  const addVertexFromReading = () => act(async () => {
+    if (!peek) return;
+    if (!isFresh(peek)) throw new Error(`La lectura tiene más de ${FRESH_MAX_AGE_S} s: pulsa «Mi ubicación» otra vez antes de usarla. El borrador se conserva.`);
+    await store.addVertex(draft.id, { latitude: peek.latitude, longitude: peek.longitude, accuracy_m: peek.accuracy_m, acquired_at: peek.acquired_at, provider_detail: peek.provider_detail, mocked: peek.mocked });
+    setPeek(null);
+  }, 'Vértice añadido al borrador.');
+  const fixtureVertex = () => act(async () => {
+    const n = draft.vertices.length;
+    const f = fixtureLocation(new Date());
+    await store.addVertex(draft.id, { ...f, latitude: f.latitude + (n % 2 === 0 ? 0.0004 * n : 0.0004 * (n - 1)), longitude: f.longitude + (n < 2 ? 0 : 0.0004 * (n - 1)) });
+  }, 'Vértice de prueba (sintético) añadido.');
   const takePhoto = () => act(async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) throw new Error('Permiso de cámara denegado. Puedes concederlo en los ajustes; el borrador se conserva.');
@@ -318,6 +331,15 @@ function Capture({ session, orgId, store, draftId, onDraft, onQueued }: { sessio
             <Button kind="secondary" label="Descartar la lectura" onPress={() => setPeek(null)} disabled={busy} />
           </View>
         )}
+      </Card>
+      <Card title="Polígono de la parcela (vértices)">
+        {draft.vertices.length === 0 ? <Text style={s.muted}>Sin vértices. Camina el borde de la parcela y añade un vértice en cada esquina.</Text> : draft.vertices.map((v) => (
+          <Text key={v.id} style={s.p}>{v.seq}. Lat {v.latitude.toFixed(6)} · Lon {v.longitude.toFixed(6)} · {v.accuracy_m === null ? 'precisión no informada' : `±${Math.round(v.accuracy_m)} m`}</Text>
+        ))}
+        <Text style={s.muted}>Los vértices entran al borrador de polígono de la parcela. No crean geometría nueva ni validan nada: una persona revisa y confirma el polígono en la web. Esta app no muestra mapa; si faltan vértices o hay un cruce, se verá en la revisión web.</Text>
+        {editable && !testEnv && <Button kind="secondary" label="Añadir vértice con la lectura de «Mi ubicación»" hint={peek ? undefined : 'Primero pulsa «Mi ubicación»'} onPress={() => void addVertexFromReading()} disabled={busy || !peek || !isFresh(peek, now)} />}
+        {editable && testEnv && <Button kind="secondary" label="Añadir vértice de prueba (sintético)" onPress={() => void fixtureVertex()} disabled={busy} />}
+        {editable && draft.vertices.length > 0 && <Button kind="secondary" label="Quitar el último vértice" onPress={() => void act(() => store.undoVertex(draft.id))} disabled={busy} />}
       </Card>
       <Card title="Fotos">
         {draft.photos.length === 0 ? <Text style={s.muted}>Sin fotos.</Text> : draft.photos.map((p) => (

@@ -21,7 +21,7 @@ export type CaptureGate =
   | { allowed: false; reason: 'NO_SESSION' | 'SESSION_EXPIRED' | 'CLOCK_BACKWARDS' | 'NO_PERMISSION' | 'ORG_NOT_ACTIVE'; note: string };
 
 /** Permisos que habilitan la captura de campo de parcelas (asignadas o de toda la organización). */
-export const CAPTURE_PERMISSIONS = ['plot:update', 'plot:update_assigned'];
+export const CAPTURE_PERMISSIONS = ['plot:update', 'plot:update_assigned', 'plot:update_own'];
 
 export function captureGate(s: StoredSession | null, orgId: string | null, now: Date): CaptureGate {
   if (!s || !orgId) return { allowed: false, reason: 'NO_SESSION', note: 'Inicia sesión con conexión para preparar el trabajo de campo.' };
@@ -53,4 +53,17 @@ export function jwtExpiry(token: string): Date | null {
     const json = JSON.parse(globalThis.atob ? globalThis.atob(b64) : Buffer.from(b64, 'base64').toString('utf8')) as { exp?: number };
     return typeof json.exp === 'number' ? new Date(json.exp * 1000) : null;
   } catch { return null; }
+}
+
+/** Minutos que le quedan a la sesión emitida por el servidor (0 si ya venció). Es un aviso de la interfaz: la autorización es del servidor. */
+export const SESSION_WARN_MIN = 10;
+export function sessionMinutesLeft(tokenExpiresAt: string, now: Date): number {
+  return Math.max(0, Math.floor((Date.parse(tokenExpiresAt) - now.getTime()) / 60_000));
+}
+/** Aviso cuando queda poco: guardar y sincronizar antes de que venza; sin red no se renueva. null si no hay nada que avisar. */
+export function sessionLimitNotice(tokenExpiresAt: string, now: Date): string | null {
+  const left = sessionMinutesLeft(tokenExpiresAt, now);
+  if (now >= new Date(tokenExpiresAt)) return null;
+  if (left > SESSION_WARN_MIN) return null;
+  return `Quedan ${left < 1 ? 'menos de 1 minuto' : `${left} min`} de sesión: lo capturado se conserva, pero al vencer no podrás capturar hasta iniciar sesión con conexión. Sincroniza antes si tienes red.`;
 }

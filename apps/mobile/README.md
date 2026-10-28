@@ -76,9 +76,11 @@ expo-sqlite.
 | Ubicación y fotos **reales**, EXIF eliminado | No | Sí | **Pendiente** |
 | Almacenamiento casi lleno, cierre forzado, reinicio del teléfono | Parcial | Emulador hecho | **Pendiente** |
 
-**Compatibilidad del APK (comprobada el 2026-10-20):** el código de `apps/mobile` es idéntico al del commit `0ba960a`
-(desde entonces solo cambió este README) y el recorrido contra la API actual pasa
-(`validation-results/2026-10-20T00-01-34-059Z-movil/`). No hace falta otra compilación.
+**Compatibilidad del APK (corregida el 2026-10-27):** el APK APTO `9996a9b4` se compiló con el código de `0ba960a` y el recorrido
+del 2026-10-20 (`validation-results/2026-10-20T00-01-34-059Z-movil/`) pasó contra la API de entonces. **Desde entonces el código de
+`apps/mobile` cambió** (entrega D, 2026-10-27): captura de vértices de polígono, alcance propio del Productor y aviso del límite de sesión.
+Ese APK **no los contiene**. Para probarlos hace falta compilar un APK nuevo y repetir el recorrido en emulador y, al final, en el teléfono;
+hasta entonces lo nuevo cuenta solo como probado con pruebas unitarias en Node y con la API real (integración), no como probado en Android.
 
 ### Ensayo en teléfono físico: pasos y evidencia esperada
 

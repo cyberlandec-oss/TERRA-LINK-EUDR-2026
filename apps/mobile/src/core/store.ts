@@ -29,6 +29,8 @@ export interface DraftView {
   id: string; plot_id: string; plot_code: string | null; note: string; status: 'DRAFT' | 'QUEUED'; created_at: string; updated_at: string; queued_at: string | null;
   location: (LocationSampleInput & { id: string; recorded_at: string; source: string }) | null;
   photos: Array<{ id: string; storage: string; sha256: string; size_bytes: number; captured_at: string | null; stored_at: string; upload_state: string; server_status: string | null; server_detail: string | null; file_present: boolean }>;
+  /** Vértices de polígono en orden de captura (solo borrador: confirmar el polígono es una decisión humana en la web). */
+  vertices: Array<LocationSampleInput & { id: string; seq: number; recorded_at: string }>;
   operations: OutboxOp[];
 }
 export interface RecoveryReport { recovered_operations: string[]; incomplete_temp_files: string[]; orphan_files: string[]; missing_files: string[] }
@@ -135,6 +137,32 @@ export class LocalStore {
     });
   }
 
+  /** Añade un vértice al final. Cada vértice es una lectura del dispositivo con SU precisión y SU hora; nada se completa ni se corrige. */
+  async addVertex(draftId: string, s: LocationSampleInput): Promise<number> {
+    this.writable();
+    if (!Number.isFinite(s.latitude) || !Number.isFinite(s.longitude) || Math.abs(s.latitude) > 90 || Math.abs(s.longitude) > 180) throw new Error('Coordenadas no válidas.');
+    if (s.accuracy_m !== null && (!Number.isFinite(s.accuracy_m) || s.accuracy_m < 0)) throw new Error('Precisión no válida.');
+    if (Number.isNaN(Date.parse(s.acquired_at))) throw new Error('Hora de adquisición no válida.');
+    return this.db.transaction(async (tx) => {
+      await this.editable(tx, draftId);
+      const seq = ((await tx.get<{ n: number | null }>('SELECT max(seq) AS n FROM polygon_vertices WHERE draft_id = ?', [draftId]))?.n ?? 0) + 1;
+      await tx.run('INSERT INTO polygon_vertices (id, draft_id, seq, latitude, longitude, accuracy_m, acquired_at, recorded_at, provider_detail, mocked) VALUES (?,?,?,?,?,?,?,?,?,?)',
+        [this.p.uuid(), draftId, seq, s.latitude, s.longitude, s.accuracy_m, s.acquired_at, this.now(), s.provider_detail, s.mocked === null ? null : s.mocked ? 1 : 0]);
+      await tx.run('UPDATE drafts SET updated_at = ? WHERE id = ?', [this.now(), draftId]);
+      return seq;
+    });
+  }
+
+  /** Quita el último vértice (solo mientras sea borrador local; lo ya encolado es inmutable). */
+  async undoVertex(draftId: string): Promise<void> {
+    this.writable();
+    await this.db.transaction(async (tx) => {
+      await this.editable(tx, draftId);
+      await tx.run('DELETE FROM polygon_vertices WHERE draft_id = ? AND seq = (SELECT max(seq) FROM polygon_vertices WHERE draft_id = ?)', [draftId, draftId]);
+      await tx.run('UPDATE drafts SET updated_at = ? WHERE id = ?', [this.now(), draftId]);
+    });
+  }
+
   /**
    * Foto: se leen los bytes de la caché temporal de la cámara, se eliminan sus metadatos embebidos (D-41), se calculan
    * tamaño y SHA-256 y se guardan como BLOB en la base en una transacción (o todo o nada). Después se borra la copia de la cámara (mejor esfuerzo).
@@ -179,7 +207,8 @@ export class LocalStore {
       const plot = await tx.get<{ row_version: number; plot_code: string }>('SELECT row_version, plot_code FROM dataset_plots WHERE id = ?', [d.plot_id]);
       const loc = await tx.get<{ id: string; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; provider_detail: string; mocked: number | null }>('SELECT * FROM location_samples WHERE draft_id = ?', [draftId]);
       const photos = await tx.all<{ id: string; sha256: string; size_bytes: number; mime_type: string; captured_at: string | null }>('SELECT id, sha256, size_bytes, mime_type, captured_at FROM attachments WHERE draft_id = ? ORDER BY stored_at, id', [draftId]);
-      if (!loc && !photos.length) throw new Error(d.note.trim() ? 'Una nota sin ubicación ni foto no tiene entidad en el servidor: agrega ubicación o foto.' : 'La captura está vacía: agrega ubicación o foto.');
+      const verts = await tx.all<{ id: string; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; provider_detail: string; mocked: number | null }>('SELECT * FROM polygon_vertices WHERE draft_id = ? ORDER BY seq', [draftId]);
+      if (!loc && !photos.length && !verts.length) throw new Error(d.note.trim() ? 'Una nota sin ubicación, vértices ni foto no tiene entidad en el servidor: agrega ubicación, vértices o foto.' : 'La captura está vacía: agrega ubicación, vértices o foto.');
       const at = this.now();
       let seq = ((await tx.get<{ n: number | null }>('SELECT max(seq) AS n FROM outbox'))?.n ?? 0);
       const ops: string[] = [];
@@ -194,9 +223,15 @@ export class LocalStore {
       };
       const locOp = loc ? await add('PLOT_LOCATION_SAMPLE_CREATE', loc.id, plot?.row_version ?? null, { plot_id: d.plot_id, latitude: loc.latitude, longitude: loc.longitude, accuracy_m: loc.accuracy_m, acquired_at: loc.acquired_at,
         source: 'DEVICE_LOCATION_SERVICE', provider_detail: loc.provider_detail, mocked: loc.mocked === null ? null : loc.mocked === 1 }, [], [], loc.acquired_at) : null;
+      // Vértices: una operación por vértice, encadenadas en el orden de captura (el servidor los recibe en ese orden). Nunca confirma el polígono.
+      let prev: string | null = locOp;
+      for (const v of verts) {
+        prev = await add('PLOT_POLYGON_VERTEX_ADD', v.id, null, { plot_id: d.plot_id, latitude: v.latitude, longitude: v.longitude, accuracy_m: v.accuracy_m, acquired_at: v.acquired_at,
+          source: 'DEVICE_LOCATION_SERVICE', provider_detail: v.provider_detail, mocked: v.mocked === null ? null : v.mocked === 1 }, prev ? [prev] : [], [], v.acquired_at);
+      }
       for (const ph of photos) {
         await add('PLOT_PHOTO_ATTACH', ph.id, null, { plot_id: d.plot_id, sha256: ph.sha256, size_bytes: ph.size_bytes, mime_type: ph.mime_type,
-          caption: (d.note.trim() || `Foto de campo ${plot?.plot_code ?? ''}`).slice(0, 160) }, locOp ? [locOp] : [], [ph.id], ph.captured_at ?? at);
+          caption: (d.note.trim() || `Foto de campo ${plot?.plot_code ?? ''}`).slice(0, 160) }, prev ? [prev] : [], [ph.id], ph.captured_at ?? at);
       }
       await tx.run("UPDATE drafts SET status = 'QUEUED', queued_at = ?, updated_at = ? WHERE id = ?", [at, at, draftId]);
       return ops;
@@ -303,7 +338,9 @@ export class LocalStore {
       const ph = [];
       for (const x of photos) ph.push({ id: x.id, storage: x.storage, sha256: x.sha256, size_bytes: x.size_bytes, captured_at: x.captured_at, stored_at: x.stored_at, upload_state: x.upload_state, server_status: x.server_status, server_detail: x.server_detail,
         file_present: x.storage === 'DB' ? x.has_content === 1 : await this.p.files.exists(x.path!) });
-      out.push({ ...d, location: loc ? { ...loc, mocked: loc.mocked === null ? null : loc.mocked === 1 } : null, photos: ph, operations: ops });
+      const vertices = (await this.db.all<{ id: string; seq: number; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; recorded_at: string; provider_detail: string; mocked: number | null }>('SELECT * FROM polygon_vertices WHERE draft_id = ? ORDER BY seq', [d.id]))
+        .map((v) => ({ ...v, mocked: v.mocked === null ? null : v.mocked === 1 }));
+      out.push({ ...d, vertices, location: loc ? { ...loc, mocked: loc.mocked === null ? null : loc.mocked === 1 } : null, photos: ph, operations: ops });
     }
     return out;
   }

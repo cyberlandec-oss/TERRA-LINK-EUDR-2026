@@ -231,7 +231,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   // A-01: el productor captura y consulta SOLO lo suyo. Sin `plot:evaluate_gis*`, `document:review`, `evidence:*`, `risk:*`:
   // registrar coordenadas no concede aprobar evidencias ni concluir riesgo. `document:read/upload` son la puerta de entrada;
   // el alcance real lo pone el titular del documento (parcela o productor propios).
-  PRODUCER: ['producer:read_own', 'delivery:read_own', 'plot:read_own', 'plot:create_own', 'plot:update_own', 'plot:read_geometry', 'document:read', 'document:upload', 'document:read_field_photo_own'],
+  PRODUCER: ['sync:use', 'producer:read_own', 'delivery:read_own', 'plot:read_own', 'plot:create_own', 'plot:update_own', 'plot:read_geometry', 'document:read', 'document:upload', 'document:read_field_photo_own'],
 };
 
 export const PLATFORM_PERMISSIONS: Record<'SUPER_ADMIN', PlatformPermission[]> = {

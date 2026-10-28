@@ -14,6 +14,7 @@ import type { Permission } from '../authz/catalog';
 import { CurrentUser, type AuthUser, type AuthedRequest } from '../auth/auth';
 import { EVENT_STORE, type EventStore } from '../events/events';
 import { PlotsService } from '../plots/plots';
+import { PolygonDraftsService } from '../plots/polygon-drafts';
 import { DocumentsService } from '../documents/documents';
 import { hasImageMetadata } from './image-metadata';
 
@@ -30,7 +31,7 @@ import { hasImageMetadata } from './image-metadata';
 
 export const MAX_BATCH = 50;
 export const CURSOR_TTL_DAYS = 7;
-export const SUPPORTED_OPERATION_TYPES = ['PLOT_LOCATION_SAMPLE_CREATE', 'PLOT_PHOTO_ATTACH'] as const;
+export const SUPPORTED_OPERATION_TYPES = ['PLOT_LOCATION_SAMPLE_CREATE', 'PLOT_PHOTO_ATTACH', 'PLOT_POLYGON_VERTEX_ADD'] as const;
 
 export const canonical = (v: unknown): string => Array.isArray(v) ? `[${v.map(canonical).join(',')}]`
   : v && typeof v === 'object' ? `{${Object.keys(v as object).sort().filter((k) => (v as Record<string, unknown>)[k] !== undefined).map((k) => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`).join(',')}}`
@@ -71,6 +72,17 @@ class LocationPayload {
   @ValidateIf((_, v) => v !== null) @IsBoolean() mocked!: boolean | null;
   @IsOptional() @IsUUID() resolves_operation_id?: string;
 }
+// D: un vértice de polígono capturado en el dispositivo. Entra al BORRADOR de polígono de la parcela; confirmarlo (versión nueva) sigue siendo una decisión humana en la web.
+class VertexPayload {
+  @IsUUID() plot_id!: string;
+  @IsNumber({ allowNaN: false, allowInfinity: false }) @Min(-90) @Max(90) latitude!: number;
+  @IsNumber({ allowNaN: false, allowInfinity: false }) @Min(-180) @Max(180) longitude!: number;
+  @ValidateIf((_, v) => v !== null) @IsNumber({ allowNaN: false, allowInfinity: false }) @Min(0) accuracy_m!: number | null;
+  @IsISO8601({ strict: true }) acquired_at!: string;
+  @IsIn(['DEVICE_LOCATION_SERVICE']) source!: 'DEVICE_LOCATION_SERVICE';
+  @IsString() @Length(3, 500) provider_detail!: string;
+  @ValidateIf((_, v) => v !== null) @IsBoolean() mocked!: boolean | null;
+}
 class PhotoPayload {
   @IsUUID() plot_id!: string;
   @Matches(/^[0-9a-f]{64}$/) sha256!: string;
@@ -94,6 +106,7 @@ export class SyncService {
     private readonly audit: AuditService,
     private readonly plots: PlotsService,
     private readonly documents: DocumentsService,
+    private readonly polygons: PolygonDraftsService,
   ) {}
 
   private has(ctx: TenantContext, p: string) { return (ctx.permissions as string[]).includes(p); }
@@ -176,8 +189,8 @@ export class SyncService {
 
   /** Autorización actual para el tipo y el recurso (también al devolver un resultado anterior). */
   private async authorizeType(user: AuthUser, ctx: TenantContext, type: string, plotId: string | undefined): Promise<{ code: string; message: string } | null> {
-    const need: Permission[] = type === 'PLOT_LOCATION_SAMPLE_CREATE' ? ['plot:read_geometry'] : type === 'PLOT_PHOTO_ATTACH' ? ['document:upload'] : [];
-    if (type === 'PLOT_LOCATION_SAMPLE_CREATE' && !this.has(ctx, 'plot:update') && !this.has(ctx, 'plot:update_assigned')) return { code: 'PERMISSION_DENIED', message: 'Tu rol ya no permite registrar ubicaciones en parcelas.' };
+    const need: Permission[] = type === 'PLOT_LOCATION_SAMPLE_CREATE' || type === 'PLOT_POLYGON_VERTEX_ADD' ? ['plot:read_geometry'] : type === 'PLOT_PHOTO_ATTACH' ? ['document:upload'] : [];
+    if ((type === 'PLOT_LOCATION_SAMPLE_CREATE' || type === 'PLOT_POLYGON_VERTEX_ADD') && !this.has(ctx, 'plot:update') && !this.has(ctx, 'plot:update_assigned') && !this.has(ctx, 'plot:update_own')) return { code: 'PERMISSION_DENIED', message: 'Tu rol ya no permite registrar ubicaciones en parcelas.' };
     if (!need.every((p) => this.has(ctx, p))) return { code: 'PERMISSION_DENIED', message: 'Tu rol ya no permite esta operación.' };
     if (plotId) {
       try { await this.plots.get(user, ctx.organizationId, plotId); } catch { return { code: 'RESOURCE_NOT_AVAILABLE', message: 'La parcela no existe o ya no está en tu alcance.' }; }
@@ -245,6 +258,20 @@ export class SyncService {
             if (e instanceof AppError && e.status < 500) {
               return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err(e.code, e.message, e.details));
             }
+            throw e;
+          }
+        }
+        if (op.operation_type === 'PLOT_POLYGON_VERTEX_ADD') {
+          const p = await this.validatePayload(VertexPayload, op.payload);
+          if ('invalid' in p) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('PAYLOAD_INVALID', 'Contenido del vértice no válido.', p.invalid));
+          try {
+            const open = (await this.polygons.current(user, orgId, p.plot_id)).draft ?? await this.polygons.start(user, orgId, p.plot_id, requestId);
+            const r = await this.polygons.addVertex(user, orgId, open.id, { expected_version: open.row_version, operation_id: op.operation_id, source: 'BROWSER_GEOLOCATION', longitude: p.longitude, latitude: p.latitude, accuracy_m: p.accuracy_m, captured_at: p.acquired_at }, requestId);
+            return this.store(trx, user, ctx, deviceId, op, hash, 'ACCEPTED', { plot_id: p.plot_id, draft_id: r.draft.id, draft_row_version: r.draft.row_version, vertex_count: r.draft.vertices.length, confirmed: false,
+              note: 'El vértice quedó en el borrador de polígono de la parcela. No hay geometría nueva hasta que una persona revise y confirme el borrador en la web.' }, null);
+          } catch (e) {
+            if (e instanceof AppError && e.status === 409) return this.store(trx, user, ctx, deviceId, op, hash, 'CONFLICT', null, err(e.code, e.message, { resolution: 'Revisa el borrador de la parcela en la web; tu vértice se conserva en el dispositivo.' }));
+            if (e instanceof AppError && e.status < 500) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err(e.code, e.message, e.details));
             throw e;
           }
         }
