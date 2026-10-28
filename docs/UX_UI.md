@@ -891,6 +891,10 @@ El benchmark F3 sugiere automatización de conflictos, pero F1 exige revisión e
 
 Cerrar la app y reiniciarla debe conservar la cola conforme a política. Logout/cambio de organización con pendientes explica efectos; eliminación de borradores requiere acción explícita y no revoca la historia ya aceptada por servidor.
 
+### 21.6 Estado implementado en la app Expo (2026-10-28)
+
+Cinco pestañas: Inicio, Captura, **Altas**, Pendientes, Diagnóstico (etiqueta a una línea, ajustable a 80 %). «Altas» muestra solo los formularios que los permisos efectivos permiten (productor, parcela, entrega); sin ninguno, dice que el rol no registra altas y que no falta descargar nada. Un rechazo se presenta con su código y una de dos salidas: *Puedes corregirlo* (campos corregibles + reenviar, el rechazo queda en el historial) o *Requiere una intervención externa* (sin reintento inútil). Estado vacío de productores: se explica que hay que sincronizar. La tarjeta **Mapa** de la captura declara si hay cartografía preparada, si la zona está fuera de ella o si falta; el mapa solo dibuja y no guarda. Los deslizamientos sobre el mapa lo mueven: la página se desplaza por los bordes (mejora pendiente). Evidencia: `docs/qa/EVIDENCIA_MOVIL_ALTAS_MAPA_2026-10-28.md`.
+
 ## 22. Contenido, localización y privacidad
 
 ### 22.1 Voz
