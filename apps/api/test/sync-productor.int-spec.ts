@@ -144,4 +144,67 @@ describeDb('D sync del Productor vinculado (alcance propio) y vértices de polí
     const d2 = (await push(dev, [vertex(pD, -0.92, -80.12, [d1.operation_id], { capture: capD, seq: 2 })])).body.results[0];
     expect(d2).toMatchObject({ status: 'CONFLICT', error: { code: 'DRAFT_NOT_OPEN_FOR_CAPTURE' } });
   });
+
+  it('captura con punto de ubicación y vértices: la propia sincronización no genera conflicto contra sí misma', async () => {
+    const plot = await newPlot('DP-1-P7'); const dev = await device(); const cap = randomUUID();
+    const b = await rowVersion(plot);
+    const loc = await op(plot);
+    const v1 = vertex(plot, -0.93, -80.13, [loc.operation_id], { capture: cap, seq: 1, base: b });
+    const v2 = vertex(plot, -0.93, -80.12, [v1.operation_id], { capture: cap, seq: 2 });
+    const r = await push(dev, [loc, v1, v2]);
+    expect(r.body.results.map((x: { status: string }) => x.status)).toEqual(['ACCEPTED', 'ACCEPTED', 'ACCEPTED']);
+    expect(await rowVersion(plot)).toBeGreaterThan(b); // el punto sí creó una versión: el vértice no la tomó por un cambio ajeno
+    expect((await draftOf(plot)).vertices).toHaveLength(2);
+  });
+
+  it('edición web del MISMO borrador entre dos envíos: el vértice siguiente es conflicto explícito y la captura local sigue intacta (reenviable)', async () => {
+    const plot = await newPlot('DP-1-P8'); const dev = await device(); const cap = randomUUID();
+    const v1 = vertex(plot, -0.94, -80.14, [], { capture: cap, seq: 1, base: await rowVersion(plot) });
+    const v2 = vertex(plot, -0.94, -80.13, [v1.operation_id], { capture: cap, seq: 2 });
+    const v3 = vertex(plot, -0.95, -80.135, [v2.operation_id], { capture: cap, seq: 3 });
+    expect((await push(dev, [v1, v2])).body.results.map((x: { status: string }) => x.status)).toEqual(['ACCEPTED', 'ACCEPTED']);
+    // la web añade un vértice al mismo borrador (misma captura de origen, versión vigente) entre los dos envíos
+    const d = await draftOf(plot);
+    await http().post(`${base(org)}/polygon-drafts/${d.id}/vertices`).set(as(ADMIN)).send({ expected_version: d.row_version, operation_id: randomUUID(), source: 'BROWSER_GEOLOCATION', longitude: -80.2, latitude: -0.96, accuracy_m: 9, captured_at: new Date().toISOString() }).expect(201);
+    const c = (await push(dev, [v3])).body.results[0];
+    expect(c).toMatchObject({ status: 'CONFLICT', error: { code: 'DRAFT_CHANGED_FROM_WEB' } });
+    expect((await draftOf(plot)).vertices).toHaveLength(3); // 2 del teléfono + 1 de la web; el vértice 3 no se coló
+    // lo mismo si la web deshace un vértice
+    const plot2 = await newPlot('DP-1-P9'); const cap2 = randomUUID();
+    const w1 = vertex(plot2, -0.97, -80.15, [], { capture: cap2, seq: 1, base: await rowVersion(plot2) });
+    const w2 = vertex(plot2, -0.97, -80.14, [w1.operation_id], { capture: cap2, seq: 2 });
+    const w3 = vertex(plot2, -0.98, -80.145, [w2.operation_id], { capture: cap2, seq: 3 });
+    await push(dev, [w1, w2]);
+    const d2 = await draftOf(plot2);
+    await http().post(`${base(org)}/polygon-drafts/${d2.id}/undo`).set(as(ADMIN)).send({ expected_version: d2.row_version }).expect(200);
+    expect((await push(dev, [w3])).body.results[0]).toMatchObject({ status: 'CONFLICT', error: { code: 'DRAFT_CHANGED_FROM_WEB' } });
+  });
+
+  it('recorrido: conflicto del primer vértice → resolución → los siguientes se aceptan → el reintento no duplica', async () => {
+    const plot = await newPlot('DP-1-P10'); const dev = await device(); const cap = randomUUID();
+    const web = (await http().post(`${base(org)}/plots/${plot}/polygon-drafts`).set(as(ADMIN)).expect(201)).body; // borrador de la web abierto mientras el teléfono estaba sin red
+    const b = await rowVersion(plot);
+    const v1 = vertex(plot, -0.90, -80.30, [], { capture: cap, seq: 1, base: b });
+    const v2 = vertex(plot, -0.90, -80.29, [v1.operation_id], { capture: cap, seq: 2 });
+    const v3 = vertex(plot, -0.91, -80.295, [v2.operation_id], { capture: cap, seq: 3 });
+    const first = (await push(dev, [v1, v2, v3])).body.results.map((x: { status: string; error?: { code: string } }) => [x.status, x.error?.code]);
+    expect(first).toEqual([['CONFLICT', 'DRAFT_OPEN_FROM_OTHER_SOURCE'], ['REJECTED', 'DEPENDENCY_FAILED'], ['REJECTED', 'DEPENDENCY_FAILED']]);
+    expect((await draftOf(plot)).id).toBe(web.id);
+    await http().post(`${base(org)}/polygon-drafts/${web.id}/cancel`).set(as(ADMIN)).send({ expected_version: web.row_version }).expect(200);
+    // sustitutas con identificador, dependencia y hash nuevos (las originales se conservan en el servidor como conflicto/rechazo)
+    const r1 = vertex(plot, -0.90, -80.30, [], { capture: cap, seq: 1, base: await rowVersion(plot) });
+    (r1.payload as Record<string, unknown>).resolves_operation_id = v1.operation_id;
+    const r1c = { operation_type: r1.operation_type, entity_id: r1.entity_id, base_version: r1.base_version, depends_on: r1.depends_on, captured_at: r1.captured_at, payload: r1.payload };
+    const R1 = { ...r1, content_hash: operationHash(r1c) };
+    const R2 = vertex(plot, -0.90, -80.29, [R1.operation_id], { capture: cap, seq: 2 });
+    const R3 = vertex(plot, -0.91, -80.295, [R2.operation_id], { capture: cap, seq: 3 });
+    expect((await push(dev, [R1, R2, R3])).body.results.map((x: { status: string }) => x.status)).toEqual(['ACCEPTED', 'ACCEPTED', 'ACCEPTED']);
+    expect((await push(dev, [R1, R2, R3])).body.results.map((x: { status: string }) => x.status)).toEqual(['DUPLICATE', 'DUPLICATE', 'DUPLICATE']);
+    const d = await draftOf(plot);
+    expect(d.vertices).toHaveLength(3); // una sola vez
+    // el hash viejo bajo un identificador que el servidor ya conoce se rechaza: por eso hay sustitutas y no un recálculo
+    const viejoId = { ...v2, depends_on: [R1.operation_id] };
+    const rejected = (await push(dev, [viejoId])).body.results[0];
+    expect(['REJECTED', 'CONFLICT']).toContain(rejected.status);
+  });
 });

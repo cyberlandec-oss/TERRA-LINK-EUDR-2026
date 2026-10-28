@@ -289,7 +289,13 @@ export class SyncService {
               }
               if (!open) {
                 const current = await this.plots.get(user, orgId, p.plot_id).then((x) => Number((x as { row_version: number }).row_version));
-                if (current !== op.base_version) {
+                // Si esta misma captura ya registró su punto de ubicación (operación de la que depende), la versión esperada es la que produjo
+                // esa operación: un cambio provocado por la propia sincronización no es un conflicto.
+                const own = op.depends_on.length ? await trx.selectFrom('sync_operations').select('result').where('organization_id', '=', orgId).where('operation_id', 'in', op.depends_on)
+                  .where('operation_type', '=', 'PLOT_LOCATION_SAMPLE_CREATE').where('status', '=', 'ACCEPTED').execute() : [];
+                const ownVersions = own.map((x) => Number((typeof x.result === 'string' ? JSON.parse(x.result) : x.result as Record<string, unknown>).plot_row_version)).filter((n) => Number.isFinite(n));
+                const expected = ownVersions.length ? Math.max(...ownVersions) : op.base_version;
+                if (current !== expected) {
                   return conflict('VERSION_CONFLICT', 'La parcela cambió (por ejemplo, desde la web) mientras capturabas sin conexión.', `Revisa la parcela (versión ${current}) y reenvía la captura sobre ella; tus vértices se conservan.`);
                 }
                 draft = await this.polygons.start(user, orgId, p.plot_id, requestId, { capture_id: p.capture_id, device_id: deviceId });
@@ -299,7 +305,7 @@ export class SyncService {
                 'Revisa el estado del borrador en la web; tus vértices se conservan en el dispositivo y se pueden reenviar sobre un borrador nuevo.');
             }
             const r = await this.polygons.addVertex(user, orgId, draft!.id, { expected_version: draft!.row_version, operation_id: op.operation_id, source: 'BROWSER_GEOLOCATION', longitude: p.longitude, latitude: p.latitude, accuracy_m: p.accuracy_m, captured_at: p.acquired_at },
-              requestId, { provider_detail: p.provider_detail, mocked: p.mocked, device_id: deviceId });
+              requestId, { provider_detail: p.provider_detail, mocked: p.mocked, device_id: deviceId, expect: { capture_id: p.capture_id, prior_vertices: p.vertex_seq - 1 } });
             return this.store(trx, user, ctx, deviceId, op, hash, 'ACCEPTED', { plot_id: p.plot_id, draft_id: r.draft.id, draft_row_version: r.draft.row_version, vertex_count: r.draft.vertices.length, confirmed: false,
               note: 'El vértice quedó en el borrador de polígono de la parcela. No hay geometría nueva hasta que una persona revise y confirme el borrador en la web.' }, null, p.resolves_operation_id);
           } catch (e) {

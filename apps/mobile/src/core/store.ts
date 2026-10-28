@@ -264,6 +264,13 @@ export class LocalStore {
   /**
    * Resolución autorizada de un conflicto: la operación original se conserva (CONFLICT, enlazada) y se crea otra con un
    * operation_id nuevo basada en la versión actual del servidor. Requiere sesión vigente; el servidor revalida todo.
+   *
+   * La cadena completa se recupera: toda operación POSTERIOR de la misma captura que dependía de la resuelta y que el servidor
+   * ya conoce como rechazada o en conflicto (FAILED/CONFLICT) se conserva con su historial y se sustituye por otra con
+   * identificador, dependencia y hash nuevos. Una operación que el servidor aún no conoce (PENDING sin envíos) solo cambia
+   * su dependencia y su hash, que todavía no existen para el servidor. Lo ya confirmado (SYNCED) no se toca. Si alguna
+   * operación quedó con respuesta perdida (enviada, sin resultado), no se sustituye nada: se sincroniza primero para que
+   * se reintente con su identificador original y se conozca su resultado; crear otra podría duplicar el efecto.
    */
   async resolveConflict(operationId: string, serverVersion: number): Promise<string> {
     this.writable();
@@ -271,17 +278,43 @@ export class LocalStore {
       const o = await tx.get<Row>("SELECT * FROM outbox WHERE operation_id = ? AND state = 'CONFLICT' AND resolved_by IS NULL", [operationId]);
       if (!o) throw new Error('La operación no está en conflicto o ya se resolvió.');
       const op = toOp(o);
-      const id = this.p.uuid();
-      const seq = ((await tx.get<{ n: number }>('SELECT max(seq) AS n FROM outbox'))!.n) + 1;
-      const payload = { ...op.payload, resolves_operation_id: op.operation_id };
-      const hash = await this.p.sha256(new TextEncoder().encode(operationCanonical({ operation_type: op.operation_type, entity_id: op.entity_id, base_version: serverVersion, depends_on: op.depends_on, captured_at: op.captured_at, payload })));
-      await tx.run("INSERT INTO outbox (operation_id, seq, draft_id, operation_type, entity_id, base_version, depends_on, captured_at, payload, attachment_refs, state, created_at, content_hash, resolves) VALUES (?,?,?,?,?,?,?,?,?,?, 'PENDING', ?, ?, ?)",
-        [id, seq, op.draft_id, op.operation_type, op.entity_id, serverVersion, JSON.stringify(op.depends_on), op.captured_at, JSON.stringify(payload), JSON.stringify(op.attachment_refs), this.now(), hash, op.operation_id]);
-      await tx.run('UPDATE outbox SET resolved_by = ? WHERE operation_id = ?', [id, op.operation_id]);
-      // las operaciones que dependían de la original pasan a depender de la nueva
-      const deps = await tx.all<Row>("SELECT operation_id, depends_on FROM outbox WHERE state IN ('PENDING','FAILED') AND depends_on LIKE ?", [`%${op.operation_id}%`]);
-      for (const d of deps) await tx.run('UPDATE outbox SET depends_on = ? WHERE operation_id = ?', [JSON.stringify((JSON.parse(d.depends_on as string) as string[]).map((x) => (x === op.operation_id ? id : x))), d.operation_id as string]);
-      return id;
+      const later = (await tx.all<Row>('SELECT * FROM outbox WHERE draft_id = ? AND seq > ? ORDER BY seq', [op.draft_id, op.seq])).map(toOp);
+      // 1) plan: qué cambia y si algo es ambiguo (respuesta perdida)
+      const map = new Map<string, string>([[op.operation_id, this.p.uuid()]]);
+      const plan: Array<{ op: OutboxOp; mode: 'REPLACE' | 'REWIRE' }> = [];
+      for (const x of later) {
+        if (x.state === 'SYNCED' || x.resolved_by) continue;
+        if (!x.depends_on.some((d) => map.has(d))) continue;
+        const sent = x.state === 'UPLOADING' || (x.state === 'PENDING' && x.attempts > 0 && !x.server_result);
+        if (sent) throw new Error('Hay operaciones enviadas cuya respuesta no llegó. Sincroniza primero: se reintentan con su identificador original para conocer su resultado antes de reenviar nada.');
+        if (x.state === 'PENDING') plan.push({ op: x, mode: 'REWIRE' });
+        else { map.set(x.operation_id, this.p.uuid()); plan.push({ op: x, mode: 'REPLACE' }); }
+      }
+      // 2) aplicar
+      let seq = ((await tx.get<{ n: number }>('SELECT max(seq) AS n FROM outbox'))!.n);
+      const at = this.now();
+      const remap = (deps: string[]) => deps.map((d) => map.get(d) ?? d);
+      const hashOf = (x: OutboxOp, id: string, base: number | null, deps: string[], payload: Record<string, unknown>) =>
+        this.p.sha256(new TextEncoder().encode(operationCanonical({ operation_type: x.operation_type, entity_id: x.entity_id, base_version: base, depends_on: deps, captured_at: x.captured_at, payload }))).then((h) => { void id; return h; });
+      const insert = async (x: OutboxOp, id: string, base: number | null, deps: string[], payload: Record<string, unknown>) => {
+        seq += 1;
+        await tx.run("INSERT INTO outbox (operation_id, seq, draft_id, operation_type, entity_id, base_version, depends_on, captured_at, payload, attachment_refs, state, created_at, content_hash, resolves) VALUES (?,?,?,?,?,?,?,?,?,?, 'PENDING', ?, ?, ?)",
+          [id, seq, x.draft_id, x.operation_type, x.entity_id, base, JSON.stringify(deps), x.captured_at, JSON.stringify(payload), JSON.stringify(x.attachment_refs), at, await hashOf(x, id, base, deps, payload), x.operation_id]);
+        await tx.run('UPDATE outbox SET resolved_by = ? WHERE operation_id = ?', [id, x.operation_id]);
+      };
+      const newId = map.get(op.operation_id)!;
+      await insert(op, newId, serverVersion, remap(op.depends_on), { ...op.payload, resolves_operation_id: op.operation_id });
+      for (const { op: x, mode } of plan) {
+        const deps = remap(x.depends_on);
+        if (mode === 'REWIRE') {
+          await tx.run('UPDATE outbox SET depends_on = ?, content_hash = ? WHERE operation_id = ?', [JSON.stringify(deps), await hashOf(x, x.operation_id, x.base_version, deps, x.payload), x.operation_id]);
+        } else {
+          const { resolves_operation_id: _drop, ...payload } = x.payload as Record<string, unknown>;
+          void _drop;
+          await insert(x, map.get(x.operation_id)!, x.base_version, deps, payload);
+        }
+      }
+      return newId;
     });
   }
 
@@ -348,7 +381,7 @@ export class LocalStore {
 
   async counts() {
     const r = await this.db.get<{ drafts: number; queued: number; pending_ops: number; photos: number; conflicts: number; failed: number }>(
-      "SELECT (SELECT count(*) FROM drafts WHERE status = 'DRAFT') AS drafts, (SELECT count(*) FROM drafts WHERE status = 'QUEUED') AS queued, (SELECT count(*) FROM outbox WHERE state IN ('PENDING','UPLOADING')) AS pending_ops, (SELECT count(*) FROM attachments) AS photos, (SELECT count(*) FROM outbox WHERE state = 'CONFLICT' AND resolved_by IS NULL) AS conflicts, (SELECT count(*) FROM outbox WHERE state = 'FAILED') AS failed");
+      "SELECT (SELECT count(*) FROM drafts WHERE status = 'DRAFT') AS drafts, (SELECT count(*) FROM drafts WHERE status = 'QUEUED') AS queued, (SELECT count(*) FROM outbox WHERE state IN ('PENDING','UPLOADING')) AS pending_ops, (SELECT count(*) FROM attachments) AS photos, (SELECT count(*) FROM outbox WHERE state = 'CONFLICT' AND resolved_by IS NULL) AS conflicts, (SELECT count(*) FROM outbox WHERE state = 'FAILED' AND resolved_by IS NULL) AS failed");
     return r!;
   }
 

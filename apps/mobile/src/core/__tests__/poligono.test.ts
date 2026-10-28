@@ -1,9 +1,10 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { LocalStore, type DatasetPlot } from '../store';
+import { LocalStore, type DatasetPlot, type ServerOutcome } from '../store';
+import { syncOnce, type SyncTransport, type WireOperation } from '../sync';
 import { captureGate, sessionLimitNotice, sessionMinutesLeft, type StoredSession } from '../session';
-import { nodePlatform } from './node-platform';
+import { nodePlatform, syntheticJpeg } from './node-platform';
 
 // D (móvil): vértices de polígono en el dispositivo, aviso del límite de sesión y alcance propio del Productor.
 // Evidencia en Node (SQLite real). NO es evidencia de emulador ni de teléfono Android.
@@ -41,18 +42,93 @@ describe('D polígono por vértices en el dispositivo', () => {
     await s.close();
   });
 
-  it('un vértice en conflicto se reenvía sobre la versión actual: nueva operación enlazada con la misma captura, y los vértices siguientes pasan a depender de ella', async () => {
+  /** Servidor SIMULADO con las reglas reales relevantes: dependencias, hash por identificador, idempotencia, conflicto del primer vértice y borrador abierto en la web. */
+  function servidor(opts: { webDraftOpen: boolean }) {
+    const known = new Map<string, { hash: string; status: string }>();
+    const vertices: string[] = [];
+    const plotVersion = 3;
+    let webDraftOpen = opts.webDraftOpen;
+    const t: SyncTransport & { sent: WireOperation[][]; closeWebDraft: () => void; vertices: string[]; known: typeof known } = {
+      sent: [], vertices, known, closeWebDraft: () => { webDraftOpen = false; },
+      async push(_d, ops) {
+        t.sent.push(ops);
+        return ops.map((o): ServerOutcome => {
+          const prior = known.get(o.operation_id);
+          if (prior) {
+            if (prior.hash !== o.content_hash) return { operation_id: o.operation_id, status: 'REJECTED', error: { code: 'OPERATION_ID_REUSED', message: 'mismo identificador con otro contenido' } };
+            return prior.status === 'ACCEPTED' ? { operation_id: o.operation_id, status: 'DUPLICATE' } : { operation_id: o.operation_id, status: prior.status as ServerOutcome['status'], error: { code: 'PREVIOUS', message: 'ya conocida' } };
+          }
+          const deps = o.depends_on.map((d) => known.get(d));
+          if (deps.some((d) => !d)) return { operation_id: o.operation_id, status: 'DEPENDENCY_PENDING' };
+          let status: string; let error: ServerOutcome['error'];
+          if (deps.some((d) => d!.status !== 'ACCEPTED')) { status = 'REJECTED'; error = { code: 'DEPENDENCY_FAILED', message: 'previa en conflicto' }; }
+          else if (o.operation_type === 'PLOT_POLYGON_VERTEX_ADD' && (o.payload as { vertex_seq: number }).vertex_seq === 1 && webDraftOpen) {
+            status = 'CONFLICT'; error = { code: 'DRAFT_OPEN_FROM_OTHER_SOURCE', message: 'borrador de la web', details: { server_row_version: plotVersion, resolution: 'cierra el borrador en la web' } };
+          } else { status = 'ACCEPTED'; if (o.operation_type === 'PLOT_POLYGON_VERTEX_ADD') vertices.push(o.operation_id); }
+          known.set(o.operation_id, { hash: o.content_hash, status });
+          return { operation_id: o.operation_id, status: status as ServerOutcome['status'], error, result: status === 'ACCEPTED' ? { plot_row_version: plotVersion } : null };
+        });
+      },
+      async upload() { return { status: 'PENDING_SCAN' }; },
+      async pull() { return { cursor: 'c', full: true, changes: [PLOT], tombstones: [] }; },
+    };
+    return t;
+  }
+
+  it('recorrido completo: punto + 3 vértices + foto; conflicto del primer vértice → resolución → TODA la cadena llega una sola vez; originales y resoluciones conservan su historial', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'tl-poly-'));
+    const photo = join(root, 'cam.jpg'); writeFileSync(photo, syntheticJpeg({ exif: true, seed: root }));
+    const s = await LocalStore.open(nodePlatform(root, {}), 'acc1'); await s.replaceDataset([PLOT]);
+    const d = await s.createDraft(PLOT.id);
+    await s.setLocation(d, V(-0.8479, -80.1601, 8));
+    await s.addVertex(d, V(-0.847, -80.160, 5)); await s.addVertex(d, V(-0.847, -80.159, 7)); await s.addVertex(d, V(-0.848, -80.1595, 9));
+    await s.addPhoto(d, photo, 'image/jpeg', null);
+    const [loc, v1, v2, v3, ph] = await s.enqueue(d);
+    const srv = servidor({ webDraftOpen: true });
+    const r1 = await syncOnce(s, srv, 'dev');
+    expect(r1).toMatchObject({ conflicts: 1 });
+    const st = async () => Object.fromEntries((await s.drafts())[0].operations.map((o) => [o.operation_id, o.state]));
+    expect(await st()).toMatchObject({ [loc]: 'SYNCED', [v1]: 'CONFLICT', [v2]: 'FAILED', [v3]: 'FAILED', [ph]: 'FAILED' });
+    expect(srv.vertices).toHaveLength(0);
+    // sin resolver, otra sincronización no reenvía lo rechazado
+    await syncOnce(s, srv, 'dev');
+    expect(srv.vertices).toHaveLength(0);
+    // la web cierra su borrador; la persona reenvía sobre la versión actual
+    srv.closeWebDraft();
+    const nuevo = await s.resolveConflict(v1, 3);
+    const mid = (await s.drafts())[0].operations;
+    const sust = mid.filter((o) => o.resolves !== null);
+    expect(sust.map((o) => o.operation_type)).toEqual(['PLOT_POLYGON_VERTEX_ADD', 'PLOT_POLYGON_VERTEX_ADD', 'PLOT_POLYGON_VERTEX_ADD', 'PLOT_PHOTO_ATTACH']);
+    expect(sust.map((o) => o.resolves)).toEqual([v1, v2, v3, ph]);
+    expect(new Set(sust.map((o) => o.operation_id)).size).toBe(4);
+    for (const orig of [v1, v2, v3, ph]) expect(mid.find((o) => o.operation_id === orig)!.resolved_by).not.toBeNull();
+    expect(sust[0].operation_id).toBe(nuevo);
+    expect(sust[1].depends_on).toEqual([sust[0].operation_id]);
+    expect(sust[3].depends_on).toEqual([sust[2].operation_id]);
+    const r2 = await syncOnce(s, srv, 'dev');
+    expect(r2).toMatchObject({ failed: 0, conflicts: 0, still_pending: 0 });
+    expect(srv.vertices).toHaveLength(3);
+    expect(srv.vertices).toEqual(sust.slice(0, 3).map((o) => o.operation_id));
+    const enviadas = srv.sent.length;
+    await syncOnce(s, srv, 'dev');
+    expect(srv.vertices).toHaveLength(3);
+    // lo único que puede reenviarse es la consulta de estado del análisis de la foto ya subida (DUPLICATE); ningún vértice
+    const nuevas = srv.sent.slice(enviadas).flat();
+    expect(nuevas.every((o) => o.operation_type === 'PLOT_PHOTO_ATTACH')).toBe(true);
+    expect((await s.counts()).failed).toBe(0);
+    await s.close();
+  });
+
+  it('si hay una operación enviada sin respuesta, no se sustituye nada: primero se reintenta con su identificador original', async () => {
     const s = await open(); const d = await s.createDraft(PLOT.id);
     await s.addVertex(d, V(-0.847, -80.160, 5)); await s.addVertex(d, V(-0.847, -80.159, 7));
     const [o1, o2] = await s.enqueue(d);
     await s.markUploadingForTest(o1);
-    await s.applyOutcomes([{ operation_id: o1, status: 'CONFLICT', error: { code: 'VERSION_CONFLICT', message: 'La parcela cambió', details: { server_row_version: 4 } } }, { operation_id: o2, status: 'REJECTED', error: { code: 'DEPENDENCY_FAILED', message: 'previa en conflicto' } }]);
-    const nuevo = await s.resolveConflict(o1, 4);
+    await s.applyOutcomes([{ operation_id: o1, status: 'CONFLICT', error: { code: 'DRAFT_OPEN_FROM_OTHER_SOURCE', message: 'x', details: { server_row_version: 3 } } }]);
+    await s.markUploadingForTest(o2);
+    await expect(s.resolveConflict(o1, 3)).rejects.toThrow(/Sincroniza primero/);
     const [v] = await s.drafts();
-    const op = v.operations.find((o) => o.operation_id === nuevo)!;
-    expect(op).toMatchObject({ base_version: 4, resolves: o1, state: 'PENDING' });
-    expect(op.payload).toMatchObject({ capture_id: d, vertex_seq: 1, resolves_operation_id: o1 });
-    expect(v.operations.find((o) => o.operation_id === o2)!.depends_on).toEqual([nuevo]);
+    expect(v.operations.every((o) => o.resolved_by === null && o.resolves === null)).toBe(true);
     await s.close();
   });
 

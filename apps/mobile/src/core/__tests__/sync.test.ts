@@ -60,7 +60,7 @@ describe('P0-024 motor de sincronización del dispositivo', () => {
     expect((await s.op(ops[1]))!.state).toBe('PENDING');
   });
 
-  it('conflicto: se conserva la operación local y la resolución crea otra sobre la versión del servidor; la dependiente se reasigna', async () => {
+  it('conflicto: se conserva la operación local y la resolución crea otra sobre la versión del servidor; la dependiente (ya rechazada por el servidor) se sustituye por otra, sin recalcular su hash bajo el mismo identificador', async () => {
     const { s, ops } = await queuedCapture();
     const t = fake((o) => o.map((x, i) => (i === 0 ? { operation_id: x.operation_id, status: 'CONFLICT' as const, error: { code: 'VERSION_CONFLICT', message: 'cambió', details: { server_row_version: 7 } } }
       : { operation_id: x.operation_id, status: 'REJECTED' as const, error: { code: 'DEPENDENCY_FAILED', message: 'previa en conflicto' } })));
@@ -72,7 +72,13 @@ describe('P0-024 motor de sincronización del dispositivo', () => {
     const resolution = (await s.op(newId))!;
     expect(resolution).toMatchObject({ state: 'PENDING', base_version: 7, resolves: ops[0], payload: expect.objectContaining({ resolves_operation_id: ops[0] }) });
     expect(resolution.content_hash).not.toBe(original.content_hash);
-    expect((await s.op(ops[1]))!.depends_on).toEqual([newId]);
+    // la foto original ya es conocida por el servidor (rechazada): se conserva, enlazada, y una sustituta depende de la nueva resolución
+    const fotoOriginal = (await s.op(ops[1]))!;
+    expect(fotoOriginal.state).toBe('FAILED');
+    expect(fotoOriginal.resolved_by).not.toBeNull();
+    const fotoNueva = (await s.op(fotoOriginal.resolved_by!))!;
+    expect(fotoNueva).toMatchObject({ state: 'PENDING', resolves: ops[1], depends_on: [newId] });
+    expect(fotoNueva.operation_id).not.toBe(ops[1]);
     expect((await s.counts()).conflicts).toBe(0);
   });
 

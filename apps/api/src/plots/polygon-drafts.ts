@@ -182,7 +182,7 @@ export class PolygonDraftsService {
     return this.view(this.db, orgId, draft);
   }
 
-  async addVertex(user: AuthUser, orgId: string, draftId: string, dto: AddVertexDto, requestId?: string, native?: { provider_detail: string; mocked: boolean | null; device_id: string }) {
+  async addVertex(user: AuthUser, orgId: string, draftId: string, dto: AddVertexDto, requestId?: string, native?: { provider_detail: string; mocked: boolean | null; device_id: string; expect?: { capture_id: string; prior_vertices: number } }) {
     const ctx = await this.ctxFor(user, orgId, true);
     const capturedAt = new Date(dto.captured_at);
     if (capturedAt.getTime() > Date.now() + FUTURE_TOLERANCE_MS) {
@@ -206,6 +206,16 @@ export class PolygonDraftsService {
         const already = await trx.selectFrom('draft_vertices').select('id').where('organization_id', '=', orgId).where('operation_id', '=', dto.operation_id).executeTakeFirst();
         if (already) return null;
         this.checkOpen(draft, dto.expected_version);
+        // Estado esperado por la captura móvil, comprobado BAJO el bloqueo del borrador: el borrador es de esa captura y contiene exactamente
+        // los vértices que ella aportó antes (ninguno añadido, deshecho o retirado desde la web entre dos envíos).
+        if (native?.expect) {
+          const own = await trx.selectFrom('draft_vertices as v')
+            .leftJoin('draft_vertex_exclusions as x', (j) => j.onRef('x.vertex_id', '=', 'v.id').onRef('x.organization_id', '=', 'v.organization_id'))
+            .select(['v.device_id', sql<boolean>`(x.vertex_id IS NOT NULL)`.as('excluded')])
+            .where('v.organization_id', '=', orgId).where('v.draft_id', '=', draftId).execute();
+          const intact = draft.origin_capture_id === native.expect.capture_id && own.length === native.expect.prior_vertices && own.every((v) => v.device_id === native.device_id && !v.excluded);
+          if (!intact) throw conflict('DRAFT_CHANGED_FROM_WEB', 'El borrador de esta captura cambió desde la web (se añadió, deshizo o retiró un vértice) mientras el teléfono estaba sin conexión.');
+        }
         const last = await trx.selectFrom('draft_vertices').select(sql<number>`coalesce(max(acquisition_seq), 0)::int`.as('n')).where('draft_id', '=', draftId).executeTakeFirstOrThrow();
         await trx.insertInto('draft_vertices').values({
           id: randomUUID(), organization_id: orgId, draft_id: draftId, acquisition_seq: last.n + 1, source,
