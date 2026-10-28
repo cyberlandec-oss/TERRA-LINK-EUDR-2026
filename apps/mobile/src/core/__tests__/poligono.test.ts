@@ -34,8 +34,25 @@ describe('D polígono por vértices en el dispositivo', () => {
     expect(v.operations[0].depends_on).toEqual([]);
     expect(v.operations[1].depends_on).toEqual([ops[0]]);
     expect(v.operations[2].depends_on).toEqual([ops[1]]);
-    expect(v.operations.every((o) => o.base_version === null && /^[0-9a-f]{64}$/.test(o.content_hash))).toBe(true);
+    expect(v.operations.map((o) => o.base_version)).toEqual([3, null, null]); // solo el primer vértice lleva la versión de la parcela conocida
+    expect(v.operations.map((o) => [o.payload.capture_id, o.payload.vertex_seq])).toEqual([[d, 1], [d, 2], [d, 3]]);
+    expect(v.operations.every((o) => /^[0-9a-f]{64}$/.test(o.content_hash))).toBe(true);
     await expect(s.addVertex(d, V(-0.9, -80.2, 3))).rejects.toThrow(/ya está en cola/);
+    await s.close();
+  });
+
+  it('un vértice en conflicto se reenvía sobre la versión actual: nueva operación enlazada con la misma captura, y los vértices siguientes pasan a depender de ella', async () => {
+    const s = await open(); const d = await s.createDraft(PLOT.id);
+    await s.addVertex(d, V(-0.847, -80.160, 5)); await s.addVertex(d, V(-0.847, -80.159, 7));
+    const [o1, o2] = await s.enqueue(d);
+    await s.markUploadingForTest(o1);
+    await s.applyOutcomes([{ operation_id: o1, status: 'CONFLICT', error: { code: 'VERSION_CONFLICT', message: 'La parcela cambió', details: { server_row_version: 4 } } }, { operation_id: o2, status: 'REJECTED', error: { code: 'DEPENDENCY_FAILED', message: 'previa en conflicto' } }]);
+    const nuevo = await s.resolveConflict(o1, 4);
+    const [v] = await s.drafts();
+    const op = v.operations.find((o) => o.operation_id === nuevo)!;
+    expect(op).toMatchObject({ base_version: 4, resolves: o1, state: 'PENDING' });
+    expect(op.payload).toMatchObject({ capture_id: d, vertex_seq: 1, resolves_operation_id: o1 });
+    expect(v.operations.find((o) => o.operation_id === o2)!.depends_on).toEqual([nuevo]);
     await s.close();
   });
 

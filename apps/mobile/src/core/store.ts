@@ -207,7 +207,7 @@ export class LocalStore {
       const plot = await tx.get<{ row_version: number; plot_code: string }>('SELECT row_version, plot_code FROM dataset_plots WHERE id = ?', [d.plot_id]);
       const loc = await tx.get<{ id: string; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; provider_detail: string; mocked: number | null }>('SELECT * FROM location_samples WHERE draft_id = ?', [draftId]);
       const photos = await tx.all<{ id: string; sha256: string; size_bytes: number; mime_type: string; captured_at: string | null }>('SELECT id, sha256, size_bytes, mime_type, captured_at FROM attachments WHERE draft_id = ? ORDER BY stored_at, id', [draftId]);
-      const verts = await tx.all<{ id: string; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; provider_detail: string; mocked: number | null }>('SELECT * FROM polygon_vertices WHERE draft_id = ? ORDER BY seq', [draftId]);
+      const verts = await tx.all<{ id: string; seq: number; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; provider_detail: string; mocked: number | null }>('SELECT * FROM polygon_vertices WHERE draft_id = ? ORDER BY seq', [draftId]);
       if (!loc && !photos.length && !verts.length) throw new Error(d.note.trim() ? 'Una nota sin ubicación, vértices ni foto no tiene entidad en el servidor: agrega ubicación, vértices o foto.' : 'La captura está vacía: agrega ubicación, vértices o foto.');
       const at = this.now();
       let seq = ((await tx.get<{ n: number | null }>('SELECT max(seq) AS n FROM outbox'))?.n ?? 0);
@@ -224,9 +224,10 @@ export class LocalStore {
       const locOp = loc ? await add('PLOT_LOCATION_SAMPLE_CREATE', loc.id, plot?.row_version ?? null, { plot_id: d.plot_id, latitude: loc.latitude, longitude: loc.longitude, accuracy_m: loc.accuracy_m, acquired_at: loc.acquired_at,
         source: 'DEVICE_LOCATION_SERVICE', provider_detail: loc.provider_detail, mocked: loc.mocked === null ? null : loc.mocked === 1 }, [], [], loc.acquired_at) : null;
       // Vértices: una operación por vértice, encadenadas en el orden de captura (el servidor los recibe en ese orden). Nunca confirma el polígono.
+      // `capture_id` (este borrador local) identifica el borrador de destino en el servidor; el primer vértice lleva la versión de la parcela que el teléfono conocía.
       let prev: string | null = locOp;
       for (const v of verts) {
-        prev = await add('PLOT_POLYGON_VERTEX_ADD', v.id, null, { plot_id: d.plot_id, latitude: v.latitude, longitude: v.longitude, accuracy_m: v.accuracy_m, acquired_at: v.acquired_at,
+        prev = await add('PLOT_POLYGON_VERTEX_ADD', v.id, v.seq === 1 ? (plot?.row_version ?? null) : null, { plot_id: d.plot_id, capture_id: draftId, vertex_seq: v.seq, latitude: v.latitude, longitude: v.longitude, accuracy_m: v.accuracy_m, acquired_at: v.acquired_at,
           source: 'DEVICE_LOCATION_SERVICE', provider_detail: v.provider_detail, mocked: v.mocked === null ? null : v.mocked === 1 }, prev ? [prev] : [], [], v.acquired_at);
       }
       for (const ph of photos) {

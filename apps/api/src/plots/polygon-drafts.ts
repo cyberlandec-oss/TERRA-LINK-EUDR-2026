@@ -131,10 +131,12 @@ export class PolygonDraftsService {
     const included = all.filter((v) => !v.excluded);
     return {
       id: draft.id, plot_id: draft.plot_id, status: draft.status, row_version: Number(draft.row_version),
+      origin_capture_id: draft.origin_capture_id, origin_device_id: draft.origin_device_id,
       confirmed_version_id: draft.confirmed_version_id, created_at: draft.created_at, updated_at: draft.updated_at,
       vertices: all.map((v) => ({
         id: v.id, acquisition_seq: v.acquisition_seq, source: v.source, longitude: v.longitude, latitude: v.latitude,
         horizontal_accuracy_m: v.horizontal_accuracy_m, captured_at: v.captured_at, received_at: v.received_at, excluded: v.excluded,
+        provider_detail: v.provider_detail, mocked: v.mocked,
       })),
       accuracy_summary: summarizeAccuracy(included.map((v) => v.horizontal_accuracy_m)),
       preview: await this.preview(db, included),
@@ -152,7 +154,7 @@ export class PolygonDraftsService {
     if (Number(draft.row_version) !== expected) throw conflict('VERSION_CONFLICT', 'El borrador cambió en otra pestaña o dispositivo. Recárgalo; tu muestra se conserva.');
   }
 
-  async start(user: AuthUser, orgId: string, plotId: string, requestId?: string) {
+  async start(user: AuthUser, orgId: string, plotId: string, requestId?: string, origin?: { capture_id: string; device_id: string }) {
     const ctx = await this.ctxFor(user, orgId, true);
     return this.db.transaction().execute(async (trx) => {
       const plot = await this.plots.load(trx, ctx, plotId, 'update', true);
@@ -160,7 +162,7 @@ export class PolygonDraftsService {
       const open = await trx.selectFrom('polygon_drafts').select('id').where('organization_id', '=', orgId).where('plot_id', '=', plotId).where('status', '=', 'OPEN').executeTakeFirst();
       if (open) throw new AppError(409, 'DRAFT_ALREADY_OPEN', 'Ya hay un borrador de polígono abierto para esta parcela.', [{ field: 'draft_id', reason: open.id }]);
       const draft = await trx.insertInto('polygon_drafts')
-        .values({ id: randomUUID(), organization_id: orgId, plot_id: plotId, status: 'OPEN', created_by: user.id, updated_by: user.id })
+        .values({ id: randomUUID(), organization_id: orgId, plot_id: plotId, status: 'OPEN', created_by: user.id, updated_by: user.id, origin_capture_id: origin?.capture_id ?? null, origin_device_id: origin?.device_id ?? null })
         .returningAll().executeTakeFirstOrThrow();
       await this.audit.record(trx, { organizationId: orgId, actorUserId: user.id, action: 'plot.polygon_draft_start', entityType: 'plot', entityId: plotId, requestId, result: 'SUCCESS', after: { draft_id: draft.id } });
       return this.view(trx, orgId, draft);
@@ -180,13 +182,14 @@ export class PolygonDraftsService {
     return this.view(this.db, orgId, draft);
   }
 
-  async addVertex(user: AuthUser, orgId: string, draftId: string, dto: AddVertexDto, requestId?: string) {
+  async addVertex(user: AuthUser, orgId: string, draftId: string, dto: AddVertexDto, requestId?: string, native?: { provider_detail: string; mocked: boolean | null; device_id: string }) {
     const ctx = await this.ctxFor(user, orgId, true);
     const capturedAt = new Date(dto.captured_at);
     if (capturedAt.getTime() > Date.now() + FUTURE_TOLERANCE_MS) {
       throw new AppError(422, 'CAPTURED_AT_IN_FUTURE', 'La hora de adquisición informada está en el futuro. Revisa el reloj del dispositivo.', [{ field: 'captured_at', reason: 'IN_FUTURE' }]);
     }
-    const hash = createHash('sha256').update(JSON.stringify([draftId, dto.source, dto.longitude, dto.latitude, dto.accuracy_m, capturedAt.toISOString()])).digest('hex');
+    const source = native ? 'DEVICE_LOCATION_SERVICE' as const : dto.source;
+    const hash = createHash('sha256').update(JSON.stringify(native ? [draftId, source, dto.longitude, dto.latitude, dto.accuracy_m, capturedAt.toISOString(), native.provider_detail, native.mocked, native.device_id] : [draftId, dto.source, dto.longitude, dto.latitude, dto.accuracy_m, capturedAt.toISOString()])).digest('hex');
     const replay = async () => {
       const prior = await this.db.selectFrom('draft_vertices').select(['draft_id', 'payload_hash'])
         .where('organization_id', '=', orgId).where('operation_id', '=', dto.operation_id).executeTakeFirst();
@@ -205,7 +208,8 @@ export class PolygonDraftsService {
         this.checkOpen(draft, dto.expected_version);
         const last = await trx.selectFrom('draft_vertices').select(sql<number>`coalesce(max(acquisition_seq), 0)::int`.as('n')).where('draft_id', '=', draftId).executeTakeFirstOrThrow();
         await trx.insertInto('draft_vertices').values({
-          id: randomUUID(), organization_id: orgId, draft_id: draftId, acquisition_seq: last.n + 1, source: dto.source,
+          id: randomUUID(), organization_id: orgId, draft_id: draftId, acquisition_seq: last.n + 1, source,
+          provider_detail: native?.provider_detail ?? null, mocked: native ? native.mocked : null, device_id: native?.device_id ?? null,
           longitude: dto.longitude, latitude: dto.latitude, horizontal_accuracy_m: dto.accuracy_m, captured_at: capturedAt,
           operation_id: dto.operation_id, payload_hash: hash, created_by: user.id,
         }).execute();
@@ -280,6 +284,8 @@ export class PolygonDraftsService {
       const versionId = randomUUID();
       const surveyedAt = new Date(Math.max(...included.map((v) => new Date(v.captured_at).getTime())));
       const summary = summarizeAccuracy(included.map((v) => v.horizontal_accuracy_m));
+      const sources = new Set(included.map((v) => v.source));
+      const surveyMethod = sources.size === 1 ? [...sources][0] : 'MIXED_ACQUISITION';
       const notes = pv.technically_valid === false ? `Geometría técnicamente no válida conservada para revisión: ${pv.validity_reason}` : null;
       await sql`
         WITH g AS (SELECT ST_SetSRID(ST_GeomFromGeoJSON(${geojson}), 4326) AS geom)
@@ -289,7 +295,7 @@ export class PolygonDraftsService {
         SELECT ${versionId}, ${orgId}, ${plot.id}, ${last.n + 1}, g.geom, 'POLYGON', encode(sha256(ST_AsBinary(g.geom)), 'hex'),
           ${previous?.area_declared_ha ?? null}::numeric,
           CASE WHEN (ST_IsValidDetail(g.geom)).valid THEN round((ST_Area(g.geom::geography) / 10000)::numeric, 6) ELSE NULL END,
-          'BROWSER_GEOLOCATION', ${surveyedAt.toISOString()}::timestamptz, NULL, 'NOT_VALIDATED', ${STRUCTURAL_RULE},
+          ${surveyMethod}, ${surveyedAt.toISOString()}::timestamptz, NULL, 'NOT_VALIDATED', ${STRUCTURAL_RULE},
           ${plot.current_version_id}, ${notes}, ${user.id}
         FROM g`.execute(trx);
       const plotAfter = await trx.updateTable('plots')
@@ -302,7 +308,7 @@ export class PolygonDraftsService {
         aggregateVersion: Number(plotAfter.row_version), actorId: user.id, correlationId: requestId,
         payload: {
           plot_version_id: versionId, version_number: last.n + 1, previous_version_id: plot.current_version_id, geometry_type: 'POLYGON',
-          survey_method: 'BROWSER_GEOLOCATION', polygon_draft_id: draftId, vertex_count: included.length,
+          survey_method: surveyMethod, polygon_draft_id: draftId, vertex_count: included.length,
           vertices_with_accuracy: summary.with_accuracy, vertices_without_accuracy: summary.without_accuracy, technically_valid: pv.technically_valid,
         },
       });

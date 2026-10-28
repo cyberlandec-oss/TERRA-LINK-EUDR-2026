@@ -392,8 +392,9 @@ function Pending({ store, onOpen }: { store: LocalStore; onOpen: (d: string) => 
             return (
               <View key={o.operation_id} style={{ marginTop: 6 }}>
                 <Badge tone={blocked ? 'blocked' : tone}>{blocked ? 'Bloqueado por acceso' : label}</Badge>
-                <Text style={s.muted}>{o.operation_type === 'PLOT_LOCATION_SAMPLE_CREATE' ? 'Muestra de ubicación' : 'Foto'} · {o.operation_id.slice(0, 8)}{o.recovered_count ? ` · recuperada ${o.recovered_count} vez/veces` : ''}{o.resolved_by ? ' · resuelta con otra operación' : ''}</Text>
+                <Text style={s.muted}>{o.operation_type === 'PLOT_LOCATION_SAMPLE_CREATE' ? 'Muestra de ubicación' : o.operation_type === 'PLOT_POLYGON_VERTEX_ADD' ? `Vértice ${(o.payload as { vertex_seq?: number }).vertex_seq ?? ''} del polígono` : 'Foto'} · {o.operation_id.slice(0, 8)}{o.recovered_count ? ` · recuperada ${o.recovered_count} vez/veces` : ''}{o.resolved_by ? ' · resuelta con otra operación' : ''}</Text>
                 {o.last_error && <Text style={s.muted}>{o.last_error}</Text>}
+                {o.state === 'CONFLICT' && (o.server_result?.error as { details?: { resolution?: string } } | null)?.details?.resolution && <Text style={s.muted}>{(o.server_result?.error as { details: { resolution: string } }).details.resolution}</Text>}
                 {o.state === 'CONFLICT' && !o.resolved_by && typeof serverVersion === 'number' && (
                   <Button kind="secondary" label={`Reenviar sobre la versión actual del ${SERVER} (${serverVersion})`} hint="Crea una operación nueva; la original se conserva" onPress={() => void resolve(o.operation_id, serverVersion)} />
                 )}

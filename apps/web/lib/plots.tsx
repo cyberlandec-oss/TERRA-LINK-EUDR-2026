@@ -67,6 +67,7 @@ export const METHOD_LABEL: Record<string, string> = {
   MANUAL_COORDINATES: 'Coordenadas ingresadas',
   BROWSER_GEOLOCATION: 'Ubicación del navegador',
   DEVICE_LOCATION_SERVICE: 'Servicio de ubicación del dispositivo móvil (no se afirma GPS)',
+  MIXED_ACQUISITION: 'Vértices de orígenes distintos (navegador y dispositivo móvil)',
   GPS_POINT: 'Punto GPS',
   GPS_POLYGON: 'Polígono GPS',
   FILE_IMPORT: 'Importación de archivo',

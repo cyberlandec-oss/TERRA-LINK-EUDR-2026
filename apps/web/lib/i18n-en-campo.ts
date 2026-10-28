@@ -141,6 +141,7 @@ export const EN_CAMPO: Record<string, string> = {
   'Solo superficie declarada': 'Declared area only',
   'Ubicación registrada (sin validar)': 'Location recorded (not validated)',
   'Servicio de ubicación del dispositivo móvil (no se afirma GPS)': 'Mobile device location service (GPS is not claimed)',
+  'Vértices de orígenes distintos (navegador y dispositivo móvil)': 'Vertices from different sources (browser and mobile device)',
   'Punto GPS': 'GPS point',
   'Polígono GPS': 'GPS polygon',
   'Importación de archivo': 'File import',

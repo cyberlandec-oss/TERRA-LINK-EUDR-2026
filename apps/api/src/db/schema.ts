@@ -316,6 +316,9 @@ export interface PolygonDraftsTable {
   updated_by: string;
   closed_at: Timestamp | null;
   closed_by: string | null;
+  // 0069: captura móvil de la que nació el borrador (null si se abrió desde la web).
+  origin_capture_id: string | null;
+  origin_device_id: string | null;
 }
 
 export interface DraftVerticesTable {
@@ -323,7 +326,7 @@ export interface DraftVerticesTable {
   organization_id: string;
   draft_id: string;
   acquisition_seq: number;
-  source: 'BROWSER_GEOLOCATION';
+  source: 'BROWSER_GEOLOCATION' | 'DEVICE_LOCATION_SERVICE';
   longitude: number;
   latitude: number;
   horizontal_accuracy_m: number | null;
@@ -332,6 +335,10 @@ export interface DraftVerticesTable {
   operation_id: string;
   payload_hash: string;
   created_by: string;
+  // 0069: procedencia real de la adquisición (solo vértices del dispositivo).
+  provider_detail: string | null;
+  mocked: boolean | null;
+  device_id: string | null;
 }
 
 export interface DraftVertexExclusionsTable {

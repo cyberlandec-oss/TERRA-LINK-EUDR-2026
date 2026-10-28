@@ -82,6 +82,11 @@ class VertexPayload {
   @IsIn(['DEVICE_LOCATION_SERVICE']) source!: 'DEVICE_LOCATION_SERVICE';
   @IsString() @Length(3, 500) provider_detail!: string;
   @ValidateIf((_, v) => v !== null) @IsBoolean() mocked!: boolean | null;
+  /** Captura (borrador local del teléfono) a la que pertenece el vértice: identifica el borrador de destino. */
+  @IsUUID() capture_id!: string;
+  /** Posición del vértice dentro de la captura (1 = el primero). */
+  @IsInt() @Min(1) vertex_seq!: number;
+  @IsOptional() @IsUUID() resolves_operation_id?: string;
 }
 class PhotoPayload {
   @IsUUID() plot_id!: string;
@@ -264,13 +269,41 @@ export class SyncService {
         if (op.operation_type === 'PLOT_POLYGON_VERTEX_ADD') {
           const p = await this.validatePayload(VertexPayload, op.payload);
           if ('invalid' in p) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('PAYLOAD_INVALID', 'Contenido del vértice no válido.', p.invalid));
+          if (p.vertex_seq === 1 && op.base_version == null) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('BASE_VERSION_REQUIRED', 'Falta la versión de la parcela sobre la que se capturó el primer vértice.'));
+          if (p.resolves_operation_id) {
+            const r = await trx.selectFrom('sync_operations').select(['status', 'operation_type']).where('organization_id', '=', orgId).where('operation_id', '=', p.resolves_operation_id).executeTakeFirst();
+            if (!r || r.status !== 'CONFLICT' || r.operation_type !== op.operation_type) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('RESOLVES_INVALID', 'La operación que dice resolver no existe o no está en conflicto.'));
+          }
+          const conflict = async (code: string, message: string, resolution: string) => {
+            const server = await this.plots.get(user, orgId, p.plot_id).then((x) => Number((x as { row_version: number }).row_version)).catch(() => null);
+            return this.store(trx, user, ctx, deviceId, op, hash, 'CONFLICT', null, err(code, message, { base_version: op.base_version, server_row_version: server, resolution }), p.resolves_operation_id);
+          };
           try {
-            const open = (await this.polygons.current(user, orgId, p.plot_id)).draft ?? await this.polygons.start(user, orgId, p.plot_id, requestId);
-            const r = await this.polygons.addVertex(user, orgId, open.id, { expected_version: open.row_version, operation_id: op.operation_id, source: 'BROWSER_GEOLOCATION', longitude: p.longitude, latitude: p.latitude, accuracy_m: p.accuracy_m, captured_at: p.acquired_at }, requestId);
+            const open = (await this.polygons.current(user, orgId, p.plot_id)).draft;
+            let draft = open;
+            if (p.vertex_seq === 1) {
+              // Primer vértice: la captura abre su borrador, o continúa el que ya abrió ella (reenvío). Un borrador de otra captura o de la web NO se mezcla.
+              if (open && open.origin_capture_id !== p.capture_id) {
+                return conflict('DRAFT_OPEN_FROM_OTHER_SOURCE', 'La parcela ya tiene un borrador de polígono abierto que no es de esta captura (otra captura o la web). Los vértices no se mezclan.',
+                  'Cierra o confirma ese borrador en la web y reenvía la captura; tus vértices se conservan en el dispositivo.');
+              }
+              if (!open) {
+                const current = await this.plots.get(user, orgId, p.plot_id).then((x) => Number((x as { row_version: number }).row_version));
+                if (current !== op.base_version) {
+                  return conflict('VERSION_CONFLICT', 'La parcela cambió (por ejemplo, desde la web) mientras capturabas sin conexión.', `Revisa la parcela (versión ${current}) y reenvía la captura sobre ella; tus vértices se conservan.`);
+                }
+                draft = await this.polygons.start(user, orgId, p.plot_id, requestId, { capture_id: p.capture_id, device_id: deviceId });
+              }
+            } else if (!open || open.origin_capture_id !== p.capture_id) {
+              return conflict('DRAFT_NOT_OPEN_FOR_CAPTURE', 'El borrador de polígono de esta captura ya no está abierto (se confirmó o canceló en la web) o lo reemplazó otro.',
+                'Revisa el estado del borrador en la web; tus vértices se conservan en el dispositivo y se pueden reenviar sobre un borrador nuevo.');
+            }
+            const r = await this.polygons.addVertex(user, orgId, draft!.id, { expected_version: draft!.row_version, operation_id: op.operation_id, source: 'BROWSER_GEOLOCATION', longitude: p.longitude, latitude: p.latitude, accuracy_m: p.accuracy_m, captured_at: p.acquired_at },
+              requestId, { provider_detail: p.provider_detail, mocked: p.mocked, device_id: deviceId });
             return this.store(trx, user, ctx, deviceId, op, hash, 'ACCEPTED', { plot_id: p.plot_id, draft_id: r.draft.id, draft_row_version: r.draft.row_version, vertex_count: r.draft.vertices.length, confirmed: false,
-              note: 'El vértice quedó en el borrador de polígono de la parcela. No hay geometría nueva hasta que una persona revise y confirme el borrador en la web.' }, null);
+              note: 'El vértice quedó en el borrador de polígono de la parcela. No hay geometría nueva hasta que una persona revise y confirme el borrador en la web.' }, null, p.resolves_operation_id);
           } catch (e) {
-            if (e instanceof AppError && e.status === 409) return this.store(trx, user, ctx, deviceId, op, hash, 'CONFLICT', null, err(e.code, e.message, { resolution: 'Revisa el borrador de la parcela en la web; tu vértice se conserva en el dispositivo.' }));
+            if (e instanceof AppError && e.status === 409) return conflict(e.code, e.message, 'Revisa el borrador de la parcela en la web; tu vértice se conserva en el dispositivo.');
             if (e instanceof AppError && e.status < 500) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err(e.code, e.message, e.details));
             throw e;
           }
