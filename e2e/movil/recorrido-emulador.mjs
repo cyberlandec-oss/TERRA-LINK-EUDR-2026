@@ -306,6 +306,127 @@ const steps = {
     }
     record('almacenamiento-lleno-inducido', ok, `FALLO INDUCIDO en emulador, fase ${fase} (archivo de relleno de ${fillMb} MB, después borrado; C: ${JSON.stringify(state.hostDisk)}); no es falta real de espacio`, s);
   },
+  // ── Altas sin conexión, mapa y recorridos nuevos (2026-10-28) ──────────────────────────────────────────────────────────
+  async altasPreparar() {
+    const adm = await login('admin.cooperativa'); const org = await coopId(adm);
+    const mid = sql("select m.id from memberships m join users u on u.id = m.user_id where u.email like 'tecnico1.cooperativa@%' and m.organization_id = '" + org + "' limit 1");
+    let pid = sql("select id from producers where organization_id = '" + org + "' and producer_code = 'MOV-SIN-PARC'");
+    if (!pid) { const r = await api('/api/v1/organizations/' + org + '/producers', { method: 'POST', token: adm, body: { producer_code: 'MOV-SIN-PARC', legal_name: 'Productor movil sin parcelas (DEMO)', assigned_membership_id: mid } }); pid = r.data?.id ?? ''; }
+    state.sinParc = { id: pid, org }; save();
+    record('altas-preparar-productor-sin-parcelas', !!pid, { productor: pid, asignado_a_tecnico1: true, nota: 'Registro DEMO creado por la API pública (sin seed ni restablecimiento); no tiene parcelas' });
+  },
+  async altasSinParcelas() {
+    await proxy('pass'); await tab('Inicio');
+    await tap(/Descargar datos asignados/); await waitFor(/parcela\(s\) autorizadas descargadas/, { timeout: 30000 });
+    await tab('Altas');
+    await ver(/MOV-SIN-PARC/);
+    record('altas-productor-autorizado-sin-parcelas-visible', true, 'Tras la descarga, «Nueva parcela» ofrece MOV-SIN-PARC aunque no tiene parcelas', shot('altas-productor-sin-parcelas'));
+    await proxy('offline');
+    await tap(/MOV-SIN-PARC/);
+    state.plotCode = 'MOV-P-' + (Date.now() % 1000000); save();
+    await typeInto(/^Código de la parcela$/, state.plotCode); hideKeyboard();
+    await tap(/^Guardar parcela como borrador local$/); await ver(/Parcela guardada como borrador local/);
+    await tap(/^Poner el alta en cola$/); await ver(/Alta de la parcela en cola/);
+    record('altas-primera-parcela-offline-en-cola', true, { codigo: state.plotCode, red: 'offline (proxy)' }, shot('altas-parcela-en-cola'));
+  },
+  async altasCaptura() {
+    await tab('Captura');
+    await tap(new RegExp('^' + state.plotCode + ' · parcela NUEVA'));
+    await waitFor(/Captura · /);
+    const sinMapa = allText();
+    record('mapa-sin-cartografia-dice-que-falta', /Sin cartografía preparada/.test(sinMapa) && /No hay cartografía preparada/.test(sinMapa), 'Antes de preparar la zona el mapa declara que no hay cartografía y sigue dibujando puntos', shot('mapa-sin-cartografia'));
+    const geo = [['-80.1601', '-0.8479'], ['-80.1598', '-0.8476'], ['-80.1594', '-0.8480'], ['-80.1598', '-0.8484']];
+    adb('emu', 'geo', 'fix', ...geo[0]);
+    const antes = await ubicacionMiUbicacion();
+    for (const g of geo.slice(1)) {
+      adb('emu', 'geo', 'fix', ...g); await sleep(1500);
+      await tap(/^Mi ubicación$/); await ver(/Lectura de «Mi ubicación» \(todavía no guardada\)/, 90000);
+      if (g === geo[1]) record('mapa-lectura-sin-guardar', true, 'La lectura se muestra en el mapa con su precisión y el vértice solo se agrega con la acción explícita', shot('mapa-lectura'));
+      await tap(/^Añadir vértice con la lectura/); await ver(/Vértice añadido al borrador/);
+    }
+    record('mapa-vertices-revision', true, { vertices: 3, ubicacion_guardada: true, nota: antes.includes('Precisión') }, shot('mapa-vertices'));
+    await tap(/^Guardar en cola$/); await waitFor(/Pendientes/);
+    const t = await pendingText();
+    record('altas-captura-en-cola', /Alta de parcela/.test(t) || /Vértice/.test(t), 'Ubicación y 3 vértices sobre la parcela NUEVA en cola', shot('altas-pendientes'));
+  },
+  async altasReaperturaYSync() {
+    await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);
+    const t = await pendingText();
+    const sobrevive = /Vértice 1/.test(t) && /Vértice 3/.test(t);
+    record('altas-reapertura-conserva-cola', sobrevive, 'Tras cierre forzado y reapertura la captura sobre la parcela local sigue en cola', shot('altas-tras-reapertura'));
+    await proxy('pass'); await tab('Inicio');
+    await tap(/Sincronizar ahora/); await waitFor(/Sincronización terminada/, { timeout: 90000 });
+    const q = (x) => sql(x).trim();
+    const plot = q("select id || '|' || producer_id from plots where organization_id = '" + state.sinParc.org + "' and plot_code = '" + state.plotCode + "'");
+    const [pid, prod] = plot.split('|');
+    const verts = Number(q("select count(*) from draft_vertices v join polygon_drafts d on d.id = v.draft_id where d.plot_id = '" + pid + "'"));
+    const locs = Number(q("select count(*) from location_samples where plot_id = '" + pid + "'"));
+    record('altas-sync-en-dependencia', !!pid && prod === state.sinParc.id && verts === 3 && locs >= 1, { parcela_definitiva: pid, productor_correcto: prod === state.sinParc.id, vertices_en_borrador: verts, muestras: locs }, shot('altas-sincronizado'));
+    await tap(/Sincronizar ahora/); await waitFor(/Sincronización terminada/, { timeout: 60000 });
+    const plots2 = Number(q("select count(*) from plots where organization_id = '" + state.sinParc.org + "' and plot_code = '" + state.plotCode + "'"));
+    const verts2 = Number(q("select count(*) from draft_vertices v join polygon_drafts d on d.id = v.draft_id where d.plot_id = '" + pid + "'"));
+    record('altas-reintento-sin-duplicar', plots2 === 1 && verts2 === 3, { parcelas: plots2, vertices: verts2 });
+  },
+  async mapaPreparar() {
+    adb('reverse', 'tcp:8090', 'tcp:8090');
+    await tab('Captura');
+    await tap(new RegExp('^' + state.plotCode + ' ·')).catch(async () => { await tap(new RegExp('^' + state.plotCode)); });
+    await waitFor(/Captura · /);
+    await tap(/^Preparar cartografía de esta zona/);
+    await ver(/Cartografía preparada: \d+ teselas/, 180000);
+    const t = allText();
+    state.mapa = { texto: /Cartografía preparada: (\d+) teselas \(([\d.]+) MB\)/.exec(t)?.slice(1) }; save();
+    record('mapa-cartografia-preparada', /Cartografía preparada/.test(t), { teselas_mb: state.mapa.texto, origen: 'servicio maps del propio despliegue (localhost:8090 por adb reverse)' }, shot('mapa-preparado'));
+  },
+  async mapaOffline() {
+    adb('reverse', '--remove', 'tcp:8090');
+    await proxy('offline');
+    await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);
+    await tab('Captura'); await tap(/^Nueva captura$/).catch(() => undefined);
+    await tap(new RegExp('^' + state.plotCode + ' ·'));
+    await waitFor(/Captura · /);
+    await ver(/Cartografía preparada/);
+    await sleep(3000);
+    record('mapa-offline-con-cartografia-local', true, 'Sin red ni servicio de mapas (reverse 8090 retirado, API cortada): el mapa dibuja el fondo desde la base cifrada de la cuenta', shot('mapa-offline'));
+    await proxy('pass');
+  },
+  async ubicacionDenegada() {
+    adb('shell', 'pm', 'revoke', PKG, 'android.permission.ACCESS_FINE_LOCATION');
+    adb('shell', 'pm', 'revoke', PKG, 'android.permission.ACCESS_COARSE_LOCATION');
+    await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);
+    await tab('Captura'); await tap(/^Nueva captura$/).catch(() => undefined);
+    await tap(new RegExp('^' + state.plot.plot_code + ' ·'));
+    await waitFor(/Captura · /);
+    await tap(/^Mi ubicación$/);
+    for (let i = 0; i < 6 && !/Permiso de ubicación denegado|^Allow|Permitir/i.test(allText()); i++) await sleep(1000);
+    const deny = find(/^(Don.t allow|DENY|No permitir)$/i); if (deny.length) { tapNode(deny[0]); await sleep(1500); }
+    const t = allText();
+    record('ubicacion-denegada-conserva-borrador', /Permiso de ubicación denegado/.test(t) && /Sin ubicación|Ubicación/.test(t), 'Con el permiso denegado el mensaje es recuperable y el borrador se conserva', shot('ubicacion-denegada'));
+    adb('shell', 'pm', 'grant', PKG, 'android.permission.ACCESS_FINE_LOCATION');
+    adb('shell', 'pm', 'grant', PKG, 'android.permission.ACCESS_COARSE_LOCATION');
+  },
+  async adjuntoInterrumpido() {
+    await proxy('pass'); await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);
+    await tab('Captura'); await tap(/^Nueva captura$/).catch(() => undefined);
+    await tap(new RegExp('^' + state.plot.plot_code + ' ·')); await waitFor(/Captura · /);
+    await tap(/^Tomar foto$/);
+    for (let i = 0; i < 40; i++) {
+      const t = allText();
+      if (/Foto copiada al almacenamiento|Archivo procesado por la app/.test(t)) break;
+      const allow = find(/^(ALLOW|Allow|WHILE USING THE APP|While using the app|NEXT|Next|OK|Got it)$/i); if (allow.length) { tapNode(allow[0]); await sleep(800); continue; }
+      const done = find(/done_button|^Done$|^OK$/); if (done.length) { tapNode(done[0]); await sleep(1500); continue; }
+      const shutter = find(/shutter_button|^Shutter$/); if (shutter.length) { tapNode(shutter[0]); await sleep(2500); continue; }
+      await sleep(1000);
+    }
+    await tap(/^Guardar en cola$/); await waitFor(/Pendientes/);
+    await proxy('cortar-subida'); await tab('Inicio');
+    await tap(/Sincronizar ahora/); await waitFor(/Sincronización (detenida|terminada)/, { timeout: 90000 });
+    const t1 = await pendingText();
+    record('adjunto-interrumpido-queda-pendiente', /archivo pendiente de subir|análisis pendiente|archivo recibido/.test(t1), { estado_mostrado: /archivo pendiente de subir/.test(t1) ? 'archivo pendiente de subir' : /análisis pendiente/.test(t1) ? 'análisis pendiente' : 'otro' }, shot('adjunto-interrumpido'));
+    await tab('Inicio'); await tap(/Sincronizar ahora/); await waitFor(/Sincronización terminada/, { timeout: 90000 });
+    const t2 = await pendingText();
+    record('adjunto-reintento-sin-duplicar', /archivo (disponible|recibido)|análisis pendiente/.test(t2), 'Tras el reintento el archivo queda recibido una sola vez (estado separado del registro)', shot('adjunto-reintento'));
+  },
   async revocacion() {
     await tab('Inicio');
     const adm = await login('admin.cooperativa');

@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-export const ADB = 'C:/Users/mario/AppData/Local/Android/Sdk/platform-tools/adb.exe';
+export const ADB = `${process.env.ANDROID_HOME ?? 'C:/Users/mario/Android/sdk'}/platform-tools/adb.exe`;
 export const adb = (...a) => execFileSync(ADB, a, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, cwd: 'C:/' });
 export const adbBin = (...a) => execFileSync(ADB, a, { maxBuffer: 64 * 1024 * 1024, cwd: 'C:/' });
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

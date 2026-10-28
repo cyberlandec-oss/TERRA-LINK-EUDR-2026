@@ -1,5 +1,6 @@
 // Proxy del recorrido en emulador: 127.0.0.1:4001 → API 127.0.0.1:4000 (el emulador usa `adb reverse tcp:4000 tcp:4001`).
 // Control en 127.0.0.1:4002: /modo?valor=pass | offline | cortar-tras-commit
+// - cortar-subida: igual que la anterior pero para la SUBIDA de un archivo (POST /sync/attachments/:op/content): el servidor la recibe y el cliente no ve la respuesta.
 // - offline: cierra cada conexión al instante (equivale a no tener red).
 // - cortar-tras-commit: reenvía el SIGUIENTE POST /sync/push, espera la respuesta del servidor (el efecto ya se confirmó)
 //   y cierra la conexión del cliente SIN responder; después vuelve a «pass».
@@ -14,7 +15,7 @@ const note = (o) => appendFileSync(log, `${JSON.stringify({ at: new Date().toISO
 createServer((req, res) => {
   const path = (req.url ?? '').split('?')[0];
   if (mode === 'offline') { note({ method: req.method, path, action: 'offline' }); req.socket.destroy(); return; }
-  const cut = mode === 'cortar-tras-commit' && req.method === 'POST' && path.endsWith('/sync/push');
+  const cut = (mode === 'cortar-tras-commit' && req.method === 'POST' && path.endsWith('/sync/push')) || (mode === 'cortar-subida' && req.method === 'POST' && /\/sync\/attachments\/[^/]+\/content$/.test(path));
   const chunks = [];
   req.on('data', (c) => chunks.push(c));
   req.on('end', () => {
