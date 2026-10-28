@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-10-27T21:33:31.533Z",
+  "fecha": "2026-10-28T22:50:00.875Z",
   "base": "http://localhost:3000",
   "entorno": "DESARROLLO local (contenedores), datos DEMO",
   "combinaciones": 22,
@@ -28,7 +28,7 @@
     {
       "caso": "admin.cooperativa · DEMO · Cooperativa Río Verde · ORG_ADMIN",
       "ok": true,
-      "detalle": "coincide con permisos efectivos; 7 fila(s) [personal 1 · supervisión 6]: DELIVERY_DRAFTS(1), QUALITY_PENDING(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(3), MITIGATIONS_ASSIGNED(1)",
+      "detalle": "coincide con permisos efectivos; 11 fila(s) [personal 2 · supervisión 9]: DELIVERY_DRAFTS(1), QUALITY_PENDING(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(6), MITIGATIONS_ASSIGNED(2)",
       "captura": "docs/qa/capturas/web-por-rol/admin.cooperativa-cooperativa-inicio.png",
       "fila": {
         "cuenta": "admin.cooperativa",
@@ -37,8 +37,8 @@
         "permisos": 106,
         "menu": "coincide con permisos efectivos",
         "contexto": "organización activa, usuario y roles visibles",
-        "mi_trabajo": "7 fila(s) [personal 1 · supervisión 6]: DELIVERY_DRAFTS(1), QUALITY_PENDING(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(3), MITIGATIONS_ASSIGNED(1)",
-        "lot_hub": "secciones según permiso; enlaces a parcelas: 0",
+        "mi_trabajo": "11 fila(s) [personal 2 · supervisión 9]: DELIVERY_DRAFTS(1), QUALITY_PENDING(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(6), MITIGATIONS_ASSIGNED(2)",
+        "lot_hub": "secciones según permiso; enlaces a parcelas: 2",
         "denegacion_misma_org": null,
         "denegacion_otra_org": null,
         "captura": "docs/qa/capturas/web-por-rol/admin.cooperativa-cooperativa-inicio.png",
@@ -48,7 +48,7 @@
     {
       "caso": "supervisor.cooperativa · DEMO · Cooperativa Río Verde · MANAGER",
       "ok": true,
-      "detalle": "coincide con permisos efectivos; 5 fila(s) [personal 0 · supervisión 5]: DELIVERY_DRAFTS(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(3)",
+      "detalle": "coincide con permisos efectivos; 8 fila(s) [personal 0 · supervisión 8]: DELIVERY_DRAFTS(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(6)",
       "captura": "docs/qa/capturas/web-por-rol/supervisor.cooperativa-cooperativa-inicio.png",
       "fila": {
         "cuenta": "supervisor.cooperativa",
@@ -57,8 +57,8 @@
         "permisos": 42,
         "menu": "coincide con permisos efectivos",
         "contexto": "organización activa, usuario y roles visibles",
-        "mi_trabajo": "5 fila(s) [personal 0 · supervisión 5]: DELIVERY_DRAFTS(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(3)",
-        "lot_hub": "secciones según permiso; enlaces a parcelas: 0",
+        "mi_trabajo": "8 fila(s) [personal 0 · supervisión 8]: DELIVERY_DRAFTS(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(6)",
+        "lot_hub": "secciones según permiso; enlaces a parcelas: 2",
         "denegacion_misma_org": "Riesgo: denegado con mensaje accesible (role=alert)",
         "denegacion_otra_org": null,
         "captura": "docs/qa/capturas/web-por-rol/supervisor.cooperativa-cooperativa-inicio.png",
@@ -68,7 +68,7 @@
     {
       "caso": "tecnico1.cooperativa · DEMO · Cooperativa Río Verde · FIELD_TECHNICIAN",
       "ok": true,
-      "detalle": "coincide con permisos efectivos; 4 fila(s) [personal 4 · supervisión 0]: DELIVERY_DRAFTS(1), PLOTS_WITHOUT_LOCATION(3)",
+      "detalle": "coincide con permisos efectivos; 7 fila(s) [personal 7 · supervisión 0]: DELIVERY_DRAFTS(1), PLOTS_WITHOUT_LOCATION(6)",
       "captura": "docs/qa/capturas/web-por-rol/tecnico1.cooperativa-cooperativa-inicio.png",
       "fila": {
         "cuenta": "tecnico1.cooperativa",
@@ -77,7 +77,7 @@
         "permisos": 20,
         "menu": "coincide con permisos efectivos",
         "contexto": "organización activa, usuario y roles visibles",
-        "mi_trabajo": "4 fila(s) [personal 4 · supervisión 0]: DELIVERY_DRAFTS(1), PLOTS_WITHOUT_LOCATION(3)",
+        "mi_trabajo": "7 fila(s) [personal 7 · supervisión 0]: DELIVERY_DRAFTS(1), PLOTS_WITHOUT_LOCATION(6)",
         "lot_hub": "denegado por rol (sin lot:read), sin datos",
         "denegacion_misma_org": "denegado por rol (sin lot:read), sin datos",
         "denegacion_otra_org": null,
@@ -112,7 +112,7 @@
         "cuenta": "productor.cooperativa",
         "organizacion": "DEMO · Cooperativa Río Verde",
         "rol": "PRODUCER",
-        "permisos": 9,
+        "permisos": 10,
         "menu": "coincide con permisos efectivos",
         "contexto": "organización activa, usuario y roles visibles",
         "mi_trabajo": "0 fila(s) [personal 0 · supervisión 0]: ninguna",
@@ -135,7 +135,7 @@
         "menu": "coincide con permisos efectivos",
         "contexto": "organización activa, usuario y roles visibles",
         "mi_trabajo": "0 fila(s) [personal 0 · supervisión 0]: ninguna",
-        "lot_hub": "secciones según permiso; enlaces a parcelas: 0",
+        "lot_hub": "secciones según permiso; enlaces a parcelas: 2",
         "denegacion_misma_org": "Importar datos (Excel): denegado con mensaje accesible (role=alert)",
         "denegacion_otra_org": null,
         "captura": "docs/qa/capturas/web-por-rol/auditor.cooperativa-cooperativa-inicio.png",
@@ -155,7 +155,7 @@
         "menu": "coincide con permisos efectivos",
         "contexto": "organización activa, usuario y roles visibles",
         "mi_trabajo": "0 fila(s) [personal 0 · supervisión 0]: ninguna",
-        "lot_hub": "secciones según permiso; enlaces a parcelas: 0",
+        "lot_hub": "secciones según permiso; enlaces a parcelas: 2",
         "denegacion_misma_org": "Auditoría: denegado con mensaje accesible (role=alert)",
         "denegacion_otra_org": null,
         "captura": "docs/qa/capturas/web-por-rol/eudr.cooperativa-cooperativa-inicio.png",
@@ -395,7 +395,7 @@
     {
       "caso": "coordinador.multi · DEMO · Cooperativa Río Verde · MANAGER",
       "ok": true,
-      "detalle": "coincide con permisos efectivos; 5 fila(s) [personal 0 · supervisión 5]: DELIVERY_DRAFTS(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(3)",
+      "detalle": "coincide con permisos efectivos; 8 fila(s) [personal 0 · supervisión 8]: DELIVERY_DRAFTS(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(6)",
       "captura": "docs/qa/capturas/web-por-rol/coordinador.multi-cooperativa-inicio.png",
       "fila": {
         "cuenta": "coordinador.multi",
@@ -404,8 +404,8 @@
         "permisos": 42,
         "menu": "coincide con permisos efectivos",
         "contexto": "organización activa, usuario y roles visibles",
-        "mi_trabajo": "5 fila(s) [personal 0 · supervisión 5]: DELIVERY_DRAFTS(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(3)",
-        "lot_hub": "secciones según permiso; enlaces a parcelas: 0",
+        "mi_trabajo": "8 fila(s) [personal 0 · supervisión 8]: DELIVERY_DRAFTS(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(6)",
+        "lot_hub": "secciones según permiso; enlaces a parcelas: 2",
         "denegacion_misma_org": "Riesgo: denegado con mensaje accesible (role=alert)",
         "denegacion_otra_org": null,
         "captura": "docs/qa/capturas/web-por-rol/coordinador.multi-cooperativa-inicio.png",
@@ -452,10 +452,10 @@
       "captura": "docs/qa/capturas/web-por-rol/admin-390-inicio.png"
     },
     {
-      "caso": "390 px: /lotes/a4e8032d-7a74-4e07-b5b2-cdc1d5dc359f sin desplazamiento horizontal",
+      "caso": "390 px: /lotes/df1e8196-2141-4772-96bf-abda21a5087a sin desplazamiento horizontal",
       "ok": true,
       "detalle": "exceso 0px",
-      "captura": "docs/qa/capturas/web-por-rol/admin-390-lotesaedaebb.png"
+      "captura": "docs/qa/capturas/web-por-rol/admin-390-lotesdfebfab.png"
     },
     {
       "caso": "390 px: /entregas sin desplazamiento horizontal",
@@ -470,10 +470,10 @@
       "captura": "docs/qa/capturas/web-por-rol/admin-zoom200-inicio.png"
     },
     {
-      "caso": "zoom 200 % (1280 px a 640 px CSS): /lotes/a4e8032d-7a74-4e07-b5b2-cdc1d5dc359f sin desplazamiento horizontal",
+      "caso": "zoom 200 % (1280 px a 640 px CSS): /lotes/df1e8196-2141-4772-96bf-abda21a5087a sin desplazamiento horizontal",
       "ok": true,
       "detalle": "exceso 0px",
-      "captura": "docs/qa/capturas/web-por-rol/admin-zoom200-lotesaedaebb.png"
+      "captura": "docs/qa/capturas/web-por-rol/admin-zoom200-lotesdfebfab.png"
     },
     {
       "caso": "zoom 200 % (1280 px a 640 px CSS): /entregas sin desplazamiento horizontal",
@@ -484,7 +484,7 @@
     {
       "caso": "acción de Mi trabajo (no aplicable: DEMO-IMP-PAR-002 ya tiene ubicación de una ejecución anterior)",
       "ok": true,
-      "detalle": "tarea actual: 3",
+      "detalle": "tarea actual: 6",
       "captura": null
     }
   ]

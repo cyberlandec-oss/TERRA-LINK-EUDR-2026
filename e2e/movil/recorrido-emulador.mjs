@@ -313,8 +313,9 @@ const steps = {
   },
   /** La sesión del servidor dura 1 h (ADR-0005): una tanda larga debe volver a iniciar sesión con conexión antes de seguir. */
   async relogin() {
-    await proxy('pass');
-    await logout().catch(() => undefined);
+    await proxy('pass'); await restart();
+    const first = await waitFor(/Elige la organización|Iniciar sesión/, { timeout: 40000 });
+    if (/Elige/.test(first.text + first.desc)) { await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/); await logout(); }
     await loginAs('tecnico1.cooperativa');
     record('relogin', true, 'Nuevo inicio de sesión online (la anterior vencía a la hora)', null);
   },
@@ -446,5 +447,5 @@ const steps = {
 };
 
 for (const name of process.argv.slice(2)) {
-  try { await steps[name](); } catch (e) { record(name, false, `excepción: ${(e).message}`, (() => { try { return shot(`fallo-${name}`); } catch { return null; } })()); }
+  try { if (!['preparar', 'relogin', 'vencimiento'].includes(name)) await tab('Inicio').catch(() => undefined); await steps[name](); } catch (e) { record(name, false, `excepción: ${(e).message}`, (() => { try { return shot(`fallo-${name}`); } catch { return null; } })()); }
 }

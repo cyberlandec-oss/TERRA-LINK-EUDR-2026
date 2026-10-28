@@ -209,6 +209,1603 @@
       "ok": true,
       "detalle": "FALLO INDUCIDO en emulador, fase borrador (archivo de relleno de 5654 MB, después borrado; C: {\"antes_GB\":23.76,\"minimo_GB\":23.76}); no es falta real de espacio",
       "captura": "docs/qa/capturas/movil-emulador/23-almacenamiento-lleno-inducido.png"
+    },
+    {
+      "paso": "preparar",
+      "en": "2026-10-28T19:47:37.540Z",
+      "ok": true,
+      "detalle": "Permisos de ubicación y cámara concedidos por adb; posición EMULADA -0.8479, -80.1601; proxy en modo pass",
+      "captura": "docs/qa/capturas/movil-emulador/24-inicio.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "login",
+      "en": "2026-10-28T19:48:25.038Z",
+      "ok": true,
+      "detalle": "Inicio de sesión online como tecnico1 (DEMO) y organización DEMO · Cooperativa",
+      "captura": "docs/qa/capturas/movil-emulador/25-mi-jornada.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "descargar-asignaciones",
+      "en": "2026-10-28T19:48:31.284Z",
+      "ok": true,
+      "detalle": "6 parcela(s) autorizadas descargadas",
+      "captura": "docs/qa/capturas/movil-emulador/26-descarga.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "altas-preparar-productor-sin-parcelas",
+      "en": "2026-10-28T19:48:32.523Z",
+      "ok": true,
+      "detalle": {
+        "productor": "ac987246-e35b-43da-9740-d5f9c7a675e6",
+        "asignado_a_tecnico1": true,
+        "nota": "Registro DEMO creado por la API pública (sin seed ni restablecimiento); no tiene parcelas"
+      },
+      "captura": null,
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "altas-productor-autorizado-sin-parcelas-visible",
+      "en": "2026-10-28T19:49:04.317Z",
+      "ok": true,
+      "detalle": "Tras la descarga, «Nueva parcela» ofrece MOV-SIN-PARC aunque no tiene parcelas",
+      "captura": "docs/qa/capturas/movil-emulador/27-altas-productor-sin-parcelas.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "altasSinParcelas",
+      "en": "2026-10-28T19:50:16.671Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Alta de la parcela en cola/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/28-fallo-altasSinParcelas.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "mapa-sin-cartografia-dice-que-falta",
+      "en": "2026-10-28T19:50:28.407Z",
+      "ok": true,
+      "detalle": "Antes de preparar la zona el mapa declara que no hay cartografía y sigue dibujando puntos",
+      "captura": "docs/qa/capturas/movil-emulador/29-mapa-sin-cartografia.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "altasCaptura",
+      "en": "2026-10-28T19:52:06.955Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Lectura de «Mi ubicación» \\(todavía no guardada\\)/ en 90000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/30-fallo-altasCaptura.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "altas-reapertura-conserva-cola",
+      "en": "2026-10-28T19:52:27.999Z",
+      "ok": false,
+      "detalle": "Tras cierre forzado y reapertura la captura sobre la parcela local sigue en cola",
+      "captura": "docs/qa/capturas/movil-emulador/31-altas-tras-reapertura.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "altasReaperturaYSync",
+      "en": "2026-10-28T19:52:37.672Z",
+      "ok": false,
+      "detalle": "excepción: Command failed: docker compose exec -T postgres sh -c psql -U \"$POSTGRES_USER\" -d terra_link -tAc \"select count(*) from draft_vertices v join polygon_drafts d on d.id = v.draft_id where d.plot_id = ''\"\nERROR:  invalid input syntax for type uuid: \"\"\nLINE 1: ...n polygon_drafts d on d.id = v.draft_id where d.plot_id = ''\n                                                                     ^\n",
+      "captura": "docs/qa/capturas/movil-emulador/32-fallo-altasReaperturaYSync.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "mapaPreparar",
+      "en": "2026-10-28T19:55:54.653Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Cartografía preparada: \\d+ teselas/ en 180000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/33-fallo-mapaPreparar.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "mapaOffline",
+      "en": "2026-10-28T19:56:50.674Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Cartografía preparada/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/34-fallo-mapaOffline.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "altas-productor-autorizado-sin-parcelas-visible",
+      "en": "2026-10-28T19:58:34.657Z",
+      "ok": true,
+      "detalle": "Tras la descarga, «Nueva parcela» ofrece MOV-SIN-PARC aunque no tiene parcelas",
+      "captura": "docs/qa/capturas/movil-emulador/36-altas-productor-sin-parcelas.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-primera-parcela-offline-en-cola",
+      "en": "2026-10-28T19:59:28.080Z",
+      "ok": true,
+      "detalle": {
+        "codigo": "MOV-P-517846",
+        "red": "offline (proxy)"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/37-altas-parcela-en-cola.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altasCaptura",
+      "en": "2026-10-28T20:00:16.273Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^MOV-P-517846 · parcela NUEVA/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/38-fallo-altasCaptura.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-reapertura-conserva-cola",
+      "en": "2026-10-28T20:00:50.399Z",
+      "ok": false,
+      "detalle": "Tras cierre forzado y reapertura la captura sobre la parcela local sigue en cola",
+      "captura": "docs/qa/capturas/movil-emulador/39-altas-tras-reapertura.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-sync-en-dependencia",
+      "en": "2026-10-28T20:01:14.743Z",
+      "ok": false,
+      "detalle": {
+        "parcela_definitiva": "18bad67d-fa10-4104-bffe-05fcd5320e42",
+        "productor_correcto": true,
+        "vertices_en_borrador": 0,
+        "muestras": 0
+      },
+      "captura": "docs/qa/capturas/movil-emulador/40-altas-sincronizado.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-reintento-sin-duplicar",
+      "en": "2026-10-28T20:01:21.328Z",
+      "ok": false,
+      "detalle": {
+        "parcelas": 1,
+        "vertices": 0
+      },
+      "captura": null,
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaPreparar",
+      "en": "2026-10-28T20:04:54.901Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Cartografía preparada: \\d+ teselas/ en 180000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/41-fallo-mapaPreparar.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaOffline",
+      "en": "2026-10-28T20:06:11.298Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Cartografía preparada/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/42-fallo-mapaOffline.png",
+      "script": {
+        "sha256": "175df8c4ac3555f4033312f7319da357bc2283c3ab1d9f3c86ef307f1cf2449b",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-productor-autorizado-sin-parcelas-visible",
+      "en": "2026-10-28T20:07:36.094Z",
+      "ok": true,
+      "detalle": "Tras la descarga, «Nueva parcela» ofrece MOV-SIN-PARC aunque no tiene parcelas",
+      "captura": "docs/qa/capturas/movil-emulador/44-altas-productor-sin-parcelas.png",
+      "script": {
+        "sha256": "ad418703feb01a13b67ec9b6272b49dd473be710f398322186210989bb10c4ff",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-primera-parcela-offline-en-cola",
+      "en": "2026-10-28T20:08:29.665Z",
+      "ok": true,
+      "detalle": {
+        "codigo": "MOV-P-59296",
+        "red": "offline (proxy)"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/45-altas-parcela-en-cola.png",
+      "script": {
+        "sha256": "ad418703feb01a13b67ec9b6272b49dd473be710f398322186210989bb10c4ff",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapa-sin-cartografia-dice-que-falta",
+      "en": "2026-10-28T20:08:59.403Z",
+      "ok": true,
+      "detalle": "Antes de preparar la zona el mapa declara que no hay cartografía y sigue dibujando puntos",
+      "captura": "docs/qa/capturas/movil-emulador/46-mapa-sin-cartografia.png",
+      "script": {
+        "sha256": "ad418703feb01a13b67ec9b6272b49dd473be710f398322186210989bb10c4ff",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapa-lectura-sin-guardar",
+      "en": "2026-10-28T20:10:18.829Z",
+      "ok": true,
+      "detalle": "La lectura se muestra en el mapa con su precisión y el vértice solo se agrega con la acción explícita",
+      "captura": "docs/qa/capturas/movil-emulador/47-mapa-lectura.png",
+      "script": {
+        "sha256": "ad418703feb01a13b67ec9b6272b49dd473be710f398322186210989bb10c4ff",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altasCaptura",
+      "en": "2026-10-28T20:11:04.345Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Mi ubicación$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/48-fallo-altasCaptura.png",
+      "script": {
+        "sha256": "ad418703feb01a13b67ec9b6272b49dd473be710f398322186210989bb10c4ff",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-reapertura-conserva-cola",
+      "en": "2026-10-28T20:11:38.480Z",
+      "ok": false,
+      "detalle": "Tras cierre forzado y reapertura la captura sobre la parcela local sigue en cola",
+      "captura": "docs/qa/capturas/movil-emulador/49-altas-tras-reapertura.png",
+      "script": {
+        "sha256": "ad418703feb01a13b67ec9b6272b49dd473be710f398322186210989bb10c4ff",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-sync-en-dependencia",
+      "en": "2026-10-28T20:12:02.864Z",
+      "ok": false,
+      "detalle": {
+        "parcela_definitiva": "e7cc7309-fd7e-4bd6-833e-ae0c7195c903",
+        "productor_correcto": true,
+        "vertices_en_borrador": 0,
+        "muestras": 0
+      },
+      "captura": "docs/qa/capturas/movil-emulador/50-altas-sincronizado.png",
+      "script": {
+        "sha256": "ad418703feb01a13b67ec9b6272b49dd473be710f398322186210989bb10c4ff",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-reintento-sin-duplicar",
+      "en": "2026-10-28T20:12:09.313Z",
+      "ok": false,
+      "detalle": {
+        "parcelas": 1,
+        "vertices": 0
+      },
+      "captura": null,
+      "script": {
+        "sha256": "ad418703feb01a13b67ec9b6272b49dd473be710f398322186210989bb10c4ff",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaPreparar",
+      "en": "2026-10-28T20:15:48.069Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Cartografía preparada: \\d+ teselas/ en 180000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/51-fallo-mapaPreparar.png",
+      "script": {
+        "sha256": "ad418703feb01a13b67ec9b6272b49dd473be710f398322186210989bb10c4ff",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaOffline",
+      "en": "2026-10-28T20:17:05.945Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Cartografía preparada/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/52-fallo-mapaOffline.png",
+      "script": {
+        "sha256": "ad418703feb01a13b67ec9b6272b49dd473be710f398322186210989bb10c4ff",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-productor-autorizado-sin-parcelas-visible",
+      "en": "2026-10-28T20:48:47.775Z",
+      "ok": true,
+      "detalle": "Tras la descarga, «Nueva parcela» ofrece MOV-SIN-PARC aunque no tiene parcelas",
+      "captura": "docs/qa/capturas/movil-emulador/54-altas-productor-sin-parcelas.png",
+      "script": {
+        "sha256": "2636e6717d07940f00a9c7addcaac5c69148452f89ba434cf80896f9aef6352f",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altasSinParcelas",
+      "en": "2026-10-28T20:49:40.862Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Parcela guardada como borrador local/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/55-fallo-altasSinParcelas.png",
+      "script": {
+        "sha256": "2636e6717d07940f00a9c7addcaac5c69148452f89ba434cf80896f9aef6352f",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altasCaptura",
+      "en": "2026-10-28T20:50:36.051Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^MOV-P-531267 · parcela NUEVA/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/56-fallo-altasCaptura.png",
+      "script": {
+        "sha256": "2636e6717d07940f00a9c7addcaac5c69148452f89ba434cf80896f9aef6352f",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-reapertura-conserva-cola",
+      "en": "2026-10-28T20:51:11.999Z",
+      "ok": false,
+      "detalle": "Tras cierre forzado y reapertura la captura sobre la parcela local sigue en cola",
+      "captura": "docs/qa/capturas/movil-emulador/57-altas-tras-reapertura.png",
+      "script": {
+        "sha256": "2636e6717d07940f00a9c7addcaac5c69148452f89ba434cf80896f9aef6352f",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altasReaperturaYSync",
+      "en": "2026-10-28T20:53:05.657Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Sincronización terminada/ en 90000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/58-fallo-altasReaperturaYSync.png",
+      "script": {
+        "sha256": "2636e6717d07940f00a9c7addcaac5c69148452f89ba434cf80896f9aef6352f",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaPreparar",
+      "en": "2026-10-28T20:54:32.440Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^MOV-P-531267/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/59-fallo-mapaPreparar.png",
+      "script": {
+        "sha256": "2636e6717d07940f00a9c7addcaac5c69148452f89ba434cf80896f9aef6352f",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaOffline",
+      "en": "2026-10-28T20:55:40.292Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^MOV-P-531267 ·/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/60-fallo-mapaOffline.png",
+      "script": {
+        "sha256": "2636e6717d07940f00a9c7addcaac5c69148452f89ba434cf80896f9aef6352f",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-28T20:57:23.469Z",
+      "ok": true,
+      "detalle": "Nuevo inicio de sesión online (la anterior vencía a la hora)",
+      "captura": null,
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "descargar-asignaciones",
+      "en": "2026-10-28T20:57:30.429Z",
+      "ok": true,
+      "detalle": "8 parcela(s) autorizadas descargadas",
+      "captura": "docs/qa/capturas/movil-emulador/61-descarga.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-productor-autorizado-sin-parcelas-visible",
+      "en": "2026-10-28T20:58:32.533Z",
+      "ok": true,
+      "detalle": "Tras la descarga, «Nueva parcela» ofrece MOV-SIN-PARC aunque no tiene parcelas",
+      "captura": "docs/qa/capturas/movil-emulador/62-altas-productor-sin-parcelas.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-primera-parcela-offline-en-cola",
+      "en": "2026-10-28T20:59:38.699Z",
+      "ok": true,
+      "detalle": {
+        "codigo": "MOV-P-119815",
+        "red": "offline (proxy)"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/63-altas-parcela-en-cola.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapa-sin-cartografia-dice-que-falta",
+      "en": "2026-10-28T21:00:10.270Z",
+      "ok": true,
+      "detalle": "Antes de preparar la zona el mapa declara que no hay cartografía y sigue dibujando puntos",
+      "captura": "docs/qa/capturas/movil-emulador/64-mapa-sin-cartografia.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapa-lectura-sin-guardar",
+      "en": "2026-10-28T21:01:41.673Z",
+      "ok": true,
+      "detalle": "La lectura se muestra en el mapa con su precisión y el vértice solo se agrega con la acción explícita",
+      "captura": "docs/qa/capturas/movil-emulador/65-mapa-lectura.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altasCaptura",
+      "en": "2026-10-28T21:03:52.784Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Lectura de «Mi ubicación» \\(todavía no guardada\\)/ en 90000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/66-fallo-altasCaptura.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-reapertura-conserva-cola",
+      "en": "2026-10-28T21:04:29.159Z",
+      "ok": false,
+      "detalle": "Tras cierre forzado y reapertura la captura sobre la parcela local sigue en cola",
+      "captura": "docs/qa/capturas/movil-emulador/67-altas-tras-reapertura.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-sync-en-dependencia",
+      "en": "2026-10-28T21:04:55.850Z",
+      "ok": false,
+      "detalle": {
+        "parcela_definitiva": "7056c5b9-cb21-4933-9339-fa19ad583995",
+        "productor_correcto": true,
+        "vertices_en_borrador": 0,
+        "muestras": 0
+      },
+      "captura": "docs/qa/capturas/movil-emulador/68-altas-sincronizado.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-reintento-sin-duplicar",
+      "en": "2026-10-28T21:05:03.097Z",
+      "ok": false,
+      "detalle": {
+        "parcelas": 1,
+        "vertices": 0
+      },
+      "captura": null,
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaPreparar",
+      "en": "2026-10-28T21:08:46.803Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Cartografía preparada: \\d+ teselas/ en 180000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/69-fallo-mapaPreparar.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaOffline",
+      "en": "2026-10-28T21:10:05.338Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Cartografía preparada/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/70-fallo-mapaOffline.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-28T21:12:18.934Z",
+      "ok": true,
+      "detalle": "Nuevo inicio de sesión online (la anterior vencía a la hora)",
+      "captura": null,
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "descargar-asignaciones",
+      "en": "2026-10-28T21:12:25.735Z",
+      "ok": true,
+      "detalle": "9 parcela(s) autorizadas descargadas",
+      "captura": "docs/qa/capturas/movil-emulador/73-descarga.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-productor-autorizado-sin-parcelas-visible",
+      "en": "2026-10-28T21:13:27.793Z",
+      "ok": true,
+      "detalle": "Tras la descarga, «Nueva parcela» ofrece MOV-SIN-PARC aunque no tiene parcelas",
+      "captura": "docs/qa/capturas/movil-emulador/74-altas-productor-sin-parcelas.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-primera-parcela-offline-en-cola",
+      "en": "2026-10-28T21:14:30.104Z",
+      "ok": true,
+      "detalle": {
+        "codigo": "MOV-P-11335",
+        "red": "offline (proxy)"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/75-altas-parcela-en-cola.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapa-sin-cartografia-dice-que-falta",
+      "en": "2026-10-28T21:15:02.198Z",
+      "ok": true,
+      "detalle": "Antes de preparar la zona el mapa declara que no hay cartografía y sigue dibujando puntos",
+      "captura": "docs/qa/capturas/movil-emulador/76-mapa-sin-cartografia.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapa-lectura-sin-guardar",
+      "en": "2026-10-28T21:16:44.544Z",
+      "ok": true,
+      "detalle": "La lectura se muestra en el mapa con su precisión y el vértice solo se agrega con la acción explícita",
+      "captura": "docs/qa/capturas/movil-emulador/77-mapa-lectura.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapa-vertices-revision",
+      "en": "2026-10-28T21:19:07.040Z",
+      "ok": true,
+      "detalle": {
+        "vertices": 3,
+        "ubicacion_guardada": true,
+        "nota": true
+      },
+      "captura": "docs/qa/capturas/movil-emulador/78-mapa-vertices.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-captura-en-cola",
+      "en": "2026-10-28T21:19:24.361Z",
+      "ok": true,
+      "detalle": "Ubicación y 3 vértices sobre la parcela NUEVA en cola",
+      "captura": "docs/qa/capturas/movil-emulador/79-altas-pendientes.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-reapertura-conserva-cola",
+      "en": "2026-10-28T21:20:00.485Z",
+      "ok": true,
+      "detalle": "Tras cierre forzado y reapertura la captura sobre la parcela local sigue en cola",
+      "captura": "docs/qa/capturas/movil-emulador/80-altas-tras-reapertura.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-sync-en-dependencia",
+      "en": "2026-10-28T21:20:27.064Z",
+      "ok": true,
+      "detalle": {
+        "parcela_definitiva": "7cc7a510-9f8b-4def-8ff1-508d5217dd8c",
+        "productor_correcto": true,
+        "vertices_en_borrador": 3,
+        "muestras": 1
+      },
+      "captura": "docs/qa/capturas/movil-emulador/81-altas-sincronizado.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-reintento-sin-duplicar",
+      "en": "2026-10-28T21:20:34.043Z",
+      "ok": true,
+      "detalle": {
+        "parcelas": 1,
+        "vertices": 3
+      },
+      "captura": null,
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaPreparar",
+      "en": "2026-10-28T21:24:17.445Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Cartografía preparada: \\d+ teselas/ en 180000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/82-fallo-mapaPreparar.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaOffline",
+      "en": "2026-10-28T21:25:36.160Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Cartografía preparada/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/83-fallo-mapaOffline.png",
+      "script": {
+        "sha256": "0d2f5391eb8c0375a2e104956675369a01478120648c1302bae619c6b84943a5",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-28T21:27:29.198Z",
+      "ok": true,
+      "detalle": "Nuevo inicio de sesión online (la anterior vencía a la hora)",
+      "captura": null,
+      "script": {
+        "sha256": "0f176a3c4a93d5100d8130b185e4534f6ede300fe1b4befd7fde59d54184a3d9",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaPreparar",
+      "en": "2026-10-28T21:29:56.391Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Lectura de «Mi ubicación» (todavía no guardada)/ en 90000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/86-fallo-mapaPreparar.png",
+      "script": {
+        "sha256": "0f176a3c4a93d5100d8130b185e4534f6ede300fe1b4befd7fde59d54184a3d9",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaOffline",
+      "en": "2026-10-28T21:32:39.746Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Lectura de «Mi ubicación» (todavía no guardada)/ en 90000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/87-fallo-mapaOffline.png",
+      "script": {
+        "sha256": "0f176a3c4a93d5100d8130b185e4534f6ede300fe1b4befd7fde59d54184a3d9",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-28T21:35:10.113Z",
+      "ok": true,
+      "detalle": "Nuevo inicio de sesión online (la anterior vencía a la hora)",
+      "captura": null,
+      "script": {
+        "sha256": "dbb2b1118ec19aabc6d8a2825238950bf15dd00ffaeae11a13c220e9e10a3aa9",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaPreparar",
+      "en": "2026-10-28T21:36:09.205Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Captura · / en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/89-fallo-mapaPreparar.png",
+      "script": {
+        "sha256": "dbb2b1118ec19aabc6d8a2825238950bf15dd00ffaeae11a13c220e9e10a3aa9",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapaOffline",
+      "en": "2026-10-28T21:38:01.762Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Cartografía preparada/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/90-fallo-mapaOffline.png",
+      "script": {
+        "sha256": "dbb2b1118ec19aabc6d8a2825238950bf15dd00ffaeae11a13c220e9e10a3aa9",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapa-cartografia-preparada",
+      "en": "2026-10-28T21:40:34.927Z",
+      "ok": true,
+      "detalle": {
+        "teselas_mb": [
+          "50",
+          "0.7"
+        ],
+        "origen": "servicio maps del propio despliegue (localhost:8090 por adb reverse)"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/92-mapa-preparado.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapa-offline-con-cartografia-local",
+      "en": "2026-10-28T21:42:34.529Z",
+      "ok": true,
+      "detalle": "Sin red ni servicio de mapas (reverse 8090 retirado, API cortada): el mapa dibuja el fondo desde la base cifrada de la cuenta",
+      "captura": "docs/qa/capturas/movil-emulador/93-mapa-offline.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "b995aa3",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-28T21:46:34.666Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Iniciar sesión/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/94-fallo-relogin.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "mapa-cartografia-preparada",
+      "en": "2026-10-28T21:48:17.770Z",
+      "ok": true,
+      "detalle": {
+        "teselas_mb": [
+          "50",
+          "0.7"
+        ],
+        "origen": "servicio maps del propio despliegue (localhost:8090 por adb reverse)"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/95-mapa-preparado.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "mapa-offline-con-cartografia-local",
+      "en": "2026-10-28T21:50:14.302Z",
+      "ok": true,
+      "detalle": "Sin red ni servicio de mapas (reverse 8090 retirado, API cortada): el mapa dibuja el fondo desde la base cifrada de la cuenta",
+      "captura": "docs/qa/capturas/movil-emulador/96-mapa-offline.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "preparar",
+      "en": "2026-10-28T21:50:20.729Z",
+      "ok": true,
+      "detalle": "Permisos de ubicación y cámara concedidos por adb; posición EMULADA -0.8479, -80.1601; proxy en modo pass",
+      "captura": "docs/qa/capturas/movil-emulador/97-inicio.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "descargar",
+      "en": "2026-10-28T21:50:54.047Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Descargar datos asignados/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/98-fallo-descargar.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "capturar",
+      "en": "2026-10-28T21:51:27.704Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Nueva captura$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/99-fallo-capturar.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "foto",
+      "en": "2026-10-28T21:52:00.694Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Tomar foto$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/100-fallo-foto.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "guardarOffline",
+      "en": "2026-10-28T21:52:33.715Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Observación de campo/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/101-fallo-guardarOffline.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "cierre-forzado-y-reapertura",
+      "en": "2026-10-28T21:53:10.120Z",
+      "ok": false,
+      "detalle": {
+        "despues": []
+      },
+      "captura": "docs/qa/capturas/movil-emulador/102-tras-reapertura.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "interrupcion-tras-commit",
+      "en": "2026-10-28T21:53:39.831Z",
+      "ok": false,
+      "detalle": {
+        "respuesta_cortada": true,
+        "operaciones_confirmadas_en_servidor": 2,
+        "muestras_creadas": 0
+      },
+      "captura": "docs/qa/capturas/movil-emulador/103-sync-cortada.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "reintento-sin-duplicar",
+      "en": "2026-10-28T21:54:09.918Z",
+      "ok": false,
+      "detalle": {
+        "muestras_tras_reintento": 0,
+        "filas_sync": 2,
+        "ids_mostrados": [],
+        "mismos_ids": false
+      },
+      "captura": "docs/qa/capturas/movil-emulador/104-sync-reintento.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "fotoAnalisis",
+      "en": "2026-10-28T21:54:18.598Z",
+      "ok": false,
+      "detalle": "excepción: Cannot read properties of undefined (reading 'find')",
+      "captura": "docs/qa/capturas/movil-emulador/105-fallo-fotoAnalisis.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "conflicto-visible",
+      "en": "2026-10-28T21:56:38.417Z",
+      "ok": true,
+      "detalle": {
+        "edicion_web_http": 201,
+        "version_servidor": 3
+      },
+      "captura": "docs/qa/capturas/movil-emulador/106-conflicto.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "conflicto-resuelto",
+      "en": "2026-10-28T21:57:32.242Z",
+      "ok": true,
+      "detalle": {
+        "servidor": [
+          "ACCEPTED:37fb00fd-6280-4dd3-a629-958d8461fc31",
+          "CONFLICT:-"
+        ]
+      },
+      "captura": "docs/qa/capturas/movil-emulador/107-conflicto-resuelto.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "adjunto-interrumpido-queda-pendiente",
+      "en": "2026-10-28T22:00:12.565Z",
+      "ok": true,
+      "detalle": {
+        "estado_mostrado": "archivo pendiente de subir"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/108-adjunto-interrumpido.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "adjunto-reintento-sin-duplicar",
+      "en": "2026-10-28T22:01:00.484Z",
+      "ok": true,
+      "detalle": "Tras el reintento el archivo queda recibido una sola vez (estado separado del registro)",
+      "captura": "docs/qa/capturas/movil-emulador/109-adjunto-reintento.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "ubicacion-denegada-conserva-borrador",
+      "en": "2026-10-28T22:02:33.030Z",
+      "ok": false,
+      "detalle": "Con el permiso denegado el mensaje es recuperable y el borrador se conserva",
+      "captura": "docs/qa/capturas/movil-emulador/110-ubicacion-denegada.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "cerrar-sesion-avisa",
+      "en": "2026-10-28T22:03:07.626Z",
+      "ok": true,
+      "detalle": "aviso de capturas sin enviar",
+      "captura": null,
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "otra-cuenta-no-ve",
+      "en": "2026-10-28T22:04:14.581Z",
+      "ok": true,
+      "detalle": "tecnico2 no ve capturas de tecnico1",
+      "captura": "docs/qa/capturas/movil-emulador/111-tecnico2-sin-capturas.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "misma-cuenta-recupera",
+      "en": "2026-10-28T22:05:58.522Z",
+      "ok": false,
+      "detalle": {
+        "operaciones": 1
+      },
+      "captura": "docs/qa/capturas/movil-emulador/112-tecnico1-recupera.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "sesion-vencida-bloquea-sin-borrar",
+      "en": "2026-10-28T22:06:40.552Z",
+      "ok": false,
+      "detalle": "reloj del emulador +2 h: captura bloqueada; pendientes visibles",
+      "captura": "docs/qa/capturas/movil-emulador/113-sesion-vencida.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "reloj-atrasado-bloquea",
+      "en": "2026-10-28T22:06:55.492Z",
+      "ok": true,
+      "detalle": "reloj del emulador −1 día: bloqueo por reloj atrasado",
+      "captura": "docs/qa/capturas/movil-emulador/114-reloj-atrasado.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-28T22:09:26.706Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Captura · |No hay espacio libre/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/115-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "dispositivo-revocado",
+      "en": "2026-10-28T22:09:53.256Z",
+      "ok": true,
+      "detalle": {
+        "revocados": 1
+      },
+      "captura": "docs/qa/capturas/movil-emulador/116-revocado.png",
+      "script": {
+        "sha256": "2d011487e6271e92d7e66a3f9054304a91f44085d5be4c2547290bcc6605937d",
+        "commit": "0f68196",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "preparar",
+      "en": "2026-10-28T22:10:37.392Z",
+      "ok": true,
+      "detalle": "Permisos de ubicación y cámara concedidos por adb; posición EMULADA -0.8479, -80.1601; proxy en modo pass",
+      "captura": "docs/qa/capturas/movil-emulador/118-inicio.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "preparar",
+      "en": "2026-10-28T22:10:37.794Z",
+      "ok": false,
+      "detalle": "excepción: UNKNOWN: unknown error, open 'C:\\Users\\mario\\PROYECTOS DEV\\TERRA LINK 2025\\docs\\qa\\movil-emulador\\recorrido.json'",
+      "captura": "docs/qa/capturas/movil-emulador/119-fallo-preparar.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-28T22:12:12.014Z",
+      "ok": true,
+      "detalle": "Nuevo inicio de sesión online (la anterior vencía a la hora)",
+      "captura": null,
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "descargar",
+      "en": "2026-10-28T22:13:05.129Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /parcela\\(s\\) autorizadas descargadas/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/120-fallo-descargar.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altasSinParcelas",
+      "en": "2026-10-28T22:14:16.063Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /parcela\\(s\\) autorizadas descargadas/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/121-fallo-altasSinParcelas.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapa-sin-cartografia-dice-que-falta",
+      "en": "2026-10-28T22:15:19.177Z",
+      "ok": false,
+      "detalle": "Antes de preparar la zona el mapa declara que no hay cartografía y sigue dibujando puntos",
+      "captura": "docs/qa/capturas/movil-emulador/122-mapa-sin-cartografia.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "mapa-lectura-sin-guardar",
+      "en": "2026-10-28T22:17:03.732Z",
+      "ok": true,
+      "detalle": "La lectura se muestra en el mapa con su precisión y el vértice solo se agrega con la acción explícita",
+      "captura": "docs/qa/capturas/movil-emulador/123-mapa-lectura.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altasCaptura",
+      "en": "2026-10-28T22:17:37.230Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Añadir vértice con la lectura/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/124-fallo-altasCaptura.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altas-reapertura-conserva-cola",
+      "en": "2026-10-28T22:18:32.259Z",
+      "ok": false,
+      "detalle": "Tras cierre forzado y reapertura la captura sobre la parcela local sigue en cola",
+      "captura": "docs/qa/capturas/movil-emulador/125-altas-tras-reapertura.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "altasReaperturaYSync",
+      "en": "2026-10-28T22:20:26.197Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Sincronización terminada/ en 90000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/126-fallo-altasReaperturaYSync.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "capturar-ubicacion",
+      "en": "2026-10-28T22:21:51.266Z",
+      "ok": true,
+      "detalle": "Mi ubicación EMULADA en CAD-1027213440: la lectura se mostró SIN guardar (el borrador seguía «Sin ubicación.») y solo se guardó con «Usar esta ubicación en el borrador»",
+      "captura": "docs/qa/capturas/movil-emulador/127-ubicacion.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "foto",
+      "en": "2026-10-28T22:22:41.300Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Tomar foto$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/128-fallo-foto.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "guardarOffline",
+      "en": "2026-10-28T22:23:31.372Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Observación de campo/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/129-fallo-guardarOffline.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "cierre-forzado-y-reapertura",
+      "en": "2026-10-28T22:24:25.137Z",
+      "ok": false,
+      "detalle": {
+        "despues": []
+      },
+      "captura": "docs/qa/capturas/movil-emulador/130-tras-reapertura.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "interrupcion-tras-commit",
+      "en": "2026-10-28T22:25:13.724Z",
+      "ok": true,
+      "detalle": {
+        "respuesta_cortada": true,
+        "operaciones_confirmadas_en_servidor": 2,
+        "muestras_creadas": 1
+      },
+      "captura": "docs/qa/capturas/movil-emulador/131-sync-cortada.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "cortarTrasCommit",
+      "en": "2026-10-28T22:26:20.117Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Sincronización terminada/ en 60000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/132-fallo-cortarTrasCommit.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "foto-sin-analisis-no-disponible",
+      "en": "2026-10-28T22:27:00.914Z",
+      "ok": false,
+      "detalle": {
+        "app": "otro",
+        "documentos": "SCAN_FAILED",
+        "descargable": false,
+        "tipo": "FIELD_PHOTO"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/133-foto-analisis-pendiente.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "fotoAnalisis",
+      "en": "2026-10-28T22:28:55.084Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Sincronización terminada/ en 60000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/134-fallo-fotoAnalisis.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "conflicto-visible",
+      "en": "2026-10-28T22:31:42.489Z",
+      "ok": false,
+      "detalle": {
+        "edicion_web_http": 201,
+        "version_servidor": 5
+      },
+      "captura": "docs/qa/capturas/movil-emulador/135-conflicto.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "conflicto",
+      "en": "2026-10-28T22:32:15.295Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Reenviar sobre la versión actual del servidor/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/136-fallo-conflicto.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "adjunto-interrumpido-queda-pendiente",
+      "en": "2026-10-28T22:35:08.737Z",
+      "ok": true,
+      "detalle": {
+        "estado_mostrado": "archivo pendiente de subir"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/137-adjunto-interrumpido.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "adjuntoInterrumpido",
+      "en": "2026-10-28T22:37:04.151Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Sincronización terminada/ en 90000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/138-fallo-adjuntoInterrumpido.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacion-denegada-conserva-borrador",
+      "en": "2026-10-28T22:38:55.185Z",
+      "ok": false,
+      "detalle": "Con el permiso denegado el mensaje es recuperable y el borrador se conserva",
+      "captura": "docs/qa/capturas/movil-emulador/139-ubicacion-denegada.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "cerrar-sesion-avisa",
+      "en": "2026-10-28T22:39:47.615Z",
+      "ok": true,
+      "detalle": "aviso de capturas sin enviar",
+      "captura": null,
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "otra-cuenta-no-ve",
+      "en": "2026-10-28T22:40:55.551Z",
+      "ok": true,
+      "detalle": "tecnico2 no ve capturas de tecnico1",
+      "captura": "docs/qa/capturas/movil-emulador/140-tecnico2-sin-capturas.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "misma-cuenta-recupera",
+      "en": "2026-10-28T22:42:40.120Z",
+      "ok": false,
+      "detalle": {
+        "operaciones": 1
+      },
+      "captura": "docs/qa/capturas/movil-emulador/141-tecnico1-recupera.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "sesion-vencida-bloquea-sin-borrar",
+      "en": "2026-10-28T22:43:20.496Z",
+      "ok": false,
+      "detalle": "reloj del emulador +2 h: captura bloqueada; pendientes visibles",
+      "captura": "docs/qa/capturas/movil-emulador/142-sesion-vencida.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "reloj-atrasado-bloquea",
+      "en": "2026-10-28T22:43:35.114Z",
+      "ok": true,
+      "detalle": "reloj del emulador −1 día: bloqueo por reloj atrasado",
+      "captura": "docs/qa/capturas/movil-emulador/143-reloj-atrasado.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-28T22:46:37.989Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Captura · |No hay espacio libre/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/144-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "dispositivo-revocado",
+      "en": "2026-10-28T22:47:24.625Z",
+      "ok": true,
+      "detalle": {
+        "revocados": 0
+      },
+      "captura": "docs/qa/capturas/movil-emulador/145-revocado.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "0f68196",
+        "modificado_sin_commit": true
+      }
     }
   ]
 }
