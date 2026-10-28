@@ -1,5 +1,5 @@
 import { TransportError, type SyncTransport, type WireOperation } from '../core/sync';
-import type { DatasetPlot, ServerOutcome } from '../core/store';
+import type { DatasetPlot, ReferenceData, ServerOutcome } from '../core/store';
 import type { FetchLike } from './session-manager';
 
 // Transporte HTTP de la sincronización (P0-024). El token y el dispositivo se revalidan en el servidor en cada petición.
@@ -23,7 +23,7 @@ export function httpTransport(apiUrl: string, orgId: string, token: () => Promis
   };
   return {
     async push(deviceId: string, ops: WireOperation[]) { return (await call<{ results: ServerOutcome[] }>('/sync/push', { method: 'POST', body: { device_id: deviceId, operations: ops } })).results; },
-    async pull(deviceId: string, cursor: string | null) { return call<{ cursor: string; full: boolean; changes: DatasetPlot[]; tombstones: string[] }>(`/sync/pull?device_id=${deviceId}${cursor ? `&cursor=${cursor}` : ''}`, { method: 'GET' }); },
+    async pull(deviceId: string, cursor: string | null) { return call<{ cursor: string; full: boolean; changes: DatasetPlot[]; tombstones: string[]; reference?: ReferenceData }>(`/sync/pull?device_id=${deviceId}${cursor ? `&cursor=${cursor}` : ''}`, { method: 'GET' }); },
     async upload(deviceId: string, operationId: string, bytes: Uint8Array, mimeType: string) {
       const tk = await token();
       if (!tk) throw new TransportError('HTTP', 401, 'UNAUTHENTICATED', 'Sin sesión.');

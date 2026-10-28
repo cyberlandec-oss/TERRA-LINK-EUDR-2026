@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { isStorageFull, storageFullMessage } from '../core/ports';
-import type { DatasetPlot, LocalPlotView, LocalProducerView, LocalState, LocalStore } from '../core/store';
+import type { DatasetPlot, LocalDeliveryView, LocalPlotView, LocalProducerView, LocalState, LocalStore, ReferenceData } from '../core/store';
 import { Badge, Button, Card, Field, Notice, s } from './kit';
 
 // D — Altas sin conexión: productor nuevo y parcela nueva. Lo creado aquí es un BORRADOR LOCAL con su propia referencia hasta que el
@@ -22,7 +22,12 @@ export function Altas({ store, canCreateProducer }: { store: LocalStore; canCrea
   const [qCode, setQCode] = useState(''); const [qCrop, setQCrop] = useState('Cacao'); const [qName, setQName] = useState('');
   const [chosen, setChosen] = useState<{ kind: 'SERVER' | 'LOCAL'; id: string } | null>(null);
   const [fix, setFix] = useState<Record<string, string>>({});
-  const load = useCallback(async () => { setProducers(await store.localProducers()); setPlots(await store.localPlots()); setDataset(await store.plots()); }, [store]);
+  const [products, setProducts] = useState<ReferenceData['products']>([]); const [locations, setLocations] = useState<ReferenceData['locations']>([]);
+  const [deliveries, setDeliveries] = useState<LocalDeliveryView[]>([]);
+  const [dProduct, setDProduct] = useState<string | null>(null); const [dLocation, setDLocation] = useState<string | null>(null);
+  const [dDate, setDDate] = useState(new Date().toISOString().slice(0, 10)); const [dQty, setDQty] = useState('');
+  const [dOrigins, setDOrigins] = useState<Array<{ kind: 'SERVER' | 'LOCAL'; id: string }>>([]); const [dRegister, setDRegister] = useState(false);
+  const load = useCallback(async () => { setProducers(await store.localProducers()); setPlots(await store.localPlots()); setDataset(await store.plots()); setProducts(await store.products()); setLocations(await store.locations()); setDeliveries(await store.localDeliveries()); }, [store]);
   useEffect(() => { void load(); }, [load]);
   const act = async (fn: () => Promise<unknown>, ok: string) => { setError(null); setInfo(null); try { await fn(); setInfo(ok); await load(); } catch (e) { setError(msg(e)); } };
 
@@ -30,6 +35,11 @@ export function Altas({ store, canCreateProducer }: { store: LocalStore; canCrea
   const serverProducers = Array.from(new Map(dataset.map((p) => [p.producer_id, p])).values());
   const syncedLocal = new Set(plots.filter((p) => p.server_id).map((p) => p.server_id));
   void syncedLocal;
+  // parcelas de origen posibles: SOLO las del productor elegido (por su referencia), nunca por nombre
+  const originOptions: Array<{ kind: 'SERVER' | 'LOCAL'; id: string; label: string }> = chosen ? [
+    ...plots.filter((p) => p.producer.kind === chosen.kind && p.producer.id === chosen.id).map((p) => ({ kind: 'LOCAL' as const, id: p.id, label: `${p.plot_code} (nueva)` })),
+    ...dataset.filter((p) => chosen.kind === 'SERVER' && p.producer_id === chosen.id).map((p) => ({ kind: 'SERVER' as const, id: p.id, label: p.plot_code })),
+  ] : [];
 
   return (
     <>
@@ -95,6 +105,37 @@ export function Altas({ store, canCreateProducer }: { store: LocalStore; canCrea
                   <Button kind="secondary" label="Corregir y reenviar (el rechazo queda en el historial)" onPress={() => void act(() => store.correctRejectedCreate(p.operation_id!, { plot_code: (fix[p.id] ?? p.plot_code).trim() }), 'Corrección en cola.')} />
                 </>
               )}
+            </View>
+          );
+        })}
+      </Card>
+      <Card title="Nueva entrega (declaración)">
+        <Text style={s.muted}>Declaras lo que entregó un productor: cantidad en KG, producto, centro y parcelas de origen. No es una recepción, un pesaje ni un movimiento de inventario: esas son transiciones del servidor, con su autorización.</Text>
+        {!products.length || !locations.length ? <Notice tone="review" title="Falta el catálogo">Descarga con conexión el catálogo de productos y centros (sincroniza una vez) para poder declarar entregas. Si tu rol no declara entregas, esta sección no aplica.</Notice> : (
+          <>
+            <Text style={s.muted}>Productor: {chosen ? (chosen.kind === 'LOCAL' ? `nuevo ${producers.find((p) => p.id === chosen.id)?.producer_code ?? ''}` : serverProducers.find((p) => p.producer_id === chosen.id)?.producer_code ?? 'del servidor') : 'elígelo en «Nueva parcela» (arriba)'}</Text>
+            {products.map((p) => <Button key={p.id} kind={dProduct === p.id ? 'primary' : 'secondary'} label={`Producto: ${p.code} · ${p.name}`} onPress={() => setDProduct(p.id)} />)}
+            {locations.map((l) => <Button key={l.id} kind={dLocation === l.id ? 'primary' : 'secondary'} label={`Centro: ${l.code} · ${l.name}`} onPress={() => setDLocation(l.id)} />)}
+            <Field label="Fecha de entrega (AAAA-MM-DD)" value={dDate} onChangeText={setDDate} maxLength={10} />
+            <Field label="Cantidad declarada (KG)" value={dQty} onChangeText={setDQty} keyboardType="decimal-pad" maxLength={16} />
+            <Text style={s.muted}>Parcelas de origen del productor elegido:</Text>
+            {originOptions.map((o) => <Button key={`${o.kind}:${o.id}`} kind={dOrigins.some((x) => x.id === o.id) ? 'primary' : 'secondary'} label={`${dOrigins.some((x) => x.id === o.id) ? '✓ ' : ''}${o.label}`} onPress={() => setDOrigins(dOrigins.some((x) => x.id === o.id) ? dOrigins.filter((x) => x.id !== o.id) : [...dOrigins, { kind: o.kind, id: o.id }])} />)}
+            <Button kind={dRegister ? 'primary' : 'secondary'} label={dRegister ? 'Se pedirá REGISTRAR la declaración (si la compuerta lo permite)' : 'Dejar como borrador de entrega (recomendado)'} onPress={() => setDRegister(!dRegister)} />
+            <Button label="Guardar entrega como borrador local" disabled={!chosen || !dProduct || !dLocation} onPress={() => void act(async () => {
+              await store.createLocalDelivery({ producer: chosen!, product_id: dProduct!, location_id: dLocation!, delivery_date: dDate, quantity_declared: dQty.trim(), unit: 'KG', origins: dOrigins, register: dRegister });
+              setDQty(''); setDOrigins([]);
+            }, 'Entrega guardada como borrador local.')} />
+          </>
+        )}
+        {deliveries.map((d) => {
+          const [label, tone] = STATE[d.state];
+          return (
+            <View key={d.id} style={{ marginTop: 8 }}>
+              <Text style={s.p}>{d.quantity_declared} {d.unit} · {d.delivery_date} · {d.origins.length} parcela(s) de origen</Text>
+              <Badge tone={tone}>{label}</Badge>
+              {d.server_id && <Text style={s.muted}>Declaración registrada con su identificador definitivo. Sigue siendo una declaración: la recepción es otro paso.</Text>}
+              {d.last_error && d.state !== 'SYNCED' && <Text style={s.muted}>{d.last_error}</Text>}
+              {d.status === 'DRAFT' && <Button kind="secondary" label="Poner la declaración en cola" onPress={() => void act(() => store.enqueueLocalDelivery(d.id), 'Declaración en cola.')} />}
             </View>
           );
         })}

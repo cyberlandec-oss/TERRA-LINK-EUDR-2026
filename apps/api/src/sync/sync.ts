@@ -16,6 +16,8 @@ import { EVENT_STORE, type EventStore } from '../events/events';
 import { PlotsService } from '../plots/plots';
 import { PolygonDraftsService } from '../plots/polygon-drafts';
 import { ProducersService } from '../producers/producers';
+import { DeliveriesService } from '../deliveries/deliveries';
+import { ProductsService } from '../products/products';
 import { DocumentsService } from '../documents/documents';
 import { hasImageMetadata } from './image-metadata';
 
@@ -32,7 +34,7 @@ import { hasImageMetadata } from './image-metadata';
 
 export const MAX_BATCH = 50;
 export const CURSOR_TTL_DAYS = 7;
-export const SUPPORTED_OPERATION_TYPES = ['PLOT_LOCATION_SAMPLE_CREATE', 'PLOT_PHOTO_ATTACH', 'PLOT_POLYGON_VERTEX_ADD', 'PRODUCER_CREATE', 'PLOT_CREATE'] as const;
+export const SUPPORTED_OPERATION_TYPES = ['PLOT_LOCATION_SAMPLE_CREATE', 'PLOT_PHOTO_ATTACH', 'PLOT_POLYGON_VERTEX_ADD', 'PRODUCER_CREATE', 'PLOT_CREATE', 'DELIVERY_CREATE'] as const;
 
 export const canonical = (v: unknown): string => Array.isArray(v) ? `[${v.map(canonical).join(',')}]`
   : v && typeof v === 'object' ? `{${Object.keys(v as object).sort().filter((k) => (v as Record<string, unknown>)[k] !== undefined).map((k) => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`).join(',')}}`
@@ -117,6 +119,24 @@ class PlotCreatePayload {
   @IsOptional() @IsString() @MaxLength(100) canton?: string | null;
   @IsOptional() @IsString() @MaxLength(100) parish?: string | null;
 }
+/** Declaración de entrega capturada sin conexión. Es una DECLARACIÓN (borrador o, si se pide y la compuerta lo permite, registrada): no es recepción, pesaje ni movimiento de inventario. */
+class DeliveryOriginPayload {
+  @IsOptional() @IsUUID() plot_id?: string;
+  @IsOptional() @IsUUID() plot_local_ref?: string;
+  @IsOptional() @IsString() @Matches(/^\d{1,12}(\.\d{1,3})?$/) quantity?: string;
+}
+class DeliveryCreatePayload {
+  @IsOptional() @IsUUID() producer_id?: string;
+  @IsOptional() @IsUUID() producer_local_ref?: string;
+  @IsOptional() @IsUUID() product_id?: string;
+  @IsOptional() @IsUUID() location_id?: string;
+  @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) delivery_date?: string;
+  @IsOptional() @IsString() @Matches(/^\d{1,12}(\.\d{1,3})?$/) quantity_declared?: string;
+  @IsOptional() @IsIn(['KG']) unit?: 'KG';
+  @IsOptional() @IsArray() @ArrayMaxSize(20) @ValidateNested({ each: true }) @Type(() => DeliveryOriginPayload) origins?: DeliveryOriginPayload[];
+  @IsOptional() @IsString() @Length(0, 500) notes?: string;
+  @IsOptional() @IsBoolean() register?: boolean;
+}
 class PhotoPayload {
   @IsUUID() plot_id!: string;
   @Matches(/^[0-9a-f]{64}$/) sha256!: string;
@@ -142,6 +162,8 @@ export class SyncService {
     private readonly documents: DocumentsService,
     private readonly polygons: PolygonDraftsService,
     private readonly producers: ProducersService,
+    private readonly deliveries: DeliveriesService,
+    private readonly products: ProductsService,
   ) {}
 
   private has(ctx: TenantContext, p: string) { return (ctx.permissions as string[]).includes(p); }
@@ -227,6 +249,7 @@ export class SyncService {
     const need: Permission[] = type === 'PLOT_LOCATION_SAMPLE_CREATE' || type === 'PLOT_POLYGON_VERTEX_ADD' ? ['plot:read_geometry'] : type === 'PLOT_PHOTO_ATTACH' ? ['document:upload'] : [];
     if ((type === 'PLOT_LOCATION_SAMPLE_CREATE' || type === 'PLOT_POLYGON_VERTEX_ADD') && !this.has(ctx, 'plot:update') && !this.has(ctx, 'plot:update_assigned') && !this.has(ctx, 'plot:update_own')) return { code: 'PERMISSION_DENIED', message: 'Tu rol ya no permite registrar ubicaciones en parcelas.' };
     if (type === 'PRODUCER_CREATE' && !this.has(ctx, 'producer:create')) return { code: 'PERMISSION_DENIED', message: 'Tu rol no permite registrar productores.' };
+    if (type === 'DELIVERY_CREATE' && !this.has(ctx, 'delivery:create') && !this.has(ctx, 'delivery:create_assigned')) return { code: 'PERMISSION_DENIED', message: 'Tu rol no permite declarar entregas.' };
     if (type === 'PLOT_CREATE' && !this.has(ctx, 'plot:create') && !this.has(ctx, 'plot:create_assigned') && !this.has(ctx, 'plot:create_own')) return { code: 'PERMISSION_DENIED', message: 'Tu rol no permite registrar parcelas.' };
     if (!need.every((p) => this.has(ctx, p))) return { code: 'PERMISSION_DENIED', message: 'Tu rol ya no permite esta operación.' };
     if (plotId) {
@@ -255,7 +278,7 @@ export class SyncService {
       return await this.db.transaction().execute(async (trx) => {
         await sql`SELECT pg_advisory_xact_lock(hashtext(${`sync:${orgId}:${op.operation_id}`}))`.execute(trx);
         // Referencias locales: se resuelven SOLO por la tabla de correspondencias de ESTA organización y ESTE usuario (nunca por nombre ni proximidad).
-        const refOf = (local: string, type: 'PRODUCER' | 'PLOT') => trx.selectFrom('sync_entity_refs').selectAll().where('organization_id', '=', orgId).where('user_id', '=', user.id).where('local_ref', '=', local).where('entity_type', '=', type).executeTakeFirst();
+        const refOf = (local: string, type: 'PRODUCER' | 'PLOT' | 'DELIVERY') => trx.selectFrom('sync_entity_refs').selectAll().where('organization_id', '=', orgId).where('user_id', '=', user.id).where('local_ref', '=', local).where('entity_type', '=', type).executeTakeFirst();
         // Si una dependencia ya fue rechazada o quedó en conflicto, la referencia no se va a resolver con ella: se dice así, no como espera.
         const unresolved = async (message: string) => {
           const deps = op0.depends_on.length ? await trx.selectFrom('sync_operations').select(['operation_id', 'status']).where('organization_id', '=', orgId).where('operation_id', 'in', op0.depends_on).execute() : [];
@@ -264,7 +287,7 @@ export class SyncService {
           return { ...base, status: 'DEPENDENCY_PENDING' as Status, error: err('LOCAL_REF_UNRESOLVED', message) };
         };
         const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        for (const k of ['plot_local_ref', 'producer_local_ref']) {
+        for (const k of ['plot_local_ref', 'producer_local_ref']) { // (las de los orígenes de una entrega se validan con su clase)
           const v = op0.payload[k];
           if (v !== undefined && (typeof v !== 'string' || !UUID_RE.test(v))) return this.store(trx, user, ctx, deviceId, op0, hash, 'REJECTED', null, err('PAYLOAD_INVALID', 'Una referencia local debe ser un UUID generado por el dispositivo; no se resuelve por nombre ni por otros datos.', [k]));
         }
@@ -318,6 +341,39 @@ export class SyncService {
             if (e instanceof AppError && e.status < 500) {
               return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err(e.code, e.message, e.details));
             }
+            throw e;
+          }
+        }
+        if (op.operation_type === 'DELIVERY_CREATE') {
+          const p = await this.validatePayload(DeliveryCreatePayload, op.payload);
+          if ('invalid' in p) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('PAYLOAD_INVALID', 'Contenido de la entrega no válido.', p.invalid));
+          if ((p.producer_id ? 1 : 0) + (p.producer_local_ref ? 1 : 0) !== 1) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('PRODUCER_REFERENCE_INVALID', 'Indica el productor con exactamente una referencia: su identificador del servidor o su referencia local.'));
+          if ((p.origins ?? []).some((o) => (o.plot_id ? 1 : 0) + (o.plot_local_ref ? 1 : 0) !== 1)) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('ORIGIN_REFERENCE_INVALID', 'Cada origen debe citar su parcela con exactamente una referencia.'));
+          let producerId = p.producer_id;
+          if (p.producer_local_ref) {
+            const pr = await refOf(p.producer_local_ref, 'PRODUCER');
+            if (!pr) return unresolved('El productor creado sin conexión todavía no está registrado en el servidor.');
+            producerId = pr.server_id;
+          }
+          const origins: Array<{ plot_id: string; quantity?: string }> = [];
+          for (const o of p.origins ?? []) {
+            let pid = o.plot_id;
+            if (o.plot_local_ref) {
+              const q = await refOf(o.plot_local_ref, 'PLOT');
+              if (!q) return unresolved('Una parcela de origen creada sin conexión todavía no está registrada en el servidor.');
+              pid = q.server_id;
+            }
+            origins.push({ plot_id: pid!, ...(o.quantity ? { quantity: o.quantity } : {}) });
+          }
+          try {
+            // Idempotente por operation_id (la entrega guarda el identificador de operación): un reintento tras una respuesta perdida no duplica.
+            const r = await this.deliveries.create(user, orgId, { operation_id: op.operation_id, producer_id: producerId!, product_id: p.product_id, location_id: p.location_id, delivery_date: p.delivery_date, quantity_declared: p.quantity_declared, unit: p.unit, origins, notes: p.notes, register: p.register === true } as never, requestId);
+            const d = r.delivery as { id: string; code?: string; status?: string };
+            await trx.insertInto('sync_entity_refs').values({ organization_id: orgId, user_id: user.id, local_ref: op.entity_id, entity_type: 'DELIVERY', server_id: d.id, operation_id: op.operation_id, device_id: deviceId, produced_row_version: null }).onConflict((oc) => oc.doNothing()).execute();
+            return this.store(trx, user, ctx, deviceId, op, hash, 'ACCEPTED', { entity: 'DELIVERY', local_ref: op.entity_id, server_id: d.id, delivery_code: d.code ?? null, delivery_status: d.status ?? null, replayed: r.replayed,
+              note: 'Declaración registrada. No es una recepción, un pesaje confirmado ni un movimiento de inventario: esas son transiciones aparte, con su autorización.' }, null);
+          } catch (e) {
+            if (e instanceof AppError && e.status < 500) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err(e.code, e.message, e.details));
             throw e;
           }
         }
@@ -490,7 +546,13 @@ export class SyncService {
     const id = randomUUID();
     const expires = new Date(Date.now() + CURSOR_TTL_DAYS * 86_400_000);
     await this.db.insertInto('sync_cursors').values({ id, organization_id: orgId, user_id: user.id, device_id: device.id, scope: 'PLOTS', visible: JSON.stringify(visible), expires_at: expires }).execute();
-    return { cursor: id, full: !q.cursor, expires_at: expires.toISOString(), changes, tombstones,
+    // Datos de referencia para declarar entregas sin conexión (catálogo de productos y centros de la organización), solo si el rol los puede leer.
+    const reference: { products: unknown[]; locations: unknown[] } = { products: [], locations: [] };
+    if (this.has(ctx, 'delivery:create') || this.has(ctx, 'delivery:create_assigned')) {
+      try { reference.products = (await this.products.list(user, orgId, { limit: 200 } as never)).items.map((p) => ({ id: p.id, code: p.code, name: p.name, product_state: p.product_state.code, unit: p.unit.code, status: p.status })); } catch { /* sin permiso de catálogo: vacío */ }
+      try { reference.locations = (await this.deliveries.locations(user, orgId)).filter((l) => l.status === 'ACTIVE').map((l) => ({ id: l.id, code: l.code, name: l.name, location_type: l.location_type })); } catch { /* sin permiso de centros: vacío */ }
+    }
+    return { cursor: id, full: !q.cursor, expires_at: expires.toISOString(), changes, tombstones, reference,
       note: 'Los tombstones solo incluyen recursos que este cursor había entregado y que ya no están en tu alcance (baja, reasignación o permisos).' };
   }
 }

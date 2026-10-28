@@ -140,7 +140,8 @@ Endpoints (`/api/v1/organizations/{org}`): `POST /devices`, `GET /devices`, `POS
 | `PLOT_PHOTO_ATTACH` | Sí (registro + archivo vía Documentos) | Sí (la nota viaja como leyenda) |
 | `PRODUCER_CREATE` (D, 2026-10-28) | Sí (alta con referencia local; requiere `producer:create`; atómica con su registro) | Sí (pantalla «Altas») |
 | `PLOT_CREATE` (D, 2026-10-28) | Sí (productor por `producer_id` o `producer_local_ref`; alcance de alta del usuario) | Sí |
-| Entregas, recepciones, calidad, lotes, inventario | No (`UNSUPPORTED_OPERATION_TYPE`) | No |
+| `DELIVERY_CREATE` (D, 2026-10-28) | Sí (declaración de entrega idempotente por `operation_id`; productor y parcelas de origen por id o por referencia local; `delivery:create` / `create_assigned`; borrador, o registrada solo si se pide y la compuerta lo permite) | Sí (pantalla «Altas») |
+| Recepciones, pesaje, calidad, lotes, inventario | No (`UNSUPPORTED_OPERATION_TYPE`) | No |
 
 Una nota sin ubicación ni foto no tiene entidad en el servidor y no se encola.
 
@@ -197,4 +198,4 @@ Una nota sin ubicación ni foto no tiene entidad en el servidor y no se encola.
 - **Duplicados y rechazos:** código de parcela repetido, productor fuera de alcance, etc. → `REJECTED` con su código. La persona corrige y se crea una **sustituta** con la **misma referencia local** (el servidor no guardó ninguna correspondencia); el rechazo original y las capturas que dependían del alta se conservan como historial y se sustituyen con identificadores nuevos. Posibles duplicados de productor siguen el mecanismo de revisión de duplicados existente (`duplicate_reviews_pending`).
 - **Permisos:** cada operación revalida en el servidor. `sync:use` no concede permisos de dominio: PRODUCER_CREATE exige `producer:create` (el Productor con alcance propio no lo tiene); PLOT_CREATE, `plot:create` / `create_assigned` / `create_own` y el alcance del productor indicado.
 - **Evidencias:** las fotos de campo sobre una parcela nueva usan el camino existente (`PLOT_PHOTO_ATTACH` con `plot_local_ref` + subida aparte con tamaño y SHA-256; Documentos, clasificación PERSONAL_DATA y escaneo). Estados distinguidos: registro aceptado (`AWAITING_CONTENT`), análisis pendiente (`PENDING_SCAN`), disponible (`AVAILABLE`). Otros tipos documentales (legalidad, ambiente, trabajo) siguen aportándose por la web (AJ-03/AJ-04); no hay captura documental en el móvil.
-- **Entregas:** pendientes en esta etapa (ver docs/23).
+- **Entregas (`DELIVERY_CREATE`):** es una **declaración** (cantidad en KG como texto decimal con unidad explícita, producto, centro, fecha y parcelas de origen con cantidad opcional). Queda como borrador de entrega; se registra solo si la persona lo pide y la compuerta lo permite. No es recepción, pesaje confirmado ni movimiento de inventario (esas transiciones siguen siendo del servidor, con su autorización; el payload móvil no las contiene). Es idempotente por `operation_id` (un reintento tras una respuesta perdida no duplica). El catálogo de productos y centros baja con el pull (`reference`, solo para roles que declaran entregas) y se guarda en el teléfono; sin catálogo descargado no se declara.

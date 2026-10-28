@@ -40,6 +40,13 @@ export interface LocalPlotInput { producer: { kind: 'SERVER' | 'LOCAL'; id: stri
 export type LocalState = 'DRAFT' | 'PENDING' | 'SYNCED' | 'REJECTED' | 'CONFLICT';
 export interface LocalProducerView extends LocalProducerInput { id: string; status: 'DRAFT' | 'QUEUED'; server_id: string | null; state: LocalState; last_error: string | null; operation_id: string | null }
 export interface LocalPlotView extends LocalPlotInput { id: string; status: 'DRAFT' | 'QUEUED'; server_id: string | null; state: LocalState; last_error: string | null; operation_id: string | null }
+export interface ReferenceData { products: Array<{ id: string; code: string; name: string; product_state: string; unit: string; status: string }>; locations: Array<{ id: string; code: string; name: string; location_type: string }> }
+export const DECIMAL_KG = /^\d{1,12}(\.\d{1,3})?$/;
+export interface LocalDeliveryInput {
+  producer: { kind: 'SERVER' | 'LOCAL'; id: string }; product_id: string; location_id: string; delivery_date: string; quantity_declared: string; unit: 'KG';
+  origins: Array<{ kind: 'SERVER' | 'LOCAL'; id: string; quantity?: string | null }>; notes?: string | null; register?: boolean;
+}
+export interface LocalDeliveryView extends LocalDeliveryInput { id: string; status: 'DRAFT' | 'QUEUED'; server_id: string | null; state: LocalState; last_error: string | null; operation_id: string | null }
 export interface RecoveryReport { recovered_operations: string[]; incomplete_temp_files: string[]; orphan_files: string[]; missing_files: string[] }
 export type ServerOutcome = { operation_id: string; status: 'ACCEPTED' | 'DUPLICATE' | 'REJECTED' | 'CONFLICT' | 'DEPENDENCY_PENDING' | 'FORBIDDEN' | 'TRANSIENT_ERROR'; result?: Record<string, unknown> | null; error?: { code: string; message: string; details?: unknown } | null };
 
@@ -292,7 +299,7 @@ export class LocalStore {
     return id;
   }
 
-  private async addEntityOp(tx: SqlDb, type: 'PRODUCER_CREATE' | 'PLOT_CREATE', entity: string, payload: Record<string, unknown>, deps: string[]): Promise<string> {
+  private async addEntityOp(tx: SqlDb, type: 'PRODUCER_CREATE' | 'PLOT_CREATE' | 'DELIVERY_CREATE', entity: string, payload: Record<string, unknown>, deps: string[]): Promise<string> {
     const at = this.now(); const op = this.p.uuid();
     const seq = ((await tx.get<{ n: number | null }>('SELECT max(seq) AS n FROM outbox'))?.n ?? 0) + 1;
     const hash = await this.p.sha256(new TextEncoder().encode(operationCanonical({ operation_type: type, entity_id: entity, base_version: null, depends_on: deps, captured_at: at, payload })));
@@ -363,6 +370,83 @@ export class LocalStore {
     return out;
   }
 
+  // ---- Datos de referencia (productos y centros) y entregas declaradas sin conexión ----
+  async applyReference(ref: ReferenceData): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx.run('DELETE FROM dataset_products'); await tx.run('DELETE FROM dataset_locations');
+      for (const p of ref.products) await tx.run('INSERT INTO dataset_products (id, code, name, product_state, unit, status) VALUES (?,?,?,?,?,?)', [p.id, p.code, p.name, p.product_state, p.unit, p.status]);
+      for (const l of ref.locations) await tx.run('INSERT INTO dataset_locations (id, code, name, location_type) VALUES (?,?,?,?)', [l.id, l.code, l.name, l.location_type]);
+    });
+  }
+  async products(): Promise<ReferenceData['products']> { return this.db.all('SELECT id, code, name, product_state, unit, status FROM dataset_products ORDER BY code'); }
+  async locations(): Promise<ReferenceData['locations']> { return this.db.all('SELECT id, code, name, location_type FROM dataset_locations ORDER BY name'); }
+
+  /**
+   * Declaración de entrega: borrador local con SU origen (parcelas por referencia: del servidor o locales). NO es recepción, pesaje ni
+   * movimiento de inventario: esas transiciones son del servidor, con su autorización. Cantidad en texto decimal con unidad explícita.
+   */
+  async createLocalDelivery(input: LocalDeliveryInput): Promise<string> {
+    this.writable();
+    if (!DECIMAL_KG.test(input.quantity_declared) || Number(input.quantity_declared) <= 0) throw new Error('Cantidad declarada: un número positivo en KG (hasta 3 decimales).');
+    if (input.unit !== 'KG') throw new Error('La unidad es KG.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.delivery_date) || Number.isNaN(Date.parse(input.delivery_date))) throw new Error('Fecha de entrega: AAAA-MM-DD.');
+    if (input.delivery_date > this.now().slice(0, 10)) throw new Error('La fecha de entrega no puede estar en el futuro. Revisa el reloj del dispositivo.');
+    if (!(await this.db.get('SELECT 1 AS x FROM dataset_products WHERE id = ?', [input.product_id]))) throw new Error('Elige un producto del catálogo descargado.');
+    if (!(await this.db.get('SELECT 1 AS x FROM dataset_locations WHERE id = ?', [input.location_id]))) throw new Error('Elige un centro del catálogo descargado.');
+    if (input.producer.kind === 'SERVER') {
+      if (!(await this.db.get('SELECT 1 AS x FROM dataset_plots WHERE producer_id = ?', [input.producer.id]))) throw new Error('Ese productor no está entre los datos descargados de esta cuenta.');
+    } else if (!(await this.db.get('SELECT 1 AS x FROM local_producers WHERE id = ?', [input.producer.id]))) throw new Error('Ese productor no existe entre las altas locales de esta cuenta.');
+    if (!input.origins.length) throw new Error('Indica al menos una parcela de origen.');
+    for (const o of input.origins) {
+      if (o.quantity && !DECIMAL_KG.test(o.quantity)) throw new Error('Cantidad por parcela: texto decimal en KG.');
+      const ok = o.kind === 'SERVER' ? await this.db.get('SELECT 1 AS x FROM dataset_plots WHERE id = ?', [o.id]) : await this.db.get('SELECT 1 AS x FROM local_plots WHERE id = ?', [o.id]);
+      if (!ok) throw new Error('Una parcela de origen no existe entre los datos de esta cuenta.');
+    }
+    const id = this.p.uuid(); const at = this.now();
+    await this.db.run('INSERT INTO local_deliveries (id, producer_kind, producer_ref, product_id, location_id, delivery_date, quantity_declared, unit, origins, notes, register_requested, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      [id, input.producer.kind, input.producer.id, input.product_id, input.location_id, input.delivery_date, input.quantity_declared, input.unit, JSON.stringify(input.origins), input.notes?.trim() || null, input.register ? 1 : 0, 'DRAFT', at, at]);
+    return id;
+  }
+
+  /** Pone en cola la declaración. Depende del alta de su productor y de las de sus parcelas cuando son locales. */
+  async enqueueLocalDelivery(id: string): Promise<string> {
+    this.writable();
+    return this.db.transaction(async (tx) => {
+      const r = await tx.get<Record<string, string | number | null>>('SELECT * FROM local_deliveries WHERE id = ?', [id]);
+      if (!r) throw new Error('La entrega local no existe en este dispositivo para esta cuenta.');
+      if (r.status !== 'DRAFT') throw new Error('La declaración ya está en cola: no se modifica.');
+      const deps: string[] = [];
+      const need = async (entity: string, type: string, what: string, table: string) => {
+        const e = await tx.get<{ status: string }>(`SELECT status FROM ${table} WHERE id = ?`, [entity]);
+        if (!e || e.status !== 'QUEUED') throw new Error(`Primero pon en cola el alta ${what}: la entrega depende de ella.`);
+        const op = await tx.get<{ operation_id: string }>('SELECT operation_id FROM outbox WHERE entity_id = ? AND operation_type = ? AND resolved_by IS NULL ORDER BY seq DESC LIMIT 1', [entity, type]);
+        if (op) deps.push(op.operation_id);
+      };
+      const payload: Record<string, unknown> = { product_id: r.product_id, location_id: r.location_id, delivery_date: r.delivery_date, quantity_declared: r.quantity_declared, unit: r.unit };
+      if (r.producer_kind === 'LOCAL') { await need(r.producer_ref as string, 'PRODUCER_CREATE', 'del productor nuevo', 'local_producers'); payload.producer_local_ref = r.producer_ref; } else payload.producer_id = r.producer_ref;
+      const origins = JSON.parse(r.origins as string) as LocalDeliveryInput['origins'];
+      payload.origins = [];
+      for (const o of origins) {
+        if (o.kind === 'LOCAL') await need(o.id, 'PLOT_CREATE', 'de la parcela nueva de origen', 'local_plots');
+        (payload.origins as unknown[]).push({ ...(o.kind === 'LOCAL' ? { plot_local_ref: o.id } : { plot_id: o.id }), ...(o.quantity ? { quantity: o.quantity } : {}) });
+      }
+      if (r.notes) payload.notes = r.notes;
+      if (r.register_requested) payload.register = true;
+      const op = await this.addEntityOp(tx, 'DELIVERY_CREATE', id, payload, deps);
+      await tx.run("UPDATE local_deliveries SET status = 'QUEUED', queued_at = ?, updated_at = ? WHERE id = ?", [this.now(), this.now(), id]);
+      return op;
+    });
+  }
+
+  async localDeliveries(): Promise<LocalDeliveryView[]> {
+    const rows = await this.db.all<Record<string, string | number | null>>('SELECT * FROM local_deliveries ORDER BY created_at DESC');
+    const out: LocalDeliveryView[] = [];
+    for (const r of rows) out.push({ id: r.id as string, producer: { kind: r.producer_kind as 'SERVER' | 'LOCAL', id: r.producer_ref as string }, product_id: r.product_id as string, location_id: r.location_id as string, delivery_date: r.delivery_date as string,
+      quantity_declared: r.quantity_declared as string, unit: 'KG', origins: JSON.parse(r.origins as string), notes: r.notes as string | null, register: r.register_requested === 1, status: r.status as 'DRAFT' | 'QUEUED', server_id: r.server_id as string | null,
+      ...(await this.localState(r.id as string, 'DELIVERY_CREATE', r.status as string)) });
+    return out;
+  }
+
   // ---- Cola para sincronización (P0-024) ----
   async pendingBatch(limit: number): Promise<OutboxOp[]> {
     return (await this.db.all<Row>("SELECT * FROM outbox WHERE state = 'PENDING' ORDER BY seq LIMIT ?", [limit])).map(toOp);
@@ -388,6 +472,7 @@ export class LocalStore {
           const row = await tx.get<{ operation_type: string; entity_id: string }>('SELECT operation_type, entity_id FROM outbox WHERE operation_id = ?', [o.operation_id]);
           if (row?.operation_type === 'PRODUCER_CREATE') await tx.run('UPDATE local_producers SET server_id = ? WHERE id = ?', [sid, row.entity_id]);
           if (row?.operation_type === 'PLOT_CREATE') await tx.run('UPDATE local_plots SET server_id = ? WHERE id = ?', [sid, row.entity_id]);
+          if (row?.operation_type === 'DELIVERY_CREATE') await tx.run('UPDATE local_deliveries SET server_id = ? WHERE id = ?', [sid, row.entity_id]);
         }
       }
     });
@@ -422,7 +507,7 @@ export class LocalStore {
       const o = await tx.get<Row>('SELECT * FROM outbox WHERE operation_id = ? AND state = ? AND resolved_by IS NULL', [operationId, expect]);
       if (!o) throw new Error(expect === 'CONFLICT' ? 'La operación no está en conflicto o ya se resolvió.' : 'La operación no está rechazada o ya se corrigió.');
       const op = toOp(o);
-      if (expect === 'FAILED' && !['PRODUCER_CREATE', 'PLOT_CREATE'].includes(op.operation_type)) throw new Error('Solo se corrigen altas rechazadas.');
+      if (expect === 'FAILED' && !['PRODUCER_CREATE', 'PLOT_CREATE', 'DELIVERY_CREATE'].includes(op.operation_type)) throw new Error('Solo se corrigen altas rechazadas.');
       // Se recorre el GRAFO DE DEPENDENCIAS de la captura, no el orden de inserción: una sustituta tiene un seq mayor que las operaciones
       // aún pendientes que re-apuntan a ella, así que un segundo conflicto consecutivo se perdería con un filtro por seq.
       const all = (await tx.all<Row>('SELECT * FROM outbox ORDER BY seq')).map(toOp); // toda la cola: las capturas que dependen de un alta viven en otros borradores
@@ -459,7 +544,7 @@ export class LocalStore {
       else {
         const next = { ...op.payload, ...patch } as Record<string, unknown>;
         await insert(op, newId, op.base_version, remap(op.depends_on), next);
-        const table = op.operation_type === 'PRODUCER_CREATE' ? 'local_producers' : 'local_plots';
+        const table = op.operation_type === 'PRODUCER_CREATE' ? 'local_producers' : op.operation_type === 'PLOT_CREATE' ? 'local_plots' : 'local_deliveries';
         const cols = Object.keys(patch ?? {}).filter((k) => /^[a-z_]+$/.test(k));
         for (const k of cols) await tx.run(`UPDATE ${table} SET ${k} = ?, updated_at = ? WHERE id = ?`, [patch![k], this.now(), op.entity_id]);
       }

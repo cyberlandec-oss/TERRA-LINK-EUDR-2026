@@ -69,6 +69,14 @@ const MIGRATIONS: string[] = [
      SELECT operation_id, seq, draft_id, operation_type, entity_id, base_version, depends_on, captured_at, payload, attachment_refs, state, attempts, recovered_count, last_error, created_at, server_result, resolved_by, resolves, content_hash FROM outbox;
    DROP TABLE outbox;
    ALTER TABLE outbox_v4 RENAME TO outbox;`,
+  // 5 (D): entregas declaradas sin conexión y datos de referencia (catálogo de productos y centros que baja con la sincronización).
+  `CREATE TABLE dataset_products (id TEXT PRIMARY KEY, code TEXT NOT NULL, name TEXT NOT NULL, product_state TEXT, unit TEXT, status TEXT);
+   CREATE TABLE dataset_locations (id TEXT PRIMARY KEY, code TEXT NOT NULL, name TEXT NOT NULL, location_type TEXT);
+   CREATE TABLE local_deliveries (
+     id TEXT PRIMARY KEY, producer_kind TEXT NOT NULL CHECK (producer_kind IN ('SERVER','LOCAL')), producer_ref TEXT NOT NULL,
+     product_id TEXT NOT NULL, location_id TEXT NOT NULL, delivery_date TEXT NOT NULL, quantity_declared TEXT NOT NULL, unit TEXT NOT NULL CHECK (unit IN ('KG')),
+     origins TEXT NOT NULL, notes TEXT, register_requested INTEGER NOT NULL DEFAULT 0,
+     status TEXT NOT NULL CHECK (status IN ('DRAFT','QUEUED')), server_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, queued_at TEXT);`,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

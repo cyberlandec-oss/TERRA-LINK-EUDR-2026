@@ -42,16 +42,23 @@ function servidor(opts: { existingCodes?: string[] } = {}) {
           codes.add(p.plot_code as string); const id = `srv-plot-${++n}`; refs.set(o.entity_id, id); created.push(`Q:${p.plot_code}`);
           return accept({ entity: 'PLOT', server_id: id, local_ref: o.entity_id, plot_row_version: 1 });
         }
+        if (o.operation_type === 'DELIVERY_CREATE') {
+          const refsNeeded = [p.producer_local_ref, ...((p.origins as Array<{ plot_local_ref?: string }>) ?? []).map((x) => x.plot_local_ref)].filter(Boolean) as string[];
+          if (refsNeeded.some((r) => !refs.has(r))) return { operation_id: o.operation_id, status: 'DEPENDENCY_PENDING' };
+          const id = `srv-del-${++n}`; refs.set(o.entity_id, id); created.push(`D:${p.quantity_declared}${p.unit}`);
+          return accept({ entity: 'DELIVERY', server_id: id, local_ref: o.entity_id, delivery_status: 'DRAFT' });
+        }
         if (p.plot_local_ref !== undefined && !refs.has(p.plot_local_ref as string)) return { operation_id: o.operation_id, status: 'DEPENDENCY_PENDING' };
         if (o.operation_type === 'PLOT_LOCATION_SAMPLE_CREATE' || o.operation_type === 'PLOT_POLYGON_VERTEX_ADD') located.push(o.operation_id);
         return accept({ plot_row_version: 2 });
       });
     },
     async upload() { return { status: 'PENDING_SCAN' }; },
-    async pull() { return { cursor: 'c', full: true, changes: [SERVER_PLOT], tombstones: [] }; },
+    async pull() { return { cursor: 'c', full: true, changes: [SERVER_PLOT], tombstones: [], reference: REFERENCE }; },
   };
   return t;
 }
+const REFERENCE = { products: [{ id: 'prod-1', code: 'CACAO_BABA', name: 'Cacao en baba', product_state: 'CACAO_BABA', unit: 'KG', status: 'ACTIVE' }], locations: [{ id: 'loc-1', code: 'CA-01', name: 'Centro de acopio uno', location_type: 'COLLECTION_CENTER' }] };
 
 describe('D altas sin conexión (móvil)', () => {
   const setup = async () => { const root = mkdtempSync(join(tmpdir(), 'tl-altas-')); const p = nodePlatform(root, {}); const s = await LocalStore.open(p, 'acc1'); await s.replaceDataset([SERVER_PLOT]); return { root, p, s }; };
@@ -134,6 +141,52 @@ describe('D altas sin conexión (móvil)', () => {
     expect(srv.located).toHaveLength(1);
     expect((await s.localPlots())[0]).toMatchObject({ state: 'SYNCED', server_id: srv.refs.get(plot) });
     await expect(s.correctRejectedCreate(opQ, { plot_code: 'OTRO' })).rejects.toThrow(/ya se corrigió|no está rechazada/);
+    await s.close();
+  });
+
+  it('entrega declarada: validaciones (catálogo descargado, KG decimal, fecha, origen) y no contiene nada de recepción, pesaje ni inventario', async () => {
+    const { s } = await setup();
+    await s.applyReference(REFERENCE);
+    const prod = await s.createLocalProducer({ producer_code: 'MOV-5', first_name: 'Ana', last_name: 'Campo' });
+    const plot = await s.createLocalPlot({ producer: { kind: 'LOCAL', id: prod }, plot_code: 'MOV-5-P1', crop: 'Cacao' });
+    const base = { producer: { kind: 'LOCAL' as const, id: prod }, product_id: 'prod-1', location_id: 'loc-1', delivery_date: '2026-10-27', quantity_declared: '125.500', unit: 'KG' as const, origins: [{ kind: 'LOCAL' as const, id: plot, quantity: '125.500' }] };
+    await expect(s.createLocalDelivery({ ...base, quantity_declared: '12,5' })).rejects.toThrow(/Cantidad declarada/);
+    await expect(s.createLocalDelivery({ ...base, quantity_declared: '0' })).rejects.toThrow(/Cantidad declarada/);
+    await expect(s.createLocalDelivery({ ...base, delivery_date: '2999-01-01' })).rejects.toThrow(/futuro/);
+    await expect(s.createLocalDelivery({ ...base, product_id: 'inventado' })).rejects.toThrow(/producto del catálogo/);
+    await expect(s.createLocalDelivery({ ...base, location_id: 'inventado' })).rejects.toThrow(/centro del catálogo/);
+    await expect(s.createLocalDelivery({ ...base, origins: [] })).rejects.toThrow(/al menos una parcela/);
+    const id = await s.createLocalDelivery(base);
+    await expect(s.enqueueLocalDelivery(id)).rejects.toThrow(/Primero pon en cola el alta del productor nuevo/);
+    await s.enqueueLocalProducer(prod);
+    await expect(s.enqueueLocalDelivery(id)).rejects.toThrow(/Primero pon en cola el alta de la parcela nueva/);
+    await s.enqueueLocalPlot(plot);
+    const opId = await s.enqueueLocalDelivery(id);
+    const op = (await s.pendingBatch(10)).find((o) => o.operation_id === opId)!;
+    expect(Object.keys(op.payload).sort()).toEqual(['delivery_date', 'location_id', 'origins', 'producer_local_ref', 'product_id', 'quantity_declared', 'unit']); // solo la declaración
+    expect(JSON.stringify(op.payload)).not.toMatch(/reception|weight|peso|stock|inventor/i);
+    expect(op.payload).toMatchObject({ quantity_declared: '125.500', unit: 'KG', origins: [{ plot_local_ref: plot, quantity: '125.500' }] });
+    expect(op.depends_on).toHaveLength(2);
+    await s.close();
+  });
+
+  it('entrega sincronizada en dependencia: una sola vez con su identificador definitivo, el reintento no la duplica y el catálogo baja con la sincronización', async () => {
+    const { s } = await setup();
+    const prod = await s.createLocalProducer({ producer_code: 'MOV-6', first_name: 'Luis', last_name: 'Mera' });
+    const plot = await s.createLocalPlot({ producer: { kind: 'LOCAL', id: prod }, plot_code: 'MOV-6-P1', crop: 'Cacao' });
+    await s.enqueueLocalProducer(prod); await s.enqueueLocalPlot(plot);
+    const srv = servidor();
+    await syncOnce(s, srv, 'dev'); // altas + catálogo de referencia
+    expect((await s.products()).map((x) => x.id)).toEqual(['prod-1']);
+    expect((await s.locations()).map((x) => x.id)).toEqual(['loc-1']);
+    const id = await s.createLocalDelivery({ producer: { kind: 'LOCAL', id: prod }, product_id: 'prod-1', location_id: 'loc-1', delivery_date: '2026-10-27', quantity_declared: '40', unit: 'KG', origins: [{ kind: 'LOCAL', id: plot }], notes: 'Declarada en campo' });
+    await s.enqueueLocalDelivery(id);
+    const r = await syncOnce(s, srv, 'dev');
+    expect(r).toMatchObject({ failed: 0, conflicts: 0, still_pending: 0 });
+    expect(srv.created).toEqual(['P:MOV-6', 'Q:MOV-6-P1', 'D:40KG']);
+    expect((await s.localDeliveries())[0]).toMatchObject({ state: 'SYNCED', server_id: srv.refs.get(id), status: 'QUEUED' });
+    await syncOnce(s, srv, 'dev');
+    expect(srv.created).toHaveLength(3);
     await s.close();
   });
 

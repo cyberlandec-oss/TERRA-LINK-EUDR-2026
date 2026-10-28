@@ -151,4 +151,41 @@ describeDb('D altas sin conexión: referencias locales y dependencias', () => {
     const bad = await http().post(`${base(org)}/sync/attachments/${sinIntegridad.operation_id}/content`).set(as(TECH)).field('device_id', dev).attach('file', Buffer.concat([bytes, Buffer.from([1])]), { filename: 'f.jpg', contentType: 'image/jpeg' });
     expect(bad.status).toBeGreaterThanOrEqual(400); // bytes distintos de los declarados: nada se guarda
   });
+
+  it('entrega declarada sin conexión: productor y parcela locales como origen, una sola vez, y NO es recepción, pesaje ni inventario; el rol sin permiso de entregas no entra', async () => {
+    const product = (await http().post(`${base(org)}/products`).set(as(ADMIN)).send({ code: 'CACAO_BABA', name: 'Cacao en baba', product_state: 'CACAO_BABA', unit: 'KG' }).expect(201)).body.id as string;
+    const center = (await http().post(`${base(org)}/locations`).set(as(ADMIN)).send({ code: 'CA-D1', name: 'Centro de acopio D', location_type: 'COLLECTION_CENTER' }).expect(201)).body.id as string;
+    const dev = await device(TECH); const lp = randomUUID(); const lq = randomUUID(); const ld = randomUUID();
+    const p = producerOp(lp, 'MOV-7'); const q = plotOp(lq, lp, 'MOV-7-P1', [p.operation_id]);
+    const hoy = new Date().toISOString().slice(0, 10);
+    const entrega = mk('DELIVERY_CREATE', ld, { producer_local_ref: lp, product_id: product, location_id: center, delivery_date: hoy, quantity_declared: '125.500', unit: 'KG', origins: [{ plot_local_ref: lq, quantity: '125.500' }], notes: 'Declarada en campo' }, [p.operation_id, q.operation_id]);
+    const r = await push(TECH, dev, [p, q, entrega]);
+    expect(statuses(r)).toEqual(['ACCEPTED', 'ACCEPTED', 'ACCEPTED']);
+    const res = r.body.results[2].result;
+    expect(res).toMatchObject({ entity: 'DELIVERY', local_ref: ld });
+    const det = (await http().get(`${base(org)}/deliveries/${res.server_id}`).set(as(ADMIN)).expect(200)).body;
+    const dl = det.delivery ?? det;
+    expect(dl.status).toBe('DRAFT'); // borrador: la declaración no se registró ni se convirtió en recepción
+    expect(JSON.stringify(dl.quantity_declared)).toMatch(/125\.5/); // cantidad y unidad tal como se declararon
+    expect(JSON.stringify(dl.quantity_declared)).toMatch(/KG/);
+    expect(dl.reception ?? null).toBeNull();
+    const origenes = (dl.origins ?? []) as Array<{ plot_id: string }>;
+    expect(origenes.map((o) => o.plot_id)).toEqual([r.body.results[1].result.server_id]); // origen = la parcela DEFINITIVA
+    // reintento tras respuesta perdida: nada se duplica
+    expect(statuses(await push(TECH, dev, [p, q, entrega]))).toEqual(['DUPLICATE', 'DUPLICATE', 'DUPLICATE']);
+    const n = Number((await h.db.selectFrom('deliveries').select(h.db.fn.countAll().as('n')).where('organization_id', '=', org).where('producer_id', '=', r.body.results[0].result.server_id).executeTakeFirstOrThrow()).n);
+    expect(n).toBe(1);
+    // el catálogo de referencia viaja con la bajada (solo para quien puede declarar entregas)
+    const pull = await http().get(`${base(org)}/sync/pull?device_id=${dev}`).set(as(TECH)).expect(200);
+    expect(pull.body.reference.products.map((x: { id: string }) => x.id)).toContain(product);
+    expect(pull.body.reference.locations.map((x: { id: string }) => x.id)).toContain(center);
+    // el Productor (sin delivery:create) no declara entregas, ni recibe el catálogo
+    const devP = await device(PROD);
+    const propia = mk('DELIVERY_CREATE', randomUUID(), { producer_id: ownProducer, product_id: product, location_id: center, delivery_date: hoy, quantity_declared: '10', unit: 'KG' });
+    expect(statuses(await push(PROD, devP, [propia]))).toEqual(['FORBIDDEN']);
+    expect((await http().get(`${base(org)}/sync/pull?device_id=${devP}`).set(as(PROD)).expect(200)).body.reference).toEqual({ products: [], locations: [] });
+    // un origen local que aún no llegó espera; uno mal formado se rechaza
+    expect(statuses(await push(TECH, dev, [mk('DELIVERY_CREATE', randomUUID(), { producer_id: r.body.results[0].result.server_id, product_id: product, location_id: center, delivery_date: hoy, quantity_declared: '5', unit: 'KG', origins: [{ plot_local_ref: randomUUID() }] })]))).toEqual(['DEPENDENCY_PENDING']);
+    expect(statuses(await push(TECH, dev, [mk('DELIVERY_CREATE', randomUUID(), { producer_id: r.body.results[0].result.server_id, origins: [{}] })]))).toEqual(['REJECTED']);
+  });
 });

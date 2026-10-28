@@ -1,4 +1,4 @@
-import type { DatasetPlot, LocalStore, ServerOutcome } from './store';
+import type { DatasetPlot, LocalStore, ReferenceData, ServerOutcome } from './store';
 
 // Motor de sincronización del dispositivo (P0-024; docs/11). Reglas:
 // - push por lotes (≤ 50) en orden de cola; antes de enviar, UPLOADING persistido; sin respuesta → PENDING con la misma
@@ -18,7 +18,7 @@ export interface WireOperation { operation_id: string; operation_type: string; e
 export interface SyncTransport {
   push(deviceId: string, ops: WireOperation[]): Promise<ServerOutcome[]>;
   upload(deviceId: string, operationId: string, bytes: Uint8Array, mimeType: string): Promise<{ status: string; note?: string }>;
-  pull(deviceId: string, cursor: string | null): Promise<{ cursor: string; full: boolean; changes: DatasetPlot[]; tombstones: string[] }>;
+  pull(deviceId: string, cursor: string | null): Promise<{ cursor: string; full: boolean; changes: DatasetPlot[]; tombstones: string[]; reference?: ReferenceData }>;
 }
 export interface SyncSummary {
   pushed: number; synced: number; failed: number; conflicts: number; still_pending: number; uploads: number; upload_errors: number;
@@ -103,6 +103,7 @@ export async function syncOnce(store: LocalStore, t: SyncTransport, deviceId: st
       if (e instanceof TransportError && (e.code === 'CURSOR_EXPIRED' || e.code === 'CURSOR_INVALID')) { cursor = null; r = await t.pull(deviceId, null); } else throw e;
     }
     await store.applyPull(r.changes, r.tombstones, r.cursor, r.full);
+    if (r.reference) await store.applyReference(r.reference);
     s.pulled = { full: r.full, changes: r.changes.length, tombstones: r.tombstones.length };
   } catch (e) {
     const te = e instanceof TransportError ? e : new TransportError('NETWORK', null, 'NETWORK', 'Sin respuesta del servidor.');
