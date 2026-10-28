@@ -21,7 +21,7 @@ export interface LocationSampleInput {
 }
 export interface DatasetPlot { id: string; plot_code: string; name: string | null; row_version: number; status: string; producer_id: string; producer_code: string | null; producer_display_name: string | null; geometry_status: string | null }
 export interface OutboxOp {
-  operation_id: string; seq: number; draft_id: string; operation_type: string; entity_id: string; base_version: number | null; depends_on: string[];
+  operation_id: string; seq: number; draft_id: string | null; operation_type: string; entity_id: string; base_version: number | null; depends_on: string[];
   captured_at: string; payload: Record<string, unknown>; attachment_refs: string[]; state: string; attempts: number; recovered_count: number;
   last_error: string | null; server_result: Record<string, unknown> | null; content_hash: string; resolved_by: string | null; resolves: string | null;
 }
@@ -33,6 +33,13 @@ export interface DraftView {
   vertices: Array<LocationSampleInput & { id: string; seq: number; recorded_at: string }>;
   operations: OutboxOp[];
 }
+export const LOCAL_CODE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,39}$/;
+export interface LocalProducerInput { producer_code: string; first_name?: string | null; last_name?: string | null; legal_name?: string | null; community?: string | null; province?: string | null; canton?: string | null; parish?: string | null }
+export interface LocalPlotInput { producer: { kind: 'SERVER' | 'LOCAL'; id: string }; plot_code: string; crop: string; name?: string | null; variety?: string | null; land_use?: string | null; province?: string | null; canton?: string | null; parish?: string | null }
+/** Estado de un alta local según su última operación: el registro aceptado, rechazado, o aún sin enviar. */
+export type LocalState = 'DRAFT' | 'PENDING' | 'SYNCED' | 'REJECTED' | 'CONFLICT';
+export interface LocalProducerView extends LocalProducerInput { id: string; status: 'DRAFT' | 'QUEUED'; server_id: string | null; state: LocalState; last_error: string | null; operation_id: string | null }
+export interface LocalPlotView extends LocalPlotInput { id: string; status: 'DRAFT' | 'QUEUED'; server_id: string | null; state: LocalState; last_error: string | null; operation_id: string | null }
 export interface RecoveryReport { recovered_operations: string[]; incomplete_temp_files: string[]; orphan_files: string[]; missing_files: string[] }
 export type ServerOutcome = { operation_id: string; status: 'ACCEPTED' | 'DUPLICATE' | 'REJECTED' | 'CONFLICT' | 'DEPENDENCY_PENDING' | 'FORBIDDEN' | 'TRANSIENT_ERROR'; result?: Record<string, unknown> | null; error?: { code: string; message: string; details?: unknown } | null };
 
@@ -102,8 +109,8 @@ export class LocalStore {
   // ---- Borradores (todas las escrituras pasan por la puerta de sesión) ----
   async createDraft(plotId: string): Promise<string> {
     this.writable();
-    const plot = await this.db.get<{ id: string }>('SELECT id FROM dataset_plots WHERE id = ?', [plotId]);
-    if (!plot) throw new Error('La parcela no está en los datos descargados para esta cuenta y organización.');
+    const plot = (await this.db.get<{ id: string }>('SELECT id FROM dataset_plots WHERE id = ?', [plotId])) ?? (await this.db.get<{ id: string }>('SELECT id FROM local_plots WHERE id = ?', [plotId]));
+    if (!plot) throw new Error('La parcela no está en los datos descargados ni entre las altas locales de esta cuenta y organización.');
     const id = this.p.uuid(); const at = this.now();
     await this.db.run("INSERT INTO drafts (id, kind, plot_id, note, status, created_at, updated_at) VALUES (?, 'PLOT_FIELD_CAPTURE', ?, '', 'DRAFT', ?, ?)", [id, plotId, at, at]);
     return id;
@@ -204,7 +211,16 @@ export class LocalStore {
     return this.db.transaction(async (tx) => {
       await this.editable(tx, draftId);
       const d = (await tx.get<{ plot_id: string; note: string; created_at: string }>('SELECT plot_id, note, created_at FROM drafts WHERE id = ?', [draftId]))!;
-      const plot = await tx.get<{ row_version: number; plot_code: string }>('SELECT row_version, plot_code FROM dataset_plots WHERE id = ?', [d.plot_id]);
+      let plot = await tx.get<{ row_version: number; plot_code: string }>('SELECT row_version, plot_code FROM dataset_plots WHERE id = ?', [d.plot_id]);
+      // Parcela creada en el teléfono: las operaciones citan su referencia LOCAL (plot_local_ref) y dependen de su alta; el servidor la resuelve.
+      const localPlot = plot ? undefined : await tx.get<{ id: string; plot_code: string; status: string; server_id: string | null }>('SELECT id, plot_code, status, server_id FROM local_plots WHERE id = ?', [d.plot_id]);
+      let createOp: string | null = null;
+      if (localPlot) {
+        if (localPlot.status !== 'QUEUED') throw new Error('Primero pon en cola el alta de la parcela nueva: las capturas sobre ella dependen de esa alta.');
+        createOp = (await tx.get<{ operation_id: string }>("SELECT operation_id FROM outbox WHERE entity_id = ? AND operation_type = 'PLOT_CREATE' AND resolved_by IS NULL ORDER BY seq DESC LIMIT 1", [localPlot.id]))?.operation_id ?? null;
+        plot = { row_version: null as unknown as number, plot_code: localPlot.plot_code };
+      }
+      const plotRef = (): Record<string, unknown> => (localPlot ? { plot_local_ref: localPlot.id } : { plot_id: d.plot_id });
       const loc = await tx.get<{ id: string; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; provider_detail: string; mocked: number | null }>('SELECT * FROM location_samples WHERE draft_id = ?', [draftId]);
       const photos = await tx.all<{ id: string; sha256: string; size_bytes: number; mime_type: string; captured_at: string | null }>('SELECT id, sha256, size_bytes, mime_type, captured_at FROM attachments WHERE draft_id = ? ORDER BY stored_at, id', [draftId]);
       const verts = await tx.all<{ id: string; seq: number; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; provider_detail: string; mocked: number | null }>('SELECT * FROM polygon_vertices WHERE draft_id = ? ORDER BY seq', [draftId]);
@@ -214,29 +230,137 @@ export class LocalStore {
       const ops: string[] = [];
       const add = async (type: string, entity: string, baseVersion: number | null, payload: Record<string, unknown>, deps: string[], refs: string[], capturedAt: string) => {
         const op = this.p.uuid();
-        seq += 1;
+        seq += 1; // (la foto, el punto y los vértices de una parcela local dependen del alta de esa parcela, directa o encadenadamente)
         const hash = await this.p.sha256(new TextEncoder().encode(operationCanonical({ operation_type: type, entity_id: entity, base_version: baseVersion, depends_on: deps, captured_at: capturedAt, payload })));
         await tx.run("INSERT INTO outbox (operation_id, seq, draft_id, operation_type, entity_id, base_version, depends_on, captured_at, payload, attachment_refs, state, created_at, content_hash) VALUES (?,?,?,?,?,?,?,?,?,?, 'PENDING', ?, ?)",
           [op, seq, draftId, type, entity, baseVersion, JSON.stringify(deps), capturedAt, JSON.stringify(payload), JSON.stringify(refs), at, hash]);
         ops.push(op);
         return op;
       };
-      const locOp = loc ? await add('PLOT_LOCATION_SAMPLE_CREATE', loc.id, plot?.row_version ?? null, { plot_id: d.plot_id, latitude: loc.latitude, longitude: loc.longitude, accuracy_m: loc.accuracy_m, acquired_at: loc.acquired_at,
-        source: 'DEVICE_LOCATION_SERVICE', provider_detail: loc.provider_detail, mocked: loc.mocked === null ? null : loc.mocked === 1 }, [], [], loc.acquired_at) : null;
+      const locOp = loc ? await add('PLOT_LOCATION_SAMPLE_CREATE', loc.id, plot?.row_version ?? null, { ...plotRef(), latitude: loc.latitude, longitude: loc.longitude, accuracy_m: loc.accuracy_m, acquired_at: loc.acquired_at,
+        source: 'DEVICE_LOCATION_SERVICE', provider_detail: loc.provider_detail, mocked: loc.mocked === null ? null : loc.mocked === 1 }, createOp ? [createOp] : [], [], loc.acquired_at) : null;
       // Vértices: una operación por vértice, encadenadas en el orden de captura (el servidor los recibe en ese orden). Nunca confirma el polígono.
       // `capture_id` (este borrador local) identifica el borrador de destino en el servidor; el primer vértice lleva la versión de la parcela que el teléfono conocía.
-      let prev: string | null = locOp;
+      let prev: string | null = locOp ?? createOp;
       for (const v of verts) {
-        prev = await add('PLOT_POLYGON_VERTEX_ADD', v.id, v.seq === 1 ? (plot?.row_version ?? null) : null, { plot_id: d.plot_id, capture_id: draftId, vertex_seq: v.seq, latitude: v.latitude, longitude: v.longitude, accuracy_m: v.accuracy_m, acquired_at: v.acquired_at,
+        prev = await add('PLOT_POLYGON_VERTEX_ADD', v.id, v.seq === 1 ? (plot?.row_version ?? null) : null, { ...plotRef(), capture_id: draftId, vertex_seq: v.seq, latitude: v.latitude, longitude: v.longitude, accuracy_m: v.accuracy_m, acquired_at: v.acquired_at,
           source: 'DEVICE_LOCATION_SERVICE', provider_detail: v.provider_detail, mocked: v.mocked === null ? null : v.mocked === 1 }, prev ? [prev] : [], [], v.acquired_at);
       }
       for (const ph of photos) {
-        await add('PLOT_PHOTO_ATTACH', ph.id, null, { plot_id: d.plot_id, sha256: ph.sha256, size_bytes: ph.size_bytes, mime_type: ph.mime_type,
+        await add('PLOT_PHOTO_ATTACH', ph.id, null, { ...plotRef(), sha256: ph.sha256, size_bytes: ph.size_bytes, mime_type: ph.mime_type,
           caption: (d.note.trim() || `Foto de campo ${plot?.plot_code ?? ''}`).slice(0, 160) }, prev ? [prev] : [], [ph.id], ph.captured_at ?? at);
       }
       await tx.run("UPDATE drafts SET status = 'QUEUED', queued_at = ?, updated_at = ? WHERE id = ?", [at, at, draftId]);
       return ops;
     });
+  }
+
+  // ---- Altas sin conexión: productores y parcelas nuevas (D) ----
+  // La referencia LOCAL es el id del registro (UUID del dispositivo). Se guarda junto con su operación, así que sobrevive a cierres,
+  // respuestas perdidas y reintentos. Nunca se resuelve por nombre ni por proximidad: solo por esta referencia y, en el servidor,
+  // por la correspondencia de la misma cuenta y organización.
+  private cleanFields<T extends Record<string, unknown>>(x: T, keys: string[]): Record<string, string | null> {
+    const out: Record<string, string | null> = {};
+    for (const k of keys) { const v = x[k]; out[k] = typeof v === 'string' && v.trim() ? v.trim() : null; }
+    return out;
+  }
+
+  async createLocalProducer(input: LocalProducerInput): Promise<string> {
+    this.writable();
+    const f = this.cleanFields(input as unknown as Record<string, unknown>, ['first_name', 'last_name', 'legal_name', 'community', 'province', 'canton', 'parish']);
+    const code = (input.producer_code ?? '').trim();
+    if (!LOCAL_CODE.test(code)) throw new Error('Código de productor: 1–40 caracteres (letras, números, . _ -).');
+    if (!f.legal_name && !(f.first_name && f.last_name)) throw new Error('Indica nombre y apellido, o la razón social.');
+    const id = this.p.uuid(); const at = this.now();
+    await this.db.run('INSERT INTO local_producers (id, producer_code, first_name, last_name, legal_name, community, province, canton, parish, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+      [id, code, f.first_name, f.last_name, f.legal_name, f.community, f.province, f.canton, f.parish, 'DRAFT', at, at]);
+    return id;
+  }
+
+  async createLocalPlot(input: LocalPlotInput): Promise<string> {
+    this.writable();
+    const f = this.cleanFields(input as unknown as Record<string, unknown>, ['name', 'variety', 'land_use', 'province', 'canton', 'parish']);
+    const code = (input.plot_code ?? '').trim(); const crop = (input.crop ?? '').trim();
+    if (!LOCAL_CODE.test(code)) throw new Error('Código de parcela: 1–40 caracteres (letras, números, . _ -).');
+    if (!crop || crop.length > 60) throw new Error('Indica el cultivo (hasta 60 caracteres).');
+    if (input.producer.kind === 'SERVER') {
+      if (!(await this.db.get('SELECT 1 AS x FROM dataset_plots WHERE producer_id = ?', [input.producer.id]))) throw new Error('Ese productor no está entre los datos descargados de esta cuenta: no se puede referenciar.');
+    } else if (!(await this.db.get('SELECT 1 AS x FROM local_producers WHERE id = ?', [input.producer.id]))) throw new Error('Ese productor no existe entre las altas locales de esta cuenta.');
+    const id = this.p.uuid(); const at = this.now();
+    await this.db.run('INSERT INTO local_plots (id, producer_kind, producer_ref, plot_code, crop, name, variety, land_use, province, canton, parish, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      [id, input.producer.kind, input.producer.id, code, crop, f.name, f.variety, f.land_use, f.province, f.canton, f.parish, 'DRAFT', at, at]);
+    return id;
+  }
+
+  private async addEntityOp(tx: SqlDb, type: 'PRODUCER_CREATE' | 'PLOT_CREATE', entity: string, payload: Record<string, unknown>, deps: string[]): Promise<string> {
+    const at = this.now(); const op = this.p.uuid();
+    const seq = ((await tx.get<{ n: number | null }>('SELECT max(seq) AS n FROM outbox'))?.n ?? 0) + 1;
+    const hash = await this.p.sha256(new TextEncoder().encode(operationCanonical({ operation_type: type, entity_id: entity, base_version: null, depends_on: deps, captured_at: at, payload })));
+    await tx.run("INSERT INTO outbox (operation_id, seq, draft_id, operation_type, entity_id, base_version, depends_on, captured_at, payload, attachment_refs, state, created_at, content_hash) VALUES (?,?,NULL,?,?,NULL,?,?,?,'[]','PENDING',?,?)",
+      [op, seq, type, entity, JSON.stringify(deps), at, JSON.stringify(payload), at, hash]);
+    return op;
+  }
+
+  /** Pone en cola el alta del productor. Antes de esto es un borrador local editable; después, la operación es inmutable. */
+  async enqueueLocalProducer(id: string): Promise<string> {
+    this.writable();
+    return this.db.transaction(async (tx) => {
+      const r = await tx.get<Record<string, string | null>>('SELECT * FROM local_producers WHERE id = ?', [id]);
+      if (!r) throw new Error('El productor local no existe en este dispositivo para esta cuenta.');
+      if (r.status !== 'DRAFT') throw new Error('El alta ya está en cola: no se modifica.');
+      const payload: Record<string, unknown> = { producer_code: r.producer_code };
+      for (const k of ['first_name', 'last_name', 'legal_name', 'community', 'province', 'canton', 'parish']) if (r[k]) payload[k] = r[k];
+      const op = await this.addEntityOp(tx, 'PRODUCER_CREATE', id, payload, []);
+      await tx.run("UPDATE local_producers SET status = 'QUEUED', queued_at = ?, updated_at = ? WHERE id = ?", [this.now(), this.now(), id]);
+      return op;
+    });
+  }
+
+  /** Pone en cola el alta de la parcela. Si su productor también es local, depende de la alta de ese productor. */
+  async enqueueLocalPlot(id: string): Promise<string> {
+    this.writable();
+    return this.db.transaction(async (tx) => {
+      const r = await tx.get<Record<string, string | null>>('SELECT * FROM local_plots WHERE id = ?', [id]);
+      if (!r) throw new Error('La parcela local no existe en este dispositivo para esta cuenta.');
+      if (r.status !== 'DRAFT') throw new Error('El alta ya está en cola: no se modifica.');
+      const payload: Record<string, unknown> = { plot_code: r.plot_code, crop: r.crop };
+      for (const k of ['name', 'variety', 'land_use', 'province', 'canton', 'parish']) if (r[k]) payload[k] = r[k];
+      const deps: string[] = [];
+      if (r.producer_kind === 'LOCAL') {
+        const pr = await tx.get<{ status: string }>('SELECT status FROM local_producers WHERE id = ?', [r.producer_ref]);
+        if (!pr || pr.status !== 'QUEUED') throw new Error('Primero pon en cola el alta del productor nuevo: la parcela depende de ella.');
+        const pop = await tx.get<{ operation_id: string }>("SELECT operation_id FROM outbox WHERE entity_id = ? AND operation_type = 'PRODUCER_CREATE' AND resolved_by IS NULL ORDER BY seq DESC LIMIT 1", [r.producer_ref]);
+        if (pop) deps.push(pop.operation_id);
+        payload.producer_local_ref = r.producer_ref;
+      } else payload.producer_id = r.producer_ref;
+      const op = await this.addEntityOp(tx, 'PLOT_CREATE', id, payload, deps);
+      await tx.run("UPDATE local_plots SET status = 'QUEUED', queued_at = ?, updated_at = ? WHERE id = ?", [this.now(), this.now(), id]);
+      return op;
+    });
+  }
+
+  private async localState(entity: string, type: string, status: string): Promise<{ state: LocalState; last_error: string | null; operation_id: string | null }> {
+    if (status === 'DRAFT') return { state: 'DRAFT', last_error: null, operation_id: null };
+    const o = await this.db.get<{ operation_id: string; state: string; last_error: string | null; resolved_by: string | null }>('SELECT operation_id, state, last_error, resolved_by FROM outbox WHERE entity_id = ? AND operation_type = ? ORDER BY seq DESC LIMIT 1', [entity, type]);
+    if (!o) return { state: 'PENDING', last_error: null, operation_id: null };
+    const state: LocalState = o.state === 'SYNCED' ? 'SYNCED' : o.state === 'FAILED' ? 'REJECTED' : o.state === 'CONFLICT' ? 'CONFLICT' : 'PENDING';
+    return { state, last_error: o.last_error, operation_id: o.operation_id };
+  }
+
+  async localProducers(): Promise<LocalProducerView[]> {
+    const rows = await this.db.all<Record<string, string | null>>('SELECT * FROM local_producers ORDER BY created_at DESC');
+    const out: LocalProducerView[] = [];
+    for (const r of rows) out.push({ id: r.id!, producer_code: r.producer_code!, first_name: r.first_name, last_name: r.last_name, legal_name: r.legal_name, community: r.community, province: r.province, canton: r.canton, parish: r.parish,
+      status: r.status as 'DRAFT' | 'QUEUED', server_id: r.server_id, ...(await this.localState(r.id!, 'PRODUCER_CREATE', r.status!)) });
+    return out;
+  }
+
+  async localPlots(): Promise<LocalPlotView[]> {
+    const rows = await this.db.all<Record<string, string | null>>('SELECT * FROM local_plots ORDER BY created_at DESC');
+    const out: LocalPlotView[] = [];
+    for (const r of rows) out.push({ id: r.id!, producer: { kind: r.producer_kind as 'SERVER' | 'LOCAL', id: r.producer_ref! }, plot_code: r.plot_code!, crop: r.crop!, name: r.name, variety: r.variety, land_use: r.land_use, province: r.province, canton: r.canton, parish: r.parish,
+      status: r.status as 'DRAFT' | 'QUEUED', server_id: r.server_id, ...(await this.localState(r.id!, 'PLOT_CREATE', r.status!)) });
+    return out;
   }
 
   // ---- Cola para sincronización (P0-024) ----
@@ -258,6 +382,13 @@ export class LocalStore {
         const state = o.status === 'ACCEPTED' || o.status === 'DUPLICATE' ? 'SYNCED' : o.status === 'REJECTED' ? 'FAILED' : o.status === 'CONFLICT' ? 'CONFLICT' : 'PENDING';
         const err = o.error ? `${o.error.code}: ${o.error.message}` : o.status === 'DEPENDENCY_PENDING' ? 'DEPENDENCY_PENDING: falta confirmar una operación previa' : null;
         await tx.run('UPDATE outbox SET state = ?, last_error = ?, server_result = ? WHERE operation_id = ?', [state, err, JSON.stringify({ status: o.status, result: o.result ?? null, error: o.error ?? null }), o.operation_id]);
+        // Alta aceptada: la referencia local queda enlazada con el identificador DEFINITIVO del servidor (sobrevive a cierres y reintentos).
+        const sid = (o.result as { server_id?: string } | null | undefined)?.server_id;
+        if (state === 'SYNCED' && sid) {
+          const row = await tx.get<{ operation_type: string; entity_id: string }>('SELECT operation_type, entity_id FROM outbox WHERE operation_id = ?', [o.operation_id]);
+          if (row?.operation_type === 'PRODUCER_CREATE') await tx.run('UPDATE local_producers SET server_id = ? WHERE id = ?', [sid, row.entity_id]);
+          if (row?.operation_type === 'PLOT_CREATE') await tx.run('UPDATE local_plots SET server_id = ? WHERE id = ?', [sid, row.entity_id]);
+        }
       }
     });
   }
@@ -273,14 +404,28 @@ export class LocalStore {
    * se reintente con su identificador original y se conozca su resultado; crear otra podría duplicar el efecto.
    */
   async resolveConflict(operationId: string, serverVersion: number): Promise<string> {
+    return this.substituteFrom(operationId, 'CONFLICT', serverVersion, null);
+  }
+
+  /**
+   * Corrección de un alta RECHAZADA por el servidor (p. ej. código repetido): se conservan la operación original y su rechazo, se
+   * corrigen los datos locales y se crea una sustituta con la MISMA referencia local (el servidor no guardó ninguna correspondencia
+   * porque el alta falló). Las capturas que dependían del alta se recuperan igual que tras un conflicto.
+   */
+  async correctRejectedCreate(operationId: string, patch: Record<string, string | null>): Promise<string> {
+    return this.substituteFrom(operationId, 'FAILED', null, patch);
+  }
+
+  private async substituteFrom(operationId: string, expect: 'CONFLICT' | 'FAILED', serverVersion: number | null, patch: Record<string, string | null> | null): Promise<string> {
     this.writable();
     return this.db.transaction(async (tx) => {
-      const o = await tx.get<Row>("SELECT * FROM outbox WHERE operation_id = ? AND state = 'CONFLICT' AND resolved_by IS NULL", [operationId]);
-      if (!o) throw new Error('La operación no está en conflicto o ya se resolvió.');
+      const o = await tx.get<Row>('SELECT * FROM outbox WHERE operation_id = ? AND state = ? AND resolved_by IS NULL', [operationId, expect]);
+      if (!o) throw new Error(expect === 'CONFLICT' ? 'La operación no está en conflicto o ya se resolvió.' : 'La operación no está rechazada o ya se corrigió.');
       const op = toOp(o);
+      if (expect === 'FAILED' && !['PRODUCER_CREATE', 'PLOT_CREATE'].includes(op.operation_type)) throw new Error('Solo se corrigen altas rechazadas.');
       // Se recorre el GRAFO DE DEPENDENCIAS de la captura, no el orden de inserción: una sustituta tiene un seq mayor que las operaciones
       // aún pendientes que re-apuntan a ella, así que un segundo conflicto consecutivo se perdería con un filtro por seq.
-      const all = (await tx.all<Row>('SELECT * FROM outbox WHERE draft_id = ? ORDER BY seq', [op.draft_id])).map(toOp);
+      const all = (await tx.all<Row>('SELECT * FROM outbox ORDER BY seq')).map(toOp); // toda la cola: las capturas que dependen de un alta viven en otros borradores
       const map = new Map<string, string>([[op.operation_id, this.p.uuid()]]);
       const plan: Array<{ op: OutboxOp; mode: 'REPLACE' | 'REWIRE' }> = [];
       const planned = new Set<string>([op.operation_id]);
@@ -310,7 +455,14 @@ export class LocalStore {
         await tx.run('UPDATE outbox SET resolved_by = ? WHERE operation_id = ?', [id, x.operation_id]);
       };
       const newId = map.get(op.operation_id)!;
-      await insert(op, newId, serverVersion, remap(op.depends_on), { ...op.payload, resolves_operation_id: op.operation_id });
+      if (expect === 'CONFLICT') await insert(op, newId, serverVersion, remap(op.depends_on), { ...op.payload, resolves_operation_id: op.operation_id });
+      else {
+        const next = { ...op.payload, ...patch } as Record<string, unknown>;
+        await insert(op, newId, op.base_version, remap(op.depends_on), next);
+        const table = op.operation_type === 'PRODUCER_CREATE' ? 'local_producers' : 'local_plots';
+        const cols = Object.keys(patch ?? {}).filter((k) => /^[a-z_]+$/.test(k));
+        for (const k of cols) await tx.run(`UPDATE ${table} SET ${k} = ?, updated_at = ? WHERE id = ?`, [patch![k], this.now(), op.entity_id]);
+      }
       for (const { op: x, mode } of plan) {
         const deps = remap(x.depends_on);
         if (mode === 'REWIRE') {
@@ -371,7 +523,7 @@ export class LocalStore {
 
   async drafts(): Promise<DraftView[]> {
     const ds = await this.db.all<{ id: string; plot_id: string; plot_code: string | null; note: string; status: 'DRAFT' | 'QUEUED'; created_at: string; updated_at: string; queued_at: string | null }>(
-      'SELECT d.id, d.plot_id, p.plot_code, d.note, d.status, d.created_at, d.updated_at, d.queued_at FROM drafts d LEFT JOIN dataset_plots p ON p.id = d.plot_id ORDER BY d.created_at DESC');
+      'SELECT d.id, d.plot_id, COALESCE(p.plot_code, lp.plot_code) AS plot_code, d.note, d.status, d.created_at, d.updated_at, d.queued_at FROM drafts d LEFT JOIN dataset_plots p ON p.id = d.plot_id LEFT JOIN local_plots lp ON lp.id = d.plot_id ORDER BY d.created_at DESC');
     const out: DraftView[] = [];
     for (const d of ds) {
       const loc = await this.db.get<{ id: string; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; recorded_at: string; source: string; provider_detail: string; mocked: number | null }>('SELECT * FROM location_samples WHERE draft_id = ?', [d.id]);

@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
 import { PASSWORD, describeDb, setupHarness } from './helpers';
 import { operationHash } from '../src/sync/sync';
 
@@ -127,5 +127,28 @@ describeDb('D altas sin conexión: referencias locales y dependencias', () => {
     expect(r.body.results[1]).toMatchObject({ status: 'REJECTED', error: { code: 'PRODUCER_NOT_AVAILABLE' } });
     expect(await count('plots', 'plot_code', 'MOV-5-P2')).toBe(0);
     expect(await count('producers', 'producer_code', 'MOV-5')).toBe(0);
+  });
+
+  /** JPEG SINTÉTICO mínimo válido (sin metadatos). No es una foto. */
+  const jpeg = () => {
+    const seg = (m: number, body: Buffer) => Buffer.concat([Buffer.from([0xff, m, (body.length + 2) >> 8, (body.length + 2) & 0xff]), body]);
+    return Buffer.concat([Buffer.from([0xff, 0xd8]), seg(0xe0, Buffer.from('JFIF      ', 'binary')), seg(0xda, Buffer.from([1, 1, 0, 0, 0x3f, 0])), randomBytes(200).map((b) => (b === 0xff ? 0 : b)), Buffer.from([0xff, 0xd9])]);
+  };
+
+  it('evidencia sobre una parcela creada sin conexión: el registro llega en dependencia, el archivo se sube aparte con su integridad y queda vinculado a la parcela DEFINITIVA', async () => {
+    const dev = await device(TECH); const lp = randomUUID(); const lq = randomUUID();
+    const p = producerOp(lp, 'MOV-6'); const q = plotOp(lq, lp, 'MOV-6-P1', [p.operation_id]);
+    const bytes = jpeg();
+    const foto = mk('PLOT_PHOTO_ATTACH', randomUUID(), { plot_local_ref: lq, sha256: createHash('sha256').update(bytes).digest('hex'), size_bytes: bytes.length, mime_type: 'image/jpeg', caption: 'Foto de campo' }, [q.operation_id]);
+    const r = await push(TECH, dev, [p, q, foto]);
+    expect(statuses(r)).toEqual(['ACCEPTED', 'ACCEPTED', 'ACCEPTED']);
+    expect(r.body.results[2].result).toMatchObject({ plot_id: r.body.results[1].result.server_id, attachment: { status: 'AWAITING_CONTENT' } }); // registro aceptado, archivo todavía no
+    const up = await http().post(`${base(org)}/sync/attachments/${foto.operation_id}/content`).set(as(TECH)).field('device_id', dev).attach('file', bytes, { filename: 'f.jpg', contentType: 'image/jpeg' });
+    expect([200, 201]).toContain(up.status);
+    expect(['PENDING_SCAN', 'AVAILABLE']).toContain(up.body.attachment.status); // el análisis no se da por limpio sin escáner
+    const sinIntegridad = mk('PLOT_PHOTO_ATTACH', randomUUID(), { plot_local_ref: lq, sha256: createHash('sha256').update(bytes).digest('hex'), size_bytes: bytes.length, mime_type: 'image/jpeg', caption: 'Otra' }, [q.operation_id]);
+    await push(TECH, dev, [sinIntegridad]);
+    const bad = await http().post(`${base(org)}/sync/attachments/${sinIntegridad.operation_id}/content`).set(as(TECH)).field('device_id', dev).attach('file', Buffer.concat([bytes, Buffer.from([1])]), { filename: 'f.jpg', contentType: 'image/jpeg' });
+    expect(bad.status).toBeGreaterThanOrEqual(400); // bytes distintos de los declarados: nada se guarda
   });
 });

@@ -138,7 +138,9 @@ Endpoints (`/api/v1/organizations/{org}`): `POST /devices`, `GET /devices`, `POS
 | `PLOT_LOCATION_SAMPLE_CREATE` | Sí (crea versión de geometría POINT; conflicto por versión) | Sí |
 | `PLOT_POLYGON_VERTEX_ADD` (D, 2026-10-27) | Sí (añade un vértice al BORRADOR de polígono de la parcela; no crea versión de geometría ni confirma; idempotente por `operation_id`; los vértices van encadenados por `depends_on`) | Sí |
 | `PLOT_PHOTO_ATTACH` | Sí (registro + archivo vía Documentos) | Sí (la nota viaja como leyenda) |
-| Productores, parcelas nuevas, entregas, recepciones, calidad, lotes, inventario | No (`UNSUPPORTED_OPERATION_TYPE`) | No |
+| `PRODUCER_CREATE` (D, 2026-10-28) | Sí (alta con referencia local; requiere `producer:create`; atómica con su registro) | Sí (pantalla «Altas») |
+| `PLOT_CREATE` (D, 2026-10-28) | Sí (productor por `producer_id` o `producer_local_ref`; alcance de alta del usuario) | Sí |
+| Entregas, recepciones, calidad, lotes, inventario | No (`UNSUPPORTED_OPERATION_TYPE`) | No |
 
 Una nota sin ubicación ni foto no tiene entidad en el servidor y no se encola.
 
@@ -183,3 +185,16 @@ Una nota sin ubicación ni foto no tiene entidad en el servidor y no se encola.
   emulador.
 - Build nativo: sonda de cifrado al iniciar; sin SQLCipher, bloqueo antes del inicio de sesión (sin token, dataset ni
   fotos). HTTP sin TLS solo hacia localhost/127.0.0.1 (configuración de seguridad de red).
+
+
+## Entidades creadas sin conexión: referencias locales (D, 2026-10-28)
+
+**Diseño (breve).** El teléfono da a todo productor o parcela que crea una **referencia local** estable: el UUID del registro, que viaja como `entity_id` de su operación de alta (`PRODUCER_CREATE`, `PLOT_CREATE`). Sus dependientes la citan con `producer_local_ref` / `plot_local_ref` (en lugar de `producer_id` / `plot_id`; exactamente una de las dos) y `depends_on` apunta a la operación de alta. Al aceptar el alta, el servidor guarda la correspondencia en `sync_entity_refs` (clave: organización + **usuario** + referencia local; migración 0070) con el identificador definitivo y la versión de la parcela producida.
+
+- **Resolución:** solo por esa tabla y solo para el mismo usuario y organización. Nunca por nombre, código, proximidad ni coincidencias ambiguas; una referencia que no es un UUID se rechaza (`PAYLOAD_INVALID`). Si la alta aún no llegó, el dependiente queda `DEPENDENCY_PENDING` (no se guarda); si la alta fue rechazada o quedó en conflicto, `REJECTED DEPENDENCY_FAILED`.
+- **Persistencia en el teléfono:** tablas `local_producers` y `local_plots` (migración 4; `outbox.draft_id` pasa a ser opcional para operaciones de alta). El registro local y su operación en cola se guardan juntos; el `server_id` se enlaza cuando llega el resultado y sobrevive a cierres, respuestas perdidas y reintentos (mismos `operation_id` y hash).
+- **Primera captura sobre una parcela nueva:** la versión esperada es la que produjo su alta; el vértice o el punto siguientes de la misma captura toman la versión que produjo el punto propio (la propia sincronización no es un conflicto).
+- **Duplicados y rechazos:** código de parcela repetido, productor fuera de alcance, etc. → `REJECTED` con su código. La persona corrige y se crea una **sustituta** con la **misma referencia local** (el servidor no guardó ninguna correspondencia); el rechazo original y las capturas que dependían del alta se conservan como historial y se sustituyen con identificadores nuevos. Posibles duplicados de productor siguen el mecanismo de revisión de duplicados existente (`duplicate_reviews_pending`).
+- **Permisos:** cada operación revalida en el servidor. `sync:use` no concede permisos de dominio: PRODUCER_CREATE exige `producer:create` (el Productor con alcance propio no lo tiene); PLOT_CREATE, `plot:create` / `create_assigned` / `create_own` y el alcance del productor indicado.
+- **Evidencias:** las fotos de campo sobre una parcela nueva usan el camino existente (`PLOT_PHOTO_ATTACH` con `plot_local_ref` + subida aparte con tamaño y SHA-256; Documentos, clasificación PERSONAL_DATA y escaneo). Estados distinguidos: registro aceptado (`AWAITING_CONTENT`), análisis pendiente (`PENDING_SCAN`), disponible (`AVAILABLE`). Otros tipos documentales (legalidad, ambiente, trabajo) siguen aportándose por la web (AJ-03/AJ-04); no hay captura documental en el móvil.
+- **Entregas:** pendientes en esta etapa (ver docs/23).

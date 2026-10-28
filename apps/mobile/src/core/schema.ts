@@ -48,6 +48,27 @@ const MIGRATIONS: string[] = [
      id TEXT PRIMARY KEY, draft_id TEXT NOT NULL REFERENCES drafts(id), seq INTEGER NOT NULL, latitude REAL NOT NULL, longitude REAL NOT NULL,
      accuracy_m REAL, acquired_at TEXT NOT NULL, recorded_at TEXT NOT NULL, provider_detail TEXT NOT NULL, mocked INTEGER,
      UNIQUE (draft_id, seq));`,
+  // 4 (D): altas sin conexión. Cada productor o parcela creados en el teléfono tiene una referencia LOCAL estable (su id) que sus
+  // dependientes citan hasta que el servidor la resuelve (`server_id`). La cola admite operaciones sin borrador de captura
+  // (altas): `outbox.draft_id` pasa a ser opcional (se reconstruye la tabla; los datos se copian tal cual).
+  `CREATE TABLE local_producers (
+     id TEXT PRIMARY KEY, producer_code TEXT NOT NULL, first_name TEXT, last_name TEXT, legal_name TEXT, community TEXT, province TEXT, canton TEXT, parish TEXT,
+     status TEXT NOT NULL CHECK (status IN ('DRAFT','QUEUED')), server_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, queued_at TEXT);
+   CREATE TABLE local_plots (
+     id TEXT PRIMARY KEY, producer_kind TEXT NOT NULL CHECK (producer_kind IN ('SERVER','LOCAL')), producer_ref TEXT NOT NULL,
+     plot_code TEXT NOT NULL, crop TEXT NOT NULL, name TEXT, variety TEXT, land_use TEXT, province TEXT, canton TEXT, parish TEXT,
+     status TEXT NOT NULL CHECK (status IN ('DRAFT','QUEUED')), server_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, queued_at TEXT);
+   CREATE TABLE outbox_v4 (
+     operation_id TEXT PRIMARY KEY, seq INTEGER NOT NULL UNIQUE, draft_id TEXT REFERENCES drafts(id),
+     operation_type TEXT NOT NULL, entity_id TEXT NOT NULL, base_version INTEGER, depends_on TEXT NOT NULL,
+     captured_at TEXT NOT NULL, payload TEXT NOT NULL, attachment_refs TEXT NOT NULL,
+     state TEXT NOT NULL CHECK (state IN ('PENDING','UPLOADING','SYNCED','FAILED','CONFLICT')),
+     attempts INTEGER NOT NULL DEFAULT 0, recovered_count INTEGER NOT NULL DEFAULT 0, last_error TEXT, created_at TEXT NOT NULL,
+     server_result TEXT, resolved_by TEXT, resolves TEXT, content_hash TEXT);
+   INSERT INTO outbox_v4 (operation_id, seq, draft_id, operation_type, entity_id, base_version, depends_on, captured_at, payload, attachment_refs, state, attempts, recovered_count, last_error, created_at, server_result, resolved_by, resolves, content_hash)
+     SELECT operation_id, seq, draft_id, operation_type, entity_id, base_version, depends_on, captured_at, payload, attachment_refs, state, attempts, recovered_count, last_error, created_at, server_result, resolved_by, resolves, content_hash FROM outbox;
+   DROP TABLE outbox;
+   ALTER TABLE outbox_v4 RENAME TO outbox;`,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

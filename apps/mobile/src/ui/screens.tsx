@@ -16,6 +16,7 @@ import { SERVER_URL_HELP, validateServerUrl } from '../core/server-url';
 import { FRESH_MAX_AGE_S, ageSeconds, isFresh, locationErrorMessage, qualityNotice, qualityOf, readingFrom, type Reading } from '../core/ubicacion';
 import type { DatasetPlot, DraftView, LocalStore, RecoveryReport } from '../core/store';
 import { Badge, Button, Card, Field, Notice, T, s } from './kit';
+import { Altas } from './altas';
 
 // Pantallas P0-023 (UX_UI §21): inicio de sesión online → organización → preparación (datos asignados) → captura
 // (ubicación, foto, nota) → pendientes (sincronización P0-024) → diagnóstico.
@@ -27,7 +28,7 @@ const SERVER = isWebPreview ? 'servidor SIMULADO' : 'servidor';
 const SYNTH_TITLE = isWebPreview ? 'Vista previa web: datos sintéticos' : 'Entorno de prueba sin cifrado';
 const reloadPage = () => { (globalThis as { location?: { reload(): void } }).location?.reload(); };
 const DEFAULT_API = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
-type Tab = 'home' | 'capture' | 'pending' | 'diag';
+type Tab = 'home' | 'capture' | 'altas' | 'pending' | 'diag';
 
 // Formato fijo de 24 h: «p. m.» seguido del punto de la frase producía «p. m..» y variaba según el motor JS.
 const fmt = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }) : '—');
@@ -83,11 +84,12 @@ export function Root() {
       <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
         {tab === 'home' && <Home session={session} orgId={orgId} store={store} recovery={recovery} onCapture={(d) => { setOpenDraft(d); setTab('capture'); }} onSwitch={() => { setOrgId(null); }} onLogout={() => void logout()} />}
         {tab === 'capture' && <Capture session={session} orgId={orgId} store={store} draftId={openDraft} onDraft={setOpenDraft} onQueued={() => { setOpenDraft(null); setTab('pending'); }} />}
+        {tab === 'altas' && <Altas store={store} canCreateProducer={!!org?.permissions.includes('producer:create')} />}
         {tab === 'pending' && <Pending store={store} onOpen={(d) => { setOpenDraft(d); setTab('capture'); }} />}
         {tab === 'diag' && <Diagnostics session={session} orgId={orgId} store={store} recovery={recovery} />}
       </ScrollView>
       <View style={[s.tabs, { paddingBottom: insets.bottom }]} accessibilityRole="tablist">
-        {([['home', 'Inicio'], ['capture', 'Captura'], ['pending', 'Pendientes'], ['diag', 'Diagnóstico']] as const).map(([k, l]) => (
+        {([['home', 'Inicio'], ['capture', 'Captura'], ['altas', 'Altas'], ['pending', 'Pendientes'], ['diag', 'Diagnóstico']] as const).map(([k, l]) => (
           <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} accessibilityLabel={l} style={[s.tab, tab === k && { borderTopWidth: 3, borderColor: T.forest }]} onPress={() => setTab(k)}>
             <Text style={[s.tabText, tab === k && { color: T.forest }]}>{l}</Text>
           </Pressable>
@@ -212,6 +214,7 @@ function Home({ session, orgId, store, recovery, onCapture, onSwitch, onLogout }
 
 function Capture({ session, orgId, store, draftId, onDraft, onQueued }: { session: StoredSession; orgId: string; store: LocalStore; draftId: string | null; onDraft: (d: string) => void; onQueued: () => void }) {
   const [plots, setPlots] = useState<DatasetPlot[]>([]);
+  const [localPlots, setLocalPlots] = useState<Array<{ id: string; plot_code: string; state: string }>>([]);
   const [draft, setDraft] = useState<DraftView | null>(null);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -228,7 +231,10 @@ function Capture({ session, orgId, store, draftId, onDraft, onQueued }: { sessio
   }, [peek]);
   const gate = sessions.gate(session, orgId);
   const reload = useCallback(async () => {
-    setPlots(await store.plots());
+    const ds = await store.plots();
+    setPlots(ds);
+    // parcelas nuevas creadas en este dispositivo; cuando el servidor ya las bajó, se muestra la definitiva y no esta
+    setLocalPlots((await store.localPlots()).filter((p) => !(p.server_id && ds.some((x) => x.id === p.server_id))).map((p) => ({ id: p.id, plot_code: p.plot_code, state: p.state })));
     if (draftId) { const d = (await store.drafts()).find((x) => x.id === draftId) ?? null; setDraft(d); setNote(d?.note ?? ''); } else setDraft(null);
   }, [store, draftId]);
   useEffect(() => { void reload(); }, [reload]);
@@ -241,6 +247,7 @@ function Capture({ session, orgId, store, draftId, onDraft, onQueued }: { sessio
     <>
       <Text accessibilityRole="header" style={s.h1}>Nueva captura</Text>
       <Text style={s.muted}>Elige la parcela. El borrador se guarda en el dispositivo desde el primer paso.</Text>
+      {localPlots.map((p) => <Button key={p.id} kind="secondary" label={`${p.plot_code} · parcela NUEVA (${p.state === 'DRAFT' ? 'alta sin poner en cola' : p.state === 'SYNCED' ? 'ya registrada' : 'alta en cola'})`} onPress={() => void act(async () => onDraft(await store.createDraft(p.id)))} />)}
       {plots.map((p) => <Button key={p.id} kind="secondary" label={`${p.plot_code}${p.producer_code ? ` · ${p.producer_code}` : ''}${p.producer_display_name ? ` · ${p.producer_display_name}` : ''}`} onPress={() => void act(async () => onDraft(await store.createDraft(p.id)))} />)}
       {error && <Notice tone="blocked">{error}</Notice>}
     </>
