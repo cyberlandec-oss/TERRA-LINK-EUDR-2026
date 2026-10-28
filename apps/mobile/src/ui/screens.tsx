@@ -17,6 +17,8 @@ import { FRESH_MAX_AGE_S, ageSeconds, isFresh, locationErrorMessage, qualityNoti
 import type { DatasetPlot, DraftView, LocalStore, RecoveryReport } from '../core/store';
 import { Badge, Button, Card, Field, Notice, T, s } from './kit';
 import { Altas } from './altas';
+import { MapaCard } from './mapa-card';
+import { mapsUrlFor } from '../core/mapa';
 
 // Pantallas P0-023 (UX_UI §21): inicio de sesión online → organización → preparación (datos asignados) → captura
 // (ubicación, foto, nota) → pendientes (sincronización P0-024) → diagnóstico.
@@ -84,14 +86,14 @@ export function Root() {
       <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
         {tab === 'home' && <Home session={session} orgId={orgId} store={store} recovery={recovery} onCapture={(d) => { setOpenDraft(d); setTab('capture'); }} onSwitch={() => { setOrgId(null); }} onLogout={() => void logout()} />}
         {tab === 'capture' && <Capture session={session} orgId={orgId} store={store} draftId={openDraft} onDraft={setOpenDraft} onQueued={() => { setOpenDraft(null); setTab('pending'); }} />}
-        {tab === 'altas' && <Altas store={store} canCreateProducer={!!org?.permissions.includes('producer:create')} />}
+        {tab === 'altas' && <Altas store={store} permisos={{ producer: !!org?.permissions.includes('producer:create'), plot: !!org?.permissions.some((p) => ['plot:create', 'plot:create_assigned', 'plot:create_own'].includes(p)), delivery: !!org?.permissions.some((p) => ['delivery:create', 'delivery:create_assigned'].includes(p)) }} />}
         {tab === 'pending' && <Pending store={store} onOpen={(d) => { setOpenDraft(d); setTab('capture'); }} />}
         {tab === 'diag' && <Diagnostics session={session} orgId={orgId} store={store} recovery={recovery} />}
       </ScrollView>
       <View style={[s.tabs, { paddingBottom: insets.bottom }]} accessibilityRole="tablist">
         {([['home', 'Inicio'], ['capture', 'Captura'], ['altas', 'Altas'], ['pending', 'Pendientes'], ['diag', 'Diagnóstico']] as const).map(([k, l]) => (
           <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} accessibilityLabel={l} style={[s.tab, tab === k && { borderTopWidth: 3, borderColor: T.forest }]} onPress={() => setTab(k)}>
-            <Text style={[s.tabText, tab === k && { color: T.forest }]}>{l}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[s.tabText, tab === k && { color: T.forest }]}>{l}</Text>
           </Pressable>
         ))}
       </View>
@@ -230,6 +232,8 @@ function Capture({ session, orgId, store, draftId, onDraft, onQueued }: { sessio
     return () => clearInterval(id);
   }, [peek]);
   const gate = sessions.gate(session, orgId);
+  const [mapsUrl, setMapsUrl] = useState<string | null>(null);
+  useEffect(() => { void sessions.apiUrl(DEFAULT_API).then((u) => setMapsUrl(mapsUrlFor(u))); }, []);
   const reload = useCallback(async () => {
     const ds = await store.plots();
     setPlots(ds);
@@ -311,6 +315,7 @@ function Capture({ session, orgId, store, draftId, onDraft, onQueued }: { sessio
       {testEnv && <Notice tone="review" title={SYNTH_TITLE}>Solo fixtures sintéticos: esta compilación no usa la cámara ni la ubicación reales. El ensayo real se hace con el build nativo cifrado.</Notice>}
       <Badge tone={draft.status === 'DRAFT' ? 'neutral' : 'process'}>{draft.status === 'DRAFT' ? 'Borrador local' : 'En cola (pendiente de sincronización)'}</Badge>
       {!gate.allowed && <Notice tone="blocked">{gate.note}</Notice>}
+      <MapaCard store={store} draft={draft} peek={peek} now={now} mapsUrl={mapsUrl} editable={editable} />
       <Card title="Ubicación">
         {draft.location ? (
           <>
@@ -333,7 +338,7 @@ function Capture({ session, orgId, store, draftId, onDraft, onQueued }: { sessio
             <Text style={s.muted}>Procedencia: servicio de ubicación del dispositivo (no se afirma GPS){peek.mocked ? ' · el sistema la marcó como simulada' : ''}</Text>
             {qualityNotice(qualityOf(peek.accuracy_m)) && <Notice tone="review">{qualityNotice(qualityOf(peek.accuracy_m))!}</Notice>}
             {!isFresh(peek, now) && <Notice tone="review">La lectura tiene más de {FRESH_MAX_AGE_S} s. Pulsa «Mi ubicación» otra vez antes de usarla.</Notice>}
-            <Text style={s.muted}>Esta app no muestra mapa: la ubicación se ofrece como coordenadas y precisión. La precisión es la de esta lectura.</Text>
+            <Text style={s.muted}>La lectura se dibuja en el mapa con su círculo de precisión; no se guarda hasta que lo pidas. La precisión es la de esta lectura.</Text>
             <Button label={draft.location ? 'Reemplazar la ubicación del borrador con esta lectura' : 'Usar esta ubicación en el borrador'} onPress={() => void useReading()} disabled={busy || !isFresh(peek, now)} />
             <Button kind="secondary" label="Descartar la lectura" onPress={() => setPeek(null)} disabled={busy} />
           </View>
@@ -343,7 +348,7 @@ function Capture({ session, orgId, store, draftId, onDraft, onQueued }: { sessio
         {draft.vertices.length === 0 ? <Text style={s.muted}>Sin vértices. Camina el borde de la parcela y añade un vértice en cada esquina.</Text> : draft.vertices.map((v) => (
           <Text key={v.id} style={s.p}>{v.seq}. Lat {v.latitude.toFixed(6)} · Lon {v.longitude.toFixed(6)} · {v.accuracy_m === null ? 'precisión no informada' : `±${Math.round(v.accuracy_m)} m`}</Text>
         ))}
-        <Text style={s.muted}>Los vértices entran al borrador de polígono de la parcela. No crean geometría nueva ni validan nada: una persona revisa y confirma el polígono en la web. Esta app no muestra mapa; si faltan vértices o hay un cruce, se verá en la revisión web.</Text>
+        <Text style={s.muted}>Los vértices entran al borrador de polígono de la parcela. No crean geometría nueva ni validan nada: una persona revisa y confirma el polígono en la web. El mapa los dibuja en orden para que los revises aquí; los cruces y la validez del polígono se revisan en la web.</Text>
         {editable && !testEnv && <Button kind="secondary" label="Añadir vértice con la lectura de «Mi ubicación»" hint={peek ? undefined : 'Primero pulsa «Mi ubicación»'} onPress={() => void addVertexFromReading()} disabled={busy || !peek || !isFresh(peek, now)} />}
         {editable && testEnv && <Button kind="secondary" label="Añadir vértice de prueba (sintético)" onPress={() => void fixtureVertex()} disabled={busy} />}
         {editable && draft.vertices.length > 0 && <Button kind="secondary" label="Quitar el último vértice" onPress={() => void act(() => store.undoVertex(draft.id))} disabled={busy} />}
@@ -399,7 +404,7 @@ function Pending({ store, onOpen }: { store: LocalStore; onOpen: (d: string) => 
             return (
               <View key={o.operation_id} style={{ marginTop: 6 }}>
                 <Badge tone={blocked ? 'blocked' : tone}>{blocked ? 'Bloqueado por acceso' : label}</Badge>
-                <Text style={s.muted}>{o.operation_type === 'PLOT_LOCATION_SAMPLE_CREATE' ? 'Muestra de ubicación' : o.operation_type === 'PLOT_POLYGON_VERTEX_ADD' ? `Vértice ${(o.payload as { vertex_seq?: number }).vertex_seq ?? ''} del polígono` : 'Foto'} · {o.operation_id.slice(0, 8)}{o.recovered_count ? ` · recuperada ${o.recovered_count} vez/veces` : ''}{o.resolved_by ? ' · resuelta con otra operación' : ''}</Text>
+                <Text style={s.muted}>{o.operation_type === 'PLOT_LOCATION_SAMPLE_CREATE' ? 'Muestra de ubicación' : o.operation_type === 'PLOT_POLYGON_VERTEX_ADD' ? `Vértice ${(o.payload as { vertex_seq?: number }).vertex_seq ?? ''} del polígono` : o.operation_type === 'PRODUCER_CREATE' ? 'Alta de productor' : o.operation_type === 'PLOT_CREATE' ? 'Alta de parcela' : o.operation_type === 'DELIVERY_CREATE' ? 'Declaración de entrega' : 'Foto'} · {o.operation_id.slice(0, 8)}{o.recovered_count ? ` · recuperada ${o.recovered_count} vez/veces` : ''}{o.resolved_by ? ' · resuelta con otra operación' : ''}</Text>
                 {o.last_error && <Text style={s.muted}>{o.last_error}</Text>}
                 {o.state === 'CONFLICT' && (o.server_result?.error as { details?: { resolution?: string } } | null)?.details?.resolution && <Text style={s.muted}>{(o.server_result?.error as { details: { resolution: string } }).details.resolution}</Text>}
                 {o.state === 'CONFLICT' && !o.resolved_by && typeof serverVersion === 'number' && (

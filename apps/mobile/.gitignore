@@ -42,3 +42,6 @@ yarn-error.*
 
 # APK generados localmente (aceptación y prueba negativa); no se versionan
 /dist-apk
+
+# D: mapa embebido (se genera con npm run map:embed)
+src/ui/mapa-embebido.generated.ts

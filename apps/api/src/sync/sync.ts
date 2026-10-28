@@ -547,7 +547,18 @@ export class SyncService {
     const expires = new Date(Date.now() + CURSOR_TTL_DAYS * 86_400_000);
     await this.db.insertInto('sync_cursors').values({ id, organization_id: orgId, user_id: user.id, device_id: device.id, scope: 'PLOTS', visible: JSON.stringify(visible), expires_at: expires }).execute();
     // Datos de referencia para declarar entregas sin conexión (catálogo de productos y centros de la organización), solo si el rol los puede leer.
-    const reference: { products: unknown[]; locations: unknown[] } = { products: [], locations: [] };
+    const reference: { products: unknown[]; locations: unknown[]; producers: unknown[] } = { products: [], locations: [], producers: [] };
+    // Productores del alcance del usuario (propio/asignado/organización según su permiso), aunque aún no tengan parcelas: solo lo mínimo para referenciarlos (identificador, código, nombre visible).
+    if (this.has(ctx, 'plot:create') || this.has(ctx, 'plot:create_assigned') || this.has(ctx, 'plot:create_own') || this.has(ctx, 'delivery:create') || this.has(ctx, 'delivery:create_assigned')) {
+      try {
+        let pn: string | null | undefined;
+        do {
+          const pg = await this.producers.list(user, orgId, { limit: 100, ...(pn ? { cursor: pn } : {}) } as never) as { items: Array<{ id: string; producer_code: string; display_name: string }>; next_cursor: string | null };
+          reference.producers.push(...pg.items.map((p) => ({ id: p.id, producer_code: p.producer_code, display_name: p.display_name || null })));
+          pn = pg.next_cursor;
+        } while (pn && reference.producers.length < 2000);
+      } catch { /* sin permiso de lectura de productores: vacío */ }
+    }
     if (this.has(ctx, 'delivery:create') || this.has(ctx, 'delivery:create_assigned')) {
       try { reference.products = (await this.products.list(user, orgId, { limit: 200 } as never)).items.map((p) => ({ id: p.id, code: p.code, name: p.name, product_state: p.product_state.code, unit: p.unit.code, status: p.status })); } catch { /* sin permiso de catálogo: vacío */ }
       try { reference.locations = (await this.deliveries.locations(user, orgId)).filter((l) => l.status === 'ACTIVE').map((l) => ({ id: l.id, code: l.code, name: l.name, location_type: l.location_type })); } catch { /* sin permiso de centros: vacío */ }

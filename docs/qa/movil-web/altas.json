@@ -1,0 +1,87 @@
+{
+  "fecha": "2026-10-28T19:00:37.954Z",
+  "url": "http://localhost:3001",
+  "resultados": [
+    {
+      "tag": "tecnico",
+      "paso": "sin-permisos",
+      "ok": true,
+      "desborde_px": 0,
+      "formularios_visibles": 0,
+      "aviso_catalogo": 0,
+      "ok_esperado": true,
+      "captura": "docs/qa/capturas/movil-altas/01-tecnico-altas-sin-permisos.png"
+    },
+    {
+      "tag": "jefe",
+      "paso": "vacio-con-permisos",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-altas/02-jefe-altas-vacio.png"
+    },
+    {
+      "tag": "jefe",
+      "paso": "productor-sin-parcelas-visible",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-altas/03-jefe-productor-sin-parcelas-elegido.png"
+    },
+    {
+      "tag": "jefe",
+      "paso": "primera-parcela-offline",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-altas/04-jefe-primera-parcela-en-cola.png"
+    },
+    {
+      "tag": "jefe",
+      "paso": "entrega-sin-parcelas-del-servidor",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-altas/05-jefe-entrega-formulario.png"
+    },
+    {
+      "tag": "jefe",
+      "paso": "productor-rechazado",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-altas/06-jefe-productor-rechazado.png"
+    },
+    {
+      "tag": "jefe",
+      "paso": "productor-corregido",
+      "ok": true,
+      "desborde_px": 0,
+      "registrados": 3,
+      "ok_esperado": true,
+      "captura": "docs/qa/capturas/movil-altas/07-jefe-productor-recuperado.png"
+    },
+    {
+      "tag": "jefe",
+      "paso": "entrega-rechazada-corregible",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-altas/08-jefe-entrega-rechazada-corregible.png"
+    },
+    {
+      "tag": "jefe",
+      "paso": "entrega-rechazada-externa",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-altas/09-jefe-entrega-rechazada-externa.png"
+    },
+    {
+      "tag": "productor",
+      "paso": "solo-parcela",
+      "ok": true,
+      "desborde_px": 0,
+      "nuevo_productor": 0,
+      "nueva_entrega": 0,
+      "nueva_parcela": 1,
+      "ok_esperado": true,
+      "captura": "docs/qa/capturas/movil-altas/10-productor-altas-solo-parcela.png"
+    }
+  ],
+  "errores_de_consola": [],
+  "ok": true
+}

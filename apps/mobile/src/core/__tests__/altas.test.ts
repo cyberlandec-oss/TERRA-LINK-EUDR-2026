@@ -2,6 +2,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { LocalStore, type DatasetPlot, type ServerOutcome } from '../store';
+import { rejectionGuide } from '../rejections';
 import { syncOnce, type SyncTransport, type WireOperation } from '../sync';
 import { nodePlatform } from './node-platform';
 
@@ -11,10 +12,11 @@ const SERVER_PLOT: DatasetPlot = { id: '00000000-0000-4000-8000-0000000000aa', p
 const V = (lat: number, lon: number) => ({ latitude: lat, longitude: lon, accuracy_m: 6, acquired_at: '2026-10-28T12:00:00.000Z', provider_detail: 'expo-location; proveedor del sistema (no garantiza GPS)', mocked: false });
 
 /** Servidor simulado: dependencias, hash por identificador, referencias locales (solo por correspondencia), códigos de parcela únicos. */
-function servidor(opts: { existingCodes?: string[] } = {}) {
+function servidor(opts: { existingCodes?: string[]; existingProducerCodes?: string[] } = {}) {
   const known = new Map<string, { hash: string; status: string }>();
   const refs = new Map<string, string>(); // referencia local -> id definitivo
   const codes = new Set(opts.existingCodes ?? []);
+  const pcodes = new Set(opts.existingProducerCodes ?? []);
   const created: string[] = [];
   const located: string[] = [];
   const sent: WireOperation[][] = [];
@@ -35,7 +37,7 @@ function servidor(opts: { existingCodes?: string[] } = {}) {
         if (deps.some((d) => d!.status !== 'ACCEPTED')) return fail('DEPENDENCY_FAILED');
         const p = o.payload as Record<string, unknown>;
         const accept = (result: Record<string, unknown>): ServerOutcome => { known.set(o.operation_id, { hash: o.content_hash, status: 'ACCEPTED' }); return { operation_id: o.operation_id, status: 'ACCEPTED', result }; };
-        if (o.operation_type === 'PRODUCER_CREATE') { const id = `srv-prod-${++n}`; refs.set(o.entity_id, id); created.push(`P:${p.producer_code}`); return accept({ entity: 'PRODUCER', server_id: id, local_ref: o.entity_id }); }
+        if (o.operation_type === 'PRODUCER_CREATE') { if (pcodes.has(p.producer_code as string)) return fail('PRODUCER_CODE_TAKEN'); pcodes.add(p.producer_code as string); const id = `srv-prod-${++n}`; refs.set(o.entity_id, id); created.push(`P:${p.producer_code}`); return accept({ entity: 'PRODUCER', server_id: id, local_ref: o.entity_id }); }
         if (o.operation_type === 'PLOT_CREATE') {
           if (codes.has(p.plot_code as string)) return fail('PLOT_CODE_TAKEN');
           if (p.producer_local_ref && !refs.has(p.producer_local_ref as string)) return { operation_id: o.operation_id, status: 'DEPENDENCY_PENDING' };
@@ -58,7 +60,7 @@ function servidor(opts: { existingCodes?: string[] } = {}) {
   };
   return t;
 }
-const REFERENCE = { products: [{ id: 'prod-1', code: 'CACAO_BABA', name: 'Cacao en baba', product_state: 'CACAO_BABA', unit: 'KG', status: 'ACTIVE' }], locations: [{ id: 'loc-1', code: 'CA-01', name: 'Centro de acopio uno', location_type: 'COLLECTION_CENTER' }] };
+const REFERENCE = { producers: [{ id: '00000000-0000-4000-8000-0000000000c1', producer_code: 'PR-SIN-PARCELAS', display_name: 'Productor sin parcelas' }], products: [{ id: 'prod-1', code: 'CACAO_BABA', name: 'Cacao en baba', product_state: 'CACAO_BABA', unit: 'KG', status: 'ACTIVE' }], locations: [{ id: 'loc-1', code: 'CA-01', name: 'Centro de acopio uno', location_type: 'COLLECTION_CENTER' }] };
 
 describe('D altas sin conexión (móvil)', () => {
   const setup = async () => { const root = mkdtempSync(join(tmpdir(), 'tl-altas-')); const p = nodePlatform(root, {}); const s = await LocalStore.open(p, 'acc1'); await s.replaceDataset([SERVER_PLOT]); return { root, p, s }; };
@@ -199,6 +201,75 @@ describe('D altas sin conexión (móvil)', () => {
     expect((await s.pendingBatch(5)).find((o) => o.operation_id === opQ)!.payload).toMatchObject({ producer_id: SERVER_PLOT.producer_id });
     expect((await s.pendingBatch(5)).find((o) => o.operation_id === opQ)!.payload.producer_local_ref).toBeUndefined();
     await s.enqueue(d);
+    await s.close();
+  });
+
+  it('productor autorizado SIN parcelas: baja como referencia mínima, se elige, su primera parcela nace sin conexión con capturas y todo llega en orden sin duplicar', async () => {
+    const { s } = await setup();
+    expect((await s.serverProducers()).map((p) => p.producer_code)).toEqual(['PR-EX']); // antes del pull solo se conocen los de las parcelas descargadas
+    const srv = servidor();
+    await syncOnce(s, srv, 'dev'); // el pull trae la referencia mínima de productores (id, código, nombre visible)
+    const lista = await s.serverProducers();
+    expect(lista.map((p) => p.producer_code)).toEqual(['PR-EX', 'PR-SIN-PARCELAS']);
+    expect(Object.keys(lista[1]).sort()).toEqual(['display_name', 'id', 'producer_code']); // nada más: privacidad
+    const sin = lista[1].id;
+    const plot = await s.createLocalPlot({ producer: { kind: 'SERVER', id: sin }, plot_code: 'PRIMERA', crop: 'Cacao' });
+    const opQ = await s.enqueueLocalPlot(plot);
+    expect((await s.pendingBatch(10)).find((o) => o.operation_id === opQ)).toMatchObject({ depends_on: [], payload: expect.objectContaining({ producer_id: sin }) });
+    const d = await s.createDraft(plot); await s.setLocation(d, V(-0.5, -80.1)); await s.addVertex(d, V(-0.5, -80.1)); await s.enqueue(d);
+    const r = await syncOnce(s, srv, 'dev');
+    expect(r).toMatchObject({ failed: 0, conflicts: 0, still_pending: 0 });
+    expect(srv.created).toEqual(['Q:PRIMERA']); expect(srv.located).toHaveLength(2);
+    // un productor que ya no viene en la referencia (salió del alcance) deja de ofrecerse
+    await s.applyReference({ producers: [], products: [], locations: [] });
+    expect((await s.serverProducers()).map((p) => p.producer_code)).toEqual(['PR-EX']);
+    await expect(s.createLocalPlot({ producer: { kind: 'SERVER', id: sin }, plot_code: 'SEGUNDA', crop: 'Cacao' })).rejects.toThrow(/no está entre los datos descargados/);
+    await s.close();
+  });
+
+  it('productor rechazado (código repetido) → corrección con la MISMA referencia → su parcela, captura y entrega se recuperan sin duplicados', async () => {
+    const { s } = await setup();
+    await s.applyReference(REFERENCE);
+    const prod = await s.createLocalProducer({ producer_code: 'DUP-1', first_name: 'Eva', last_name: 'Zambrano' });
+    const plot = await s.createLocalPlot({ producer: { kind: 'LOCAL', id: prod }, plot_code: 'DUP-1-P1', crop: 'Cacao' });
+    const opP = await s.enqueueLocalProducer(prod); await s.enqueueLocalPlot(plot);
+    const d = await s.createDraft(plot); await s.setLocation(d, V(-0.6, -80.3)); await s.enqueue(d);
+    const del = await s.createLocalDelivery({ producer: { kind: 'LOCAL', id: prod }, product_id: 'prod-1', location_id: 'loc-1', delivery_date: '2026-10-20', quantity_declared: '12.5', unit: 'KG', origins: [{ kind: 'LOCAL', id: plot }] });
+    await s.enqueueLocalDelivery(del);
+    const srv = servidor({ existingProducerCodes: ['DUP-1'] });
+    await syncOnce(s, srv, 'dev');
+    const rech = (await s.localProducers())[0];
+    expect(rech).toMatchObject({ state: 'REJECTED', server_id: null, operation_id: opP });
+    expect(rejectionGuide('PRODUCER', rech.last_error)).toMatchObject({ code: 'PRODUCER_CODE_TAKEN', fields: ['producer_code'], external: false });
+    expect(srv.created).toEqual([]); // nada dependiente se creó
+    const nuevo = await s.correctRejectedCreate(opP, { producer_code: 'DUP-1B' });
+    const r = await syncOnce(s, srv, 'dev');
+    expect(r).toMatchObject({ failed: 0, conflicts: 0, still_pending: 0 });
+    expect(srv.created).toEqual(['P:DUP-1B', 'Q:DUP-1-P1', 'D:12.5KG']); // una sola vez cada una
+    expect(srv.located).toHaveLength(1);
+    expect((await s.localProducers())[0]).toMatchObject({ id: prod, producer_code: 'DUP-1B', state: 'SYNCED', server_id: srv.refs.get(prod) });
+    expect((await s.localDeliveries())[0]).toMatchObject({ state: 'SYNCED' });
+    // historial: la original rechazada sigue, enlazada con su sustituta
+    const hist = (await s.op(opP))!; expect(hist.state).toBe('FAILED'); expect(hist.resolved_by).toBe(nuevo);
+    await syncOnce(s, srv, 'dev'); expect(srv.created).toHaveLength(3);
+    await s.close();
+  });
+
+  it('entrega rechazada: se ofrece solo la corrección aceptable y se explica lo que requiere intervención externa', async () => {
+    expect(rejectionGuide('DELIVERY', 'ORIGIN_QUANTITY_EXCEEDS: x')).toMatchObject({ external: false, fields: ['quantity_declared', 'delivery_date'] });
+    expect(rejectionGuide('DELIVERY', 'PERMISSION_DENIED: Tu rol no permite declarar entregas.')).toMatchObject({ external: true, fields: [] });
+    expect(rejectionGuide('DELIVERY', 'ORIGIN_DUPLICATED: x')).toMatchObject({ external: true, fields: [] });
+    expect(rejectionGuide('PLOT', 'PLOT_CODE_TAKEN: x')).toMatchObject({ external: false, fields: ['plot_code'] });
+    expect(rejectionGuide('PRODUCER', null)).toMatchObject({ code: null, external: true });
+    const { s } = await setup(); await s.applyReference(REFERENCE);
+    const del = await s.createLocalDelivery({ producer: { kind: 'SERVER', id: SERVER_PLOT.producer_id }, product_id: 'prod-1', location_id: 'loc-1', delivery_date: '2026-10-20', quantity_declared: '10', unit: 'KG', origins: [{ kind: 'SERVER', id: SERVER_PLOT.id }] });
+    const op = await s.enqueueLocalDelivery(del);
+    const srv = servidor(); const push = srv.push.bind(srv);
+    srv.push = async (dv, ops) => (await push(dv, ops)).map((o) => (o.operation_id === op ? { operation_id: op, status: 'REJECTED' as const, error: { code: 'ORIGIN_QUANTITY_EXCEEDS', message: 'Las cantidades por origen superan la declarada.' } } : o));
+    await syncOnce(s, srv, 'dev');
+    expect((await s.localDeliveries())[0]).toMatchObject({ state: 'REJECTED', operation_id: op });
+    const nuevo = await s.correctRejectedCreate(op, { quantity_declared: '9.5' });
+    expect((await s.localDeliveries())[0]).toMatchObject({ quantity_declared: '9.5', state: 'PENDING', operation_id: nuevo });
     await s.close();
   });
 });

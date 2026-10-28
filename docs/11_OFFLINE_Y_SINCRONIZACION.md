@@ -141,7 +141,7 @@ Endpoints (`/api/v1/organizations/{org}`): `POST /devices`, `GET /devices`, `POS
 | `PRODUCER_CREATE` (D, 2026-10-28) | Sí (alta con referencia local; requiere `producer:create`; atómica con su registro) | Sí (pantalla «Altas») |
 | `PLOT_CREATE` (D, 2026-10-28) | Sí (productor por `producer_id` o `producer_local_ref`; alcance de alta del usuario) | Sí |
 | `DELIVERY_CREATE` (D, 2026-10-28) | Sí (declaración de entrega idempotente por `operation_id`; productor y parcelas de origen por id o por referencia local; `delivery:create` / `create_assigned`; borrador, o registrada solo si se pide y la compuerta lo permite) | Sí (pantalla «Altas») |
-| Recepciones, pesaje, calidad, lotes, inventario | No (`UNSUPPORTED_OPERATION_TYPE`) | No |
+| Recepciones, pesaje, calidad, lotes, inventario | No (`UNSUPPORTED_OPERATION_TYPE`) | No — por diseño: son flujos del servidor y la web; ninguna fuente (RF-23/24, S1 §§45–48, S4 §§5–7) los exige como operaciones móviles |
 
 Una nota sin ubicación ni foto no tiene entidad en el servidor y no se encola.
 

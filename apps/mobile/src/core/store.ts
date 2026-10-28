@@ -1,4 +1,5 @@
 import { operationCanonical } from './canonical';
+import type { MapArea } from './mapa';
 import { stripImageMetadata } from './metadata';
 import { migrate } from './schema';
 import { CaptureBlockedError, type CaptureGate } from './session';
@@ -40,7 +41,8 @@ export interface LocalPlotInput { producer: { kind: 'SERVER' | 'LOCAL'; id: stri
 export type LocalState = 'DRAFT' | 'PENDING' | 'SYNCED' | 'REJECTED' | 'CONFLICT';
 export interface LocalProducerView extends LocalProducerInput { id: string; status: 'DRAFT' | 'QUEUED'; server_id: string | null; state: LocalState; last_error: string | null; operation_id: string | null }
 export interface LocalPlotView extends LocalPlotInput { id: string; status: 'DRAFT' | 'QUEUED'; server_id: string | null; state: LocalState; last_error: string | null; operation_id: string | null }
-export interface ReferenceData { products: Array<{ id: string; code: string; name: string; product_state: string; unit: string; status: string }>; locations: Array<{ id: string; code: string; name: string; location_type: string }> }
+export interface ReferenceProducer { id: string; producer_code: string; display_name: string | null }
+export interface ReferenceData { producers?: ReferenceProducer[]; products: Array<{ id: string; code: string; name: string; product_state: string; unit: string; status: string }>; locations: Array<{ id: string; code: string; name: string; location_type: string }> }
 export const DECIMAL_KG = /^\d{1,12}(\.\d{1,3})?$/;
 export interface LocalDeliveryInput {
   producer: { kind: 'SERVER' | 'LOCAL'; id: string }; product_id: string; location_id: string; delivery_date: string; quantity_declared: string; unit: 'KG';
@@ -291,7 +293,7 @@ export class LocalStore {
     if (!LOCAL_CODE.test(code)) throw new Error('Código de parcela: 1–40 caracteres (letras, números, . _ -).');
     if (!crop || crop.length > 60) throw new Error('Indica el cultivo (hasta 60 caracteres).');
     if (input.producer.kind === 'SERVER') {
-      if (!(await this.db.get('SELECT 1 AS x FROM dataset_plots WHERE producer_id = ?', [input.producer.id]))) throw new Error('Ese productor no está entre los datos descargados de esta cuenta: no se puede referenciar.');
+      if (!(await this.knownServerProducer(input.producer.id))) throw new Error('Ese productor no está entre los datos descargados de esta cuenta: no se puede referenciar.');
     } else if (!(await this.db.get('SELECT 1 AS x FROM local_producers WHERE id = ?', [input.producer.id]))) throw new Error('Ese productor no existe entre las altas locales de esta cuenta.');
     const id = this.p.uuid(); const at = this.now();
     await this.db.run('INSERT INTO local_plots (id, producer_kind, producer_ref, plot_code, crop, name, variety, land_use, province, canton, parish, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
@@ -373,10 +375,18 @@ export class LocalStore {
   // ---- Datos de referencia (productos y centros) y entregas declaradas sin conexión ----
   async applyReference(ref: ReferenceData): Promise<void> {
     await this.db.transaction(async (tx) => {
-      await tx.run('DELETE FROM dataset_products'); await tx.run('DELETE FROM dataset_locations');
+      await tx.run('DELETE FROM dataset_products'); await tx.run('DELETE FROM dataset_locations'); await tx.run('DELETE FROM dataset_producers');
+      for (const p of ref.producers ?? []) await tx.run('INSERT INTO dataset_producers (id, producer_code, display_name) VALUES (?,?,?)', [p.id, p.producer_code, p.display_name]);
       for (const p of ref.products) await tx.run('INSERT INTO dataset_products (id, code, name, product_state, unit, status) VALUES (?,?,?,?,?,?)', [p.id, p.code, p.name, p.product_state, p.unit, p.status]);
       for (const l of ref.locations) await tx.run('INSERT INTO dataset_locations (id, code, name, location_type) VALUES (?,?,?,?)', [l.id, l.code, l.name, l.location_type]);
     });
+  }
+  /** Productores autorizados descargados (con o sin parcelas), más los conocidos por las parcelas descargadas. Solo por identificador. */
+  async serverProducers(): Promise<ReferenceProducer[]> {
+    return this.db.all("SELECT id, producer_code, display_name FROM dataset_producers UNION SELECT producer_id, coalesce(producer_code, 'Productor'), producer_display_name FROM dataset_plots WHERE producer_id NOT IN (SELECT id FROM dataset_producers) GROUP BY producer_id ORDER BY 2");
+  }
+  private async knownServerProducer(id: string): Promise<boolean> {
+    return !!(await this.db.get('SELECT 1 AS x FROM dataset_producers WHERE id = ? UNION SELECT 1 FROM dataset_plots WHERE producer_id = ?', [id, id]));
   }
   async products(): Promise<ReferenceData['products']> { return this.db.all('SELECT id, code, name, product_state, unit, status FROM dataset_products ORDER BY code'); }
   async locations(): Promise<ReferenceData['locations']> { return this.db.all('SELECT id, code, name, location_type FROM dataset_locations ORDER BY name'); }
@@ -394,7 +404,7 @@ export class LocalStore {
     if (!(await this.db.get('SELECT 1 AS x FROM dataset_products WHERE id = ?', [input.product_id]))) throw new Error('Elige un producto del catálogo descargado.');
     if (!(await this.db.get('SELECT 1 AS x FROM dataset_locations WHERE id = ?', [input.location_id]))) throw new Error('Elige un centro del catálogo descargado.');
     if (input.producer.kind === 'SERVER') {
-      if (!(await this.db.get('SELECT 1 AS x FROM dataset_plots WHERE producer_id = ?', [input.producer.id]))) throw new Error('Ese productor no está entre los datos descargados de esta cuenta.');
+      if (!(await this.knownServerProducer(input.producer.id))) throw new Error('Ese productor no está entre los datos descargados de esta cuenta.');
     } else if (!(await this.db.get('SELECT 1 AS x FROM local_producers WHERE id = ?', [input.producer.id]))) throw new Error('Ese productor no existe entre las altas locales de esta cuenta.');
     if (!input.origins.length) throw new Error('Indica al menos una parcela de origen.');
     for (const o of input.origins) {
@@ -446,6 +456,29 @@ export class LocalStore {
       ...(await this.localState(r.id as string, 'DELIVERY_CREATE', r.status as string)) });
     return out;
   }
+
+  // ---- Cartografía preparada (D): teselas públicas guardadas en la base de la cuenta ----
+  async mapAreas(): Promise<MapArea[]> { return this.db.all('SELECT * FROM map_areas ORDER BY prepared_at DESC'); }
+  /** Tesela guardada (MVT sin comprimir) o null: el mapa distingue «no preparada» de «sin datos». */
+  async mapTile(z: number, x: number, y: number): Promise<Uint8Array | null> {
+    const r = await this.db.get<{ data: Uint8Array }>('SELECT data FROM map_tiles WHERE z = ? AND x = ? AND y = ?', [z, x, y]);
+    return r ? new Uint8Array(r.data) : null;
+  }
+  async mapTileCount(): Promise<number> { return (await this.db.get<{ n: number }>('SELECT count(*) AS n FROM map_tiles'))?.n ?? 0; }
+  /** Guarda un lote de teselas (se conserva lo ya guardado; reemplaza la misma z/x/y). Falla con mensaje claro si no hay espacio. */
+  async saveMapTiles(tiles: Array<{ z: number; x: number; y: number; data: Uint8Array }>): Promise<void> {
+    this.writable();
+    await this.db.transaction(async (tx) => { for (const t of tiles) await tx.run('INSERT OR REPLACE INTO map_tiles (z, x, y, data) VALUES (?,?,?,?)', [t.z, t.x, t.y, t.data]); });
+  }
+  async saveMapArea(a: Omit<MapArea, 'id' | 'prepared_at'>): Promise<string> {
+    this.writable();
+    const id = this.p.uuid();
+    await this.db.run('INSERT INTO map_areas (id, label, center_lat, center_lon, radius_km, min_zoom, max_zoom, tiles, bytes, prepared_at, source_label) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+      [id, a.label, a.center_lat, a.center_lon, a.radius_km, a.min_zoom, a.max_zoom, a.tiles, a.bytes, this.now(), a.source_label]);
+    return id;
+  }
+  /** Borra TODA la cartografía de esta cuenta (es derivada y se vuelve a descargar). No toca capturas, colas ni evidencias. */
+  async clearMap(): Promise<void> { await this.db.transaction(async (tx) => { await tx.run('DELETE FROM map_tiles'); await tx.run('DELETE FROM map_areas'); }); }
 
   // ---- Cola para sincronización (P0-024) ----
   async pendingBatch(limit: number): Promise<OutboxOp[]> {

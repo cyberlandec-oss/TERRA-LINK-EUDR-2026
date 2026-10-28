@@ -118,6 +118,8 @@ export class SessionManager {
     const deviceId = await this.ensureDevice(s, orgId);
     const r = await this.transport(orgId, await this.apiUrl(''), uploader).pull(deviceId, null);
     await store.applyPull(r.changes, r.tombstones, r.cursor, true);
+    // Productores, productos y centros autorizados (referencias mínimas): sin esto, «Altas» no podría elegir un productor que aún no tiene parcelas.
+    if (r.reference) await store.applyReference(r.reference);
     return r.changes.length;
   }
 

@@ -77,6 +77,11 @@ const MIGRATIONS: string[] = [
      product_id TEXT NOT NULL, location_id TEXT NOT NULL, delivery_date TEXT NOT NULL, quantity_declared TEXT NOT NULL, unit TEXT NOT NULL CHECK (unit IN ('KG')),
      origins TEXT NOT NULL, notes TEXT, register_requested INTEGER NOT NULL DEFAULT 0,
      status TEXT NOT NULL CHECK (status IN ('DRAFT','QUEUED')), server_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, queued_at TEXT);`,
+  // 6 (D): productores del alcance del usuario descargados como referencia mínima (id, código, nombre visible), aunque no tengan parcelas.
+  `CREATE TABLE dataset_producers (id TEXT PRIMARY KEY, producer_code TEXT NOT NULL, display_name TEXT);`,
+  // 7 (D): cartografía preparada para el área de trabajo (teselas vectoriales públicas del servicio `maps` del propio despliegue). Sin coordenadas de parcelas.
+  `CREATE TABLE map_areas (id TEXT PRIMARY KEY, label TEXT NOT NULL, center_lat REAL NOT NULL, center_lon REAL NOT NULL, radius_km REAL NOT NULL, min_zoom INTEGER NOT NULL, max_zoom INTEGER NOT NULL, tiles INTEGER NOT NULL, bytes INTEGER NOT NULL, prepared_at TEXT NOT NULL, source_label TEXT NOT NULL);
+   CREATE TABLE map_tiles (z INTEGER NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, data BLOB NOT NULL, PRIMARY KEY (z, x, y));`,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

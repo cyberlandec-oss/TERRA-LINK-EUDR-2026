@@ -63,6 +63,6 @@ export const s = StyleSheet.create({
   card: { backgroundColor: T.surface, borderRadius: 10, borderWidth: 1, borderColor: T.subtle, padding: 16, marginBottom: 12 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
   tabs: { flexDirection: 'row', borderTopWidth: 1, borderColor: T.subtle, backgroundColor: T.surface },
-  tab: { flex: 1, minHeight: 56, justifyContent: 'center', alignItems: 'center' },
-  tabText: { fontSize: 15, color: T.text2, fontWeight: '600' },
+  tab: { flex: 1, minWidth: 0, minHeight: 56, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 2 },
+  tabText: { fontSize: 14, color: T.text2, fontWeight: '600' },
 });

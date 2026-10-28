@@ -101,7 +101,7 @@ export async function protectedStorageInventory() { return { documentos: [...mem
 
 // ── Servidor SIMULADO (escenarios para revisar estados de la interfaz) ─────────────────────────────────────────────
 export type PreviewScenario = 'NORMAL' | 'OFFLINE' | 'CONFLICT_NEXT' | 'DEVICE_REVOKED';
-interface PreviewState { scenario: PreviewScenario; storageFull: boolean; versions: Record<string, number>; accepted: string[] }
+interface PreviewState { scenario: PreviewScenario; storageFull: boolean; versions: Record<string, number>; accepted: string[]; refs: Record<string, string>; rejected: string[] }
 const ORG_ID = '00000000-0000-4000-8000-0000000000a1';
 const PLOTS = [
   ['VP-PAR-001', 'Lote El Guabo (sintético)', 'Productora sintética A'],
@@ -112,7 +112,7 @@ const plotId = (i: number) => `00000000-0000-4000-8000-00000000010${i}`;
 
 export function previewState(): PreviewState {
   const raw = lsGet('server');
-  const base: PreviewState = { scenario: 'NORMAL', storageFull: false, versions: Object.fromEntries(PLOTS.map((_, i) => [plotId(i), 3])), accepted: [] };
+  const base: PreviewState = { scenario: 'NORMAL', storageFull: false, versions: Object.fromEntries(PLOTS.map((_, i) => [plotId(i), 3])), accepted: [], refs: {}, rejected: [] };
   try { return raw ? { ...base, ...JSON.parse(raw) as Partial<PreviewState> } : base; } catch { return base; }
 }
 const saveState = (s: PreviewState) => lsSet('server', JSON.stringify(s));
@@ -132,6 +132,16 @@ const b64url = (o: unknown) => btoa(JSON.stringify(o)).replace(/=+$/, '').replac
 const json = (status: number, body: unknown) => ({ ok: status < 400, status, json: async () => body });
 const err = (status: number, code: string, message: string) => json(status, { error: { code, message } });
 
+/** Cuentas sintéticas de la vista previa: el prefijo del correo elige los permisos (para revisar cada forma de «Altas» según el rol). */
+function previewPermissions(email: string | null): string[] {
+  const base = ['plot:read', 'plot:update_assigned'];
+  if (email?.startsWith('jefe@')) return [...base, 'producer:create', 'plot:create_assigned', 'delivery:create_assigned', 'sync:use'];
+  if (email?.startsWith('productor@')) return ['plot:read_own', 'plot:create_own', 'plot:update_own', 'sync:use'];
+  if (email?.startsWith('entregas@')) return [...base, 'delivery:create_assigned', 'sync:use'];
+  return base; // tecnico@: solo captura en parcelas asignadas
+}
+const SIN_PARCELAS = { id: '00000000-0000-4000-8000-00000000030a', producer_code: 'VP-PR-SIN', display_name: 'Productor sin parcelas (sintético)' };
+
 export const apiFetch: FetchLike | undefined = async (url, init) => {
   await new Promise((r) => setTimeout(r, 350)); // estado de carga visible
   const st = previewState();
@@ -144,12 +154,12 @@ export const apiFetch: FetchLike | undefined = async (url, init) => {
     return json(200, { access_token: `${b64url({ alg: 'none' })}.${b64url({ exp: Math.floor(Date.now() / 1000) + 3600, sub: 'vista-previa' })}.SIMULADO` });
   }
   if (path === '/api/v1/me') return json(200, { id: '00000000-0000-4000-8000-0000000000u1', email: lsGet('server.email') ?? `tecnico@${PREVIEW_DOMAIN}` });
-  if (path === '/api/v1/me/permissions') return json(200, { organizations: [{ organization_id: ORG_ID, organization_status: 'ACTIVE', roles: ['TECNICO_CAMPO'], permissions: ['plot:read', 'plot:update_assigned'] }] });
+  if (path === '/api/v1/me/permissions') return json(200, { organizations: [{ organization_id: ORG_ID, organization_status: 'ACTIVE', roles: ['TECNICO_CAMPO'], permissions: previewPermissions(lsGet('server.email')) }] });
   if (path === '/api/v1/organizations') return json(200, [{ id: ORG_ID, name: 'VISTA PREVIA · Cooperativa sintética' }]);
   if (st.scenario === 'DEVICE_REVOKED' && path.includes('/sync/')) return err(403, 'DEVICE_REVOKED', 'Este dispositivo fue revocado: no puede enviar ni recibir datos. Tus capturas locales se conservan; contacta al administrador.');
   if (path.endsWith('/devices')) return json(201, { device: { id: '00000000-0000-4000-8000-0000000000d1' } });
   if (path.endsWith('/sync/pull')) {
-    return json(200, { cursor: `c-${Date.now()}`, full: true, tombstones: [], changes: PLOTS.map(([code, name, producer], i) => ({ id: plotId(i), plot_code: code, name, row_version: st.versions[plotId(i)], status: 'ACTIVE', producer_id: `00000000-0000-4000-8000-00000000020${i}`, producer_code: `VP-PR-00${i + 1}`, producer_display_name: producer, geometry_status: 'DRAFT' })) });
+    return json(200, { cursor: `c-${Date.now()}`, full: true, tombstones: [], reference: { producers: [SIN_PARCELAS], products: [{ id: 'vp-prod-1', code: 'CACAO_BABA', name: 'Cacao en baba (sintético)', product_state: 'CACAO_BABA', unit: 'KG', status: 'ACTIVE' }], locations: [{ id: 'vp-loc-1', code: 'CA-VP-01', name: 'Centro de acopio sintético', location_type: 'COLLECTION_CENTER' }] }, changes: PLOTS.map(([code, name, producer], i) => ({ id: plotId(i), plot_code: code, name, row_version: st.versions[plotId(i)], status: 'ACTIVE', producer_id: `00000000-0000-4000-8000-00000000020${i}`, producer_code: `VP-PR-00${i + 1}`, producer_display_name: producer, geometry_status: 'DRAFT' })) });
   }
   if (path.endsWith('/sync/push')) {
     const ops = (body.operations ?? []) as Array<{ operation_id: string; operation_type: string; base_version: number | null; payload: { plot_id?: string } }>;
@@ -162,6 +172,20 @@ export const apiFetch: FetchLike | undefined = async (url, init) => {
         if (o.base_version !== null && o.base_version !== st.versions[pid]) {
           return { operation_id: o.operation_id, status: 'CONFLICT', error: { code: 'VERSION_CONFLICT', message: 'La parcela cambió mientras capturabas (simulado). Tu muestra se conserva: recarga y vuelve a guardarla.', details: { server_row_version: st.versions[pid] } } };
         }
+      }
+      if (o.operation_type === 'PRODUCER_CREATE' || o.operation_type === 'PLOT_CREATE' || o.operation_type === 'DELIVERY_CREATE') {
+        const p = o.payload as Record<string, unknown> & { origins?: Array<{ plot_local_ref?: string }> };
+        const entity = (o as { entity_id?: string }).entity_id ?? '';
+        const deps = ((o as { depends_on?: string[] }).depends_on ?? []);
+        if (deps.some((d) => st.rejected.includes(d))) { st.rejected.push(o.operation_id); return { operation_id: o.operation_id, status: 'REJECTED', error: { code: 'DEPENDENCY_FAILED', message: 'Una operación de la que depende fue rechazada.' } }; }
+        if (deps.some((d) => !st.accepted.includes(d))) return { operation_id: o.operation_id, status: 'DEPENDENCY_PENDING' };
+        const reject = (code: string, message: string) => { st.rejected.push(o.operation_id); return { operation_id: o.operation_id, status: 'REJECTED', error: { code, message } }; };
+        if (o.operation_type === 'PRODUCER_CREATE' && String(p.producer_code ?? '').startsWith('DUP')) return reject('PRODUCER_CODE_TAKEN', 'Ya existe un productor con ese código en tu organización.');
+        if (o.operation_type === 'PLOT_CREATE' && String(p.plot_code ?? '').startsWith('DUP')) return reject('PLOT_CODE_TAKEN', 'Ya existe una parcela con ese código en tu organización.');
+        if (o.operation_type === 'DELIVERY_CREATE' && p.quantity_declared === '999') return reject('ORIGIN_QUANTITY_EXCEEDS', 'Las cantidades por origen superan la cantidad declarada.');
+        if (o.operation_type === 'DELIVERY_CREATE' && p.quantity_declared === '777') return reject('PERMISSION_DENIED', 'Tu rol no permite declarar entregas.');
+        st.accepted.push(o.operation_id); st.refs[entity] = `srv-${Object.keys(st.refs).length + 1}`;
+        return { operation_id: o.operation_id, status: 'ACCEPTED', result: { entity: o.operation_type.replace('_CREATE', ''), local_ref: entity, server_id: st.refs[entity], simulated: true } };
       }
       st.accepted.push(o.operation_id);
       return { operation_id: o.operation_id, status: 'ACCEPTED', result: { simulated: true } };

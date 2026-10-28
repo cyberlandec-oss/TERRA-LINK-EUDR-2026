@@ -183,7 +183,12 @@ describeDb('D altas sin conexión: referencias locales y dependencias', () => {
     const devP = await device(PROD);
     const propia = mk('DELIVERY_CREATE', randomUUID(), { producer_id: ownProducer, product_id: product, location_id: center, delivery_date: hoy, quantity_declared: '10', unit: 'KG' });
     expect(statuses(await push(PROD, devP, [propia]))).toEqual(['FORBIDDEN']);
-    expect((await http().get(`${base(org)}/sync/pull?device_id=${devP}`).set(as(PROD)).expect(200)).body.reference).toEqual({ products: [], locations: [] });
+    const refP = (await http().get(`${base(org)}/sync/pull?device_id=${devP}`).set(as(PROD)).expect(200)).body.reference;
+    expect(refP.products).toEqual([]); expect(refP.locations).toEqual([]);
+    // Productores en la referencia: el Productor ve SOLO el suyo (aunque no tenga parcelas), con lo mínimo; nunca el ajeno
+    expect(refP.producers).toEqual([{ id: ownProducer, producer_code: 'AL-1', display_name: 'Finca del Productor' }]);
+    expect(pull.body.reference.producers.map((x: { id: string }) => x.id)).not.toContain(foreignProducer); // el técnico solo ve los asignados a él
+    expect(Object.keys(pull.body.reference.producers[0] ?? { id: 1, producer_code: 1, display_name: 1 }).sort()).toEqual(['display_name', 'id', 'producer_code']);
     // un origen local que aún no llegó espera; uno mal formado se rechaza
     expect(statuses(await push(TECH, dev, [mk('DELIVERY_CREATE', randomUUID(), { producer_id: r.body.results[0].result.server_id, product_id: product, location_id: center, delivery_date: hoy, quantity_declared: '5', unit: 'KG', origins: [{ plot_local_ref: randomUUID() }] })]))).toEqual(['DEPENDENCY_PENDING']);
     expect(statuses(await push(TECH, dev, [mk('DELIVERY_CREATE', randomUUID(), { producer_id: r.body.results[0].result.server_id, origins: [{}] })]))).toEqual(['REJECTED']);
