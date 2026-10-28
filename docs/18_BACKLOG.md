@@ -155,10 +155,14 @@ Aceptación: entidad/cola en transacción local; borradores/fotos/GPS sobreviven
 Estado (2026-10-10): **ABIERTA**. `apps/mobile` (Expo SDK 57): transacción local, recuperación, separación por cuenta/organización, fotos persistentes y fallos de almacenamiento probados en Node con SQLite real; dataset autorizado probado contra la API local. Pendiente obligatorio: ensayo en Android real (cierre, reinicio, fotos, ubicación) y cifrado SQLCipher en build de desarrollo; política de sesión D-40 sin aprobar.
 Revisión (2026-10-11): la captura termina al vencer la sesión del servidor (sin ventana de 72 h); build nativo sin cifrado no abre el almacén; Expo Go limitado a fixtures sintéticos (sin cámara ni ubicación reales); fotos dentro de la base y sin metadatos embebidos. Build nativo y ensayo Android bloqueados por espacio en disco (6,3 GB libres). Sigue ABIERTA.
 
+Avance (2026-10-28): captura sin conexión de productor y parcela nuevos (referencia local persistida), vértices de polígono, entrega declarada y fotos sobre entidades locales, con cola en dependencia y corrección de altas rechazadas; pantalla «Altas». Sigue **ABIERTA**: falta el recorrido cartográfico móvil, el APK nuevo y su comprobación en emulador (persistencia al cerrar, sin red, SQLCipher, permisos denegados, almacenamiento) y, al final, el teléfono físico.
+
 ### P0-024 — Sync
 Depende P0-023/015. Como técnico, necesito sincronizar sin pérdidas.
 Aceptación: operation_id estable, dedup por hash, dependencias/cursor/tombstones, conflictos visibles y adjuntos; servidor revalida tenant/permisos; timeout/retry no duplica inventario. RF-24; QA-08/02.
 Estado (2026-10-11): **ABIERTA**. Servidor y motor móvil implementados para `PLOT_LOCATION_SAMPLE_CREATE` y `PLOT_PHOTO_ATTACH`, probados en integración (API real) y con el cliente en Node contra la API local. No demostrado: inventario/entregas (sin operaciones móviles; la protección contra duplicar inventario no se acredita con ubicación y fotos), recorrido en dispositivo Android y resolución de conflictos en la interfaz del dispositivo.
+
+Avance (2026-10-28, SHA `b3e9ca8`, DONE_LOCAL **no** otorgado; sigue **ABIERTA**): operaciones soportadas ahora `PLOT_LOCATION_SAMPLE_CREATE`, `PLOT_PHOTO_ATTACH`, `PLOT_POLYGON_VERTEX_ADD`, `PRODUCER_CREATE`, `PLOT_CREATE`, `DELIVERY_CREATE` con referencias locales resueltas por el servidor (`docs/11`), conflictos consecutivos recuperables y catálogo de referencia en el pull. Probado con PostgreSQL real y con SQLite real en Node; validación raíz APROBADA. **Pendiente del criterio original:** recepciones/calidad/lotes/inventario desde el móvil (no previstos como operaciones; la protección contra duplicar inventario no se acredita con declaraciones), mapa móvil, y la comprobación en emulador/teléfono Android (SDK no instalado en este equipo; APK nuevo sin generar). Ver `docs/23`.
 
 ### P0-025 — Audit trail
 Depende P0-003/015. Como auditor, necesito reconstruir quién cambió qué.
