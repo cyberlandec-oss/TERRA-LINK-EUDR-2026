@@ -119,6 +119,32 @@ describe('D polígono por vértices en el dispositivo', () => {
     await s.close();
   });
 
+  it('conflictos consecutivos: la sustituta vuelve a chocar y las pendientes (de seq menor) se re-apuntan igualmente; al final toda la cadena llega una sola vez', async () => {
+    const s = await open(); const d = await s.createDraft(PLOT.id);
+    await s.addVertex(d, V(-0.847, -80.160, 5)); await s.addVertex(d, V(-0.847, -80.159, 7)); await s.addVertex(d, V(-0.848, -80.1595, 9));
+    const [v1, v2, v3] = await s.enqueue(d);
+    // solo el primero se envió y chocó; v2 y v3 siguen PENDING sin envíos (nunca los conoció el servidor)
+    await s.markUploadingForTest(v1);
+    await s.applyOutcomes([{ operation_id: v1, status: 'CONFLICT', error: { code: 'DRAFT_OPEN_FROM_OTHER_SOURCE', message: 'x', details: { server_row_version: 3 } } }]);
+    const r1 = await s.resolveConflict(v1, 3);
+    let ops = (await s.drafts())[0].operations;
+    expect(ops.find((o) => o.operation_id === v2)!.depends_on).toEqual([r1]); // re-apuntada en su sitio (el servidor no la conocía)
+    expect(ops.find((o) => o.operation_id === v2)!.seq).toBeGreaterThan(ops.find((o) => o.operation_id === r1)!.seq); // y va DESPUÉS de aquella de la que depende
+    // la sustituta vuelve a chocar (la web sigue con su borrador)
+    await s.markUploadingForTest(r1);
+    await s.applyOutcomes([{ operation_id: r1, status: 'CONFLICT', error: { code: 'DRAFT_OPEN_FROM_OTHER_SOURCE', message: 'x', details: { server_row_version: 3 } } }]);
+    const r2 = await s.resolveConflict(r1, 3);
+    ops = (await s.drafts())[0].operations;
+    expect(ops.find((o) => o.operation_id === v2)!.depends_on).toEqual([r2]);
+    expect(ops.find((o) => o.operation_id === v3)!.depends_on).toEqual([v2]);
+    expect(ops.find((o) => o.operation_id === r1)).toMatchObject({ state: 'CONFLICT', resolved_by: r2 }); // historial intacto
+    const srv = servidor({ webDraftOpen: false });
+    const sync = await syncOnce(s, srv, 'dev');
+    expect(sync).toMatchObject({ failed: 0, conflicts: 0, still_pending: 0 });
+    expect(srv.vertices).toEqual([r2, v2, v3]); // una sola vez y en orden: la 2.ª sustituta, y las dos que nunca se habían enviado
+    await s.close();
+  });
+
   it('si hay una operación enviada sin respuesta, no se sustituye nada: primero se reintenta con su identificador original', async () => {
     const s = await open(); const d = await s.createDraft(PLOT.id);
     await s.addVertex(d, V(-0.847, -80.160, 5)); await s.addVertex(d, V(-0.847, -80.159, 7));

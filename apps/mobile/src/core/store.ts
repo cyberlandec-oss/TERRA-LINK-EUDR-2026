@@ -278,17 +278,24 @@ export class LocalStore {
       const o = await tx.get<Row>("SELECT * FROM outbox WHERE operation_id = ? AND state = 'CONFLICT' AND resolved_by IS NULL", [operationId]);
       if (!o) throw new Error('La operación no está en conflicto o ya se resolvió.');
       const op = toOp(o);
-      const later = (await tx.all<Row>('SELECT * FROM outbox WHERE draft_id = ? AND seq > ? ORDER BY seq', [op.draft_id, op.seq])).map(toOp);
-      // 1) plan: qué cambia y si algo es ambiguo (respuesta perdida)
+      // Se recorre el GRAFO DE DEPENDENCIAS de la captura, no el orden de inserción: una sustituta tiene un seq mayor que las operaciones
+      // aún pendientes que re-apuntan a ella, así que un segundo conflicto consecutivo se perdería con un filtro por seq.
+      const all = (await tx.all<Row>('SELECT * FROM outbox WHERE draft_id = ? ORDER BY seq', [op.draft_id])).map(toOp);
       const map = new Map<string, string>([[op.operation_id, this.p.uuid()]]);
       const plan: Array<{ op: OutboxOp; mode: 'REPLACE' | 'REWIRE' }> = [];
-      for (const x of later) {
-        if (x.state === 'SYNCED' || x.resolved_by) continue;
-        if (!x.depends_on.some((d) => map.has(d))) continue;
-        const sent = x.state === 'UPLOADING' || (x.state === 'PENDING' && x.attempts > 0 && !x.server_result);
-        if (sent) throw new Error('Hay operaciones enviadas cuya respuesta no llegó. Sincroniza primero: se reintentan con su identificador original para conocer su resultado antes de reenviar nada.');
-        if (x.state === 'PENDING') plan.push({ op: x, mode: 'REWIRE' });
-        else { map.set(x.operation_id, this.p.uuid()); plan.push({ op: x, mode: 'REPLACE' }); }
+      const planned = new Set<string>([op.operation_id]);
+      for (let changed = true; changed;) {
+        changed = false;
+        for (const x of all) {
+          if (planned.has(x.operation_id) || x.state === 'SYNCED' || x.resolved_by) continue;
+          if (!x.depends_on.some((d) => map.has(d))) continue;
+          const sent = x.state === 'UPLOADING' || (x.state === 'PENDING' && x.attempts > 0 && !x.server_result);
+          if (sent) throw new Error('Hay operaciones enviadas cuya respuesta no llegó. Sincroniza primero: se reintentan con su identificador original para conocer su resultado antes de reenviar nada.');
+          planned.add(x.operation_id); changed = true;
+          // REWIRE conserva su identificador, pero se mueve al final de la cola: las que dependen de ella también deben ir después.
+          if (x.state === 'PENDING') { map.set(x.operation_id, x.operation_id); plan.push({ op: x, mode: 'REWIRE' }); }
+          else { map.set(x.operation_id, this.p.uuid()); plan.push({ op: x, mode: 'REPLACE' }); }
+        }
       }
       // 2) aplicar
       let seq = ((await tx.get<{ n: number }>('SELECT max(seq) AS n FROM outbox'))!.n);
@@ -307,7 +314,9 @@ export class LocalStore {
       for (const { op: x, mode } of plan) {
         const deps = remap(x.depends_on);
         if (mode === 'REWIRE') {
-          await tx.run('UPDATE outbox SET depends_on = ?, content_hash = ? WHERE operation_id = ?', [JSON.stringify(deps), await hashOf(x, x.operation_id, x.base_version, deps, x.payload), x.operation_id]);
+          // También pasa al final de la cola: el servidor procesa el lote en orden y una operación no puede ir antes de aquella de la que depende.
+          seq += 1;
+          await tx.run('UPDATE outbox SET depends_on = ?, content_hash = ?, seq = ? WHERE operation_id = ?', [JSON.stringify(deps), await hashOf(x, x.operation_id, x.base_version, deps, x.payload), seq, x.operation_id]);
         } else {
           const { resolves_operation_id: _drop, ...payload } = x.payload as Record<string, unknown>;
           void _drop;
