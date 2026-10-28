@@ -24,7 +24,7 @@ const css = readFileSync(join(pkgDir, 'dist', 'maplibre-gl.css'), 'utf8');
 const estilo = JSON.parse(readFileSync(join(raiz, '..', '..', 'infra', 'maps', 'estilo.json'), 'utf8'));
 // Sin tipografías no hay rótulos: se descartan las capas de texto y la dirección de glifos. Las teselas llegan por el protocolo `tl://` de la app.
 const capas = estilo.layers.filter((l) => l.type !== 'symbol');
-const fuente = { type: 'vector', tiles: ['tl://{z}/{x}/{y}'], minzoom: 0, maxzoom: 14, attribution: '© OpenStreetMap contributors · © OpenMapTiles' };
+const fuente = { type: 'vector', tiles: ['tl://{z}/{x}/{y}'], minzoom: 6, maxzoom: 14, attribution: '© OpenStreetMap contributors · © OpenMapTiles' };
 const base = { version: 8, name: estilo.name, metadata: estilo.metadata, sources: { osm: fuente }, layers: capas };
 const out = join(raiz, 'src', 'ui', 'mapa-embebido.generated.ts');
 mkdirSync(dirname(out), { recursive: true });

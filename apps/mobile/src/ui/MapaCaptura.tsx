@@ -58,7 +58,6 @@ export function MapaCaptura({ scene, focus, readTile, onRuntime, refitKey }: { s
         onRenderProcessGone={() => { setReady(false); publish({ status: 'loading' }); ref.current?.reload(); }}
       />
       {rt.current.status === 'unsupported' && <View style={{ position: 'absolute', inset: 0, padding: 12, backgroundColor: '#f5f2e9' }}><Notice tone="review" title="No se pudo mostrar el mapa">Este dispositivo no pudo iniciar el mapa (WebGL no disponible). La tabla de coordenadas y precisión sigue funcionando y puedes capturar igual.</Notice></View>}
-      <Text style={[s.muted, { position: 'absolute', right: 6, bottom: 2, fontSize: 10 }]} accessibilityElementsHidden>© OpenStreetMap contributors</Text>
     </View>
   );
 }

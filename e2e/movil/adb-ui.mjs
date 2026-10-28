@@ -25,7 +25,7 @@ export const allText = () => nodes().map((n) => `${n.text} ${n.desc}`).join('\n'
 const matches = (n, re) => re.test(n.text) || re.test(n.desc) || re.test(n.id);
 export function find(re) { return nodes().filter((n) => matches(n, re) && n.bounds[2] > n.bounds[0]); }
 export function tapNode(n) { const [x1, y1, x2, y2] = n.bounds; adb('shell', 'input', 'tap', String(Math.round((x1 + x2) / 2)), String(Math.round((y1 + y2) / 2))); }
-export function scroll(dir = 'down') { adb('shell', 'input', 'swipe', '540', dir === 'down' ? '1400' : '500', '540', dir === 'down' ? '500' : '1400', '400'); } // por encima de la barra de pestañas
+export function scroll(dir = 'down') { adb('shell', 'input', 'swipe', '20', dir === 'down' ? '1400' : '500', '20', dir === 'down' ? '500' : '1400', '400'); } // por encima de la barra de pestañas
 
 export async function waitFor(re, { timeout = 30000, scrollTo = false } = {}) {
   const t0 = Date.now();
@@ -37,7 +37,14 @@ export async function waitFor(re, { timeout = 30000, scrollTo = false } = {}) {
     if (scrollTo && scrolls < 8) { scroll('down'); scrolls += 1; } else await sleep(800);
   }
 }
-export async function tap(re, opts = {}) { await closeKeyboard(); const n = await waitFor(re, { scrollTo: true, ...opts }); tapNode(n); await sleep(600); return n; }
+// La barra de pestañas ocupa la franja inferior (y > ~2150 px en 1080x2400): un control que cae allí se desplaza antes de tocarlo.
+const TAB_BAR_Y = 2100;
+export async function tap(re, opts = {}) {
+  await closeKeyboard();
+  let n = await waitFor(re, { scrollTo: true, ...opts });
+  for (let i = 0; i < 4 && (n.bounds[1] + n.bounds[3]) / 2 > TAB_BAR_Y; i++) { scroll('down'); await sleep(500); const again = find(re); if (again.length) n = again[0]; }
+  tapNode(n); await sleep(600); return n;
+}
 /** Escribe en el campo cuya etiqueta (accesibilidad) coincide; borra antes. El valor no se registra. */
 export const keyboardShown = () => /mInputShown=true/.test(adb('shell', 'dumpsys', 'input_method'));
 export async function closeKeyboard() { if (keyboardShown()) { adb('shell', 'input', 'keyevent', 'KEYCODE_BACK'); await sleep(600); } }

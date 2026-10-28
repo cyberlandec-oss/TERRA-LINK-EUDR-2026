@@ -87,6 +87,11 @@ async function logout() {
   await waitFor(/Iniciar sesión/);
   return t;
 }
+async function abrirCaptura(codigo) {
+  // Reinicio de la app: descarta la captura abierta en memoria y deja la sesión (guardada) para llegar a la lista «Nueva captura» sin depender del scroll de Inicio.
+  await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);
+  await tab('Captura'); await tap(new RegExp('^' + codigo + ' ·')); await waitFor(/Captura · /);
+}
 const pendingText = async () => { await tab('Pendientes'); await sleep(1500); return allText(); };
 const opIdsShown = (t) => [...t.matchAll(/(Muestra de ubicación|Foto) · ([0-9a-f]{8})/g)].map((m) => `${m[1]}:${m[2]}`);
 
@@ -306,6 +311,13 @@ const steps = {
     }
     record('almacenamiento-lleno-inducido', ok, `FALLO INDUCIDO en emulador, fase ${fase} (archivo de relleno de ${fillMb} MB, después borrado; C: ${JSON.stringify(state.hostDisk)}); no es falta real de espacio`, s);
   },
+  /** La sesión del servidor dura 1 h (ADR-0005): una tanda larga debe volver a iniciar sesión con conexión antes de seguir. */
+  async relogin() {
+    await proxy('pass');
+    await logout().catch(() => undefined);
+    await loginAs('tecnico1.cooperativa');
+    record('relogin', true, 'Nuevo inicio de sesión online (la anterior vencía a la hora)', null);
+  },
   // ── Altas sin conexión, mapa y recorridos nuevos (2026-10-28) ──────────────────────────────────────────────────────────
   async altasPreparar() {
     const adm = await login('admin.cooperativa'); const org = await coopId(adm);
@@ -330,9 +342,7 @@ const steps = {
     record('altas-primera-parcela-offline-en-cola', true, { codigo: state.plotCode, red: 'offline (proxy)' }, shot('altas-parcela-en-cola'));
   },
   async altasCaptura() {
-    await tab('Captura');
-    await tap(new RegExp('^' + state.plotCode + ' · parcela NUEVA'));
-    await waitFor(/Captura · /);
+    await abrirCaptura(state.plotCode);
     const sinMapa = allText();
     record('mapa-sin-cartografia-dice-que-falta', /Sin cartografía preparada/.test(sinMapa) && /No hay cartografía preparada/.test(sinMapa), 'Antes de preparar la zona el mapa declara que no hay cartografía y sigue dibujando puntos', shot('mapa-sin-cartografia'));
     const geo = [['-80.1601', '-0.8479'], ['-80.1598', '-0.8476'], ['-80.1594', '-0.8480'], ['-80.1598', '-0.8484']];
@@ -340,9 +350,9 @@ const steps = {
     const antes = await ubicacionMiUbicacion();
     for (const g of geo.slice(1)) {
       adb('emu', 'geo', 'fix', ...g); await sleep(1500);
-      await tap(/^Mi ubicación$/); await ver(/Lectura de «Mi ubicación» \(todavía no guardada\)/, 90000);
+      await ver(/^Mi ubicación$/, 60000); await tap(/^Mi ubicación$/); await ver(/Lectura de «Mi ubicación» \(todavía no guardada\)/, 90000);
       if (g === geo[1]) record('mapa-lectura-sin-guardar', true, 'La lectura se muestra en el mapa con su precisión y el vértice solo se agrega con la acción explícita', shot('mapa-lectura'));
-      await tap(/^Añadir vértice con la lectura/); await ver(/Vértice añadido al borrador/);
+      await ver(/^Añadir vértice con la lectura/, 30000); await tap(/^Añadir vértice con la lectura/); await ver(/Vértice añadido al borrador/);
     }
     record('mapa-vertices-revision', true, { vertices: 3, ubicacion_guardada: true, nota: antes.includes('Precisión') }, shot('mapa-vertices'));
     await tap(/^Guardar en cola$/); await waitFor(/Pendientes/);
@@ -369,10 +379,10 @@ const steps = {
   },
   async mapaPreparar() {
     adb('reverse', 'tcp:8090', 'tcp:8090');
-    await tab('Captura');
-    await tap(new RegExp('^' + state.plotCode + ' ·')).catch(async () => { await tap(new RegExp('^' + state.plotCode)); });
-    await waitFor(/Captura · /);
-    await tap(/^Preparar cartografía de esta zona/);
+    await abrirCaptura(state.plotCode);
+    // Sin ningún punto no hay zona que preparar (el botón está deshabilitado): primero una lectura de «Mi ubicación» (sin guardar).
+    await ver(/^Mi ubicación$/, 60000); await tap(/^Mi ubicación$/); await ver(/Lectura de «Mi ubicación» \(todavía no guardada\)/, 90000);
+    await ver(/^Preparar cartografía de esta zona/, 30000); await tap(/^Preparar cartografía de esta zona/);
     await ver(/Cartografía preparada: \d+ teselas/, 180000);
     const t = allText();
     state.mapa = { texto: /Cartografía preparada: (\d+) teselas \(([\d.]+) MB\)/.exec(t)?.slice(1) }; save();
@@ -382,11 +392,9 @@ const steps = {
     adb('reverse', '--remove', 'tcp:8090');
     await proxy('offline');
     await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);
-    await tab('Captura'); await tap(/^Nueva captura$/).catch(() => undefined);
-    await tap(new RegExp('^' + state.plotCode + ' ·'));
-    await waitFor(/Captura · /);
-    await ver(/Cartografía preparada/);
-    await sleep(3000);
+    await abrirCaptura(state.plotCode);
+    await ver(/^Mi ubicación$/, 60000); await tap(/^Mi ubicación$/); await ver(/Lectura de «Mi ubicación» \(todavía no guardada\)/, 90000);
+    await ver(/Cartografía preparada/); scroll('up'); scroll('up'); scroll('up'); await sleep(4000);
     record('mapa-offline-con-cartografia-local', true, 'Sin red ni servicio de mapas (reverse 8090 retirado, API cortada): el mapa dibuja el fondo desde la base cifrada de la cuenta', shot('mapa-offline'));
     await proxy('pass');
   },
@@ -394,9 +402,7 @@ const steps = {
     adb('shell', 'pm', 'revoke', PKG, 'android.permission.ACCESS_FINE_LOCATION');
     adb('shell', 'pm', 'revoke', PKG, 'android.permission.ACCESS_COARSE_LOCATION');
     await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);
-    await tab('Captura'); await tap(/^Nueva captura$/).catch(() => undefined);
-    await tap(new RegExp('^' + state.plot.plot_code + ' ·'));
-    await waitFor(/Captura · /);
+    await abrirCaptura(state.plot.plot_code);
     await tap(/^Mi ubicación$/);
     for (let i = 0; i < 6 && !/Permiso de ubicación denegado|^Allow|Permitir/i.test(allText()); i++) await sleep(1000);
     const deny = find(/^(Don.t allow|DENY|No permitir)$/i); if (deny.length) { tapNode(deny[0]); await sleep(1500); }
@@ -407,8 +413,7 @@ const steps = {
   },
   async adjuntoInterrumpido() {
     await proxy('pass'); await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);
-    await tab('Captura'); await tap(/^Nueva captura$/).catch(() => undefined);
-    await tap(new RegExp('^' + state.plot.plot_code + ' ·')); await waitFor(/Captura · /);
+    await abrirCaptura(state.plot.plot_code);
     await tap(/^Tomar foto$/);
     for (let i = 0; i < 40; i++) {
       const t = allText();
