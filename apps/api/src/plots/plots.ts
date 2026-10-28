@@ -247,6 +247,14 @@ export class PlotsService {
     };
   }
 
+  /** Alta desde la sincronización de campo (PLOT_CREATE), dentro de la transacción del llamador. El llamador ya revalidó el permiso de alta. */
+  async createForSync(trx: Transaction<Database>, ctx: TenantContext, user: AuthUser, dto: PlotFieldsDto & { producer_id: string; plot_code: string; crop: string }, requestId?: string) {
+    if (!PLOT_CODE.test(dto.plot_code)) throw new AppError(422, 'PAYLOAD_INVALID', 'plot_code: 1–40 caracteres alfanuméricos, . _ -');
+    const fields = this.normalize(dto);
+    const { plot } = await this.createInTx(trx, ctx, user, dto.producer_id, dto.plot_code, { ...fields, crop: fields.crop ?? dto.crop.trim() }, requestId);
+    return { id: plot.id, plot_code: plot.plot_code, row_version: Number(plot.row_version) };
+  }
+
   private normalize(dto: PlotFieldsDto & { crop?: string }) {
     const out: Partial<Record<Editable, string | null>> = {};
     for (const f of EDITABLE) {

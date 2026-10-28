@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, Inject, Injectable, Param, ParseUUIDPi
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { plainToInstance, Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsISO8601, IsNumber, IsObject, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateIf, ValidateNested, validate } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsISO8601, IsNumber, IsObject, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min, ValidateIf, ValidateNested, validate } from 'class-validator';
 import { createHash, randomUUID } from 'crypto';
 import { sql, type Kysely } from 'kysely';
 import { DB } from '../db/database';
@@ -15,6 +15,7 @@ import { CurrentUser, type AuthUser, type AuthedRequest } from '../auth/auth';
 import { EVENT_STORE, type EventStore } from '../events/events';
 import { PlotsService } from '../plots/plots';
 import { PolygonDraftsService } from '../plots/polygon-drafts';
+import { ProducersService } from '../producers/producers';
 import { DocumentsService } from '../documents/documents';
 import { hasImageMetadata } from './image-metadata';
 
@@ -31,7 +32,7 @@ import { hasImageMetadata } from './image-metadata';
 
 export const MAX_BATCH = 50;
 export const CURSOR_TTL_DAYS = 7;
-export const SUPPORTED_OPERATION_TYPES = ['PLOT_LOCATION_SAMPLE_CREATE', 'PLOT_PHOTO_ATTACH', 'PLOT_POLYGON_VERTEX_ADD'] as const;
+export const SUPPORTED_OPERATION_TYPES = ['PLOT_LOCATION_SAMPLE_CREATE', 'PLOT_PHOTO_ATTACH', 'PLOT_POLYGON_VERTEX_ADD', 'PRODUCER_CREATE', 'PLOT_CREATE'] as const;
 
 export const canonical = (v: unknown): string => Array.isArray(v) ? `[${v.map(canonical).join(',')}]`
   : v && typeof v === 'object' ? `{${Object.keys(v as object).sort().filter((k) => (v as Record<string, unknown>)[k] !== undefined).map((k) => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`).join(',')}}`
@@ -88,6 +89,34 @@ class VertexPayload {
   @IsInt() @Min(1) vertex_seq!: number;
   @IsOptional() @IsUUID() resolves_operation_id?: string;
 }
+// D: altas sin conexión. El `entity_id` de la operación es la referencia LOCAL del teléfono (UUID propio); el servidor la mapea a su identificador definitivo.
+class ProducerCreatePayload {
+  @Matches(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,39}$/) producer_code!: string;
+  @IsOptional() @IsIn(['DRAFT', 'ACTIVE']) status?: 'DRAFT' | 'ACTIVE';
+  @IsOptional() @IsString() @Length(1, 100) first_name?: string | null;
+  @IsOptional() @IsString() @Length(1, 100) last_name?: string | null;
+  @IsOptional() @IsString() @Length(1, 200) legal_name?: string | null;
+  @IsOptional() @IsString() @Length(1, 40) document_type?: string | null;
+  @IsOptional() @IsString() @Length(1, 40) document_number?: string | null;
+  @IsOptional() @Matches(/^[+0-9 ()-]{6,20}$/) phone?: string | null;
+  @IsOptional() @IsString() @MaxLength(300) address?: string | null;
+  @IsOptional() @IsString() @MaxLength(120) community?: string | null;
+  @IsOptional() @IsString() @MaxLength(100) province?: string | null;
+  @IsOptional() @IsString() @MaxLength(100) canton?: string | null;
+  @IsOptional() @IsString() @MaxLength(100) parish?: string | null;
+}
+class PlotCreatePayload {
+  @IsOptional() @IsUUID() producer_id?: string;
+  @IsOptional() @IsUUID() producer_local_ref?: string;
+  @Matches(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,39}$/) plot_code!: string;
+  @IsString() @Length(1, 60) crop!: string;
+  @IsOptional() @IsString() @MaxLength(120) name?: string | null;
+  @IsOptional() @IsString() @MaxLength(60) variety?: string | null;
+  @IsOptional() @IsString() @MaxLength(80) land_use?: string | null;
+  @IsOptional() @IsString() @MaxLength(100) province?: string | null;
+  @IsOptional() @IsString() @MaxLength(100) canton?: string | null;
+  @IsOptional() @IsString() @MaxLength(100) parish?: string | null;
+}
 class PhotoPayload {
   @IsUUID() plot_id!: string;
   @Matches(/^[0-9a-f]{64}$/) sha256!: string;
@@ -112,6 +141,7 @@ export class SyncService {
     private readonly plots: PlotsService,
     private readonly documents: DocumentsService,
     private readonly polygons: PolygonDraftsService,
+    private readonly producers: ProducersService,
   ) {}
 
   private has(ctx: TenantContext, p: string) { return (ctx.permissions as string[]).includes(p); }
@@ -196,6 +226,8 @@ export class SyncService {
   private async authorizeType(user: AuthUser, ctx: TenantContext, type: string, plotId: string | undefined): Promise<{ code: string; message: string } | null> {
     const need: Permission[] = type === 'PLOT_LOCATION_SAMPLE_CREATE' || type === 'PLOT_POLYGON_VERTEX_ADD' ? ['plot:read_geometry'] : type === 'PLOT_PHOTO_ATTACH' ? ['document:upload'] : [];
     if ((type === 'PLOT_LOCATION_SAMPLE_CREATE' || type === 'PLOT_POLYGON_VERTEX_ADD') && !this.has(ctx, 'plot:update') && !this.has(ctx, 'plot:update_assigned') && !this.has(ctx, 'plot:update_own')) return { code: 'PERMISSION_DENIED', message: 'Tu rol ya no permite registrar ubicaciones en parcelas.' };
+    if (type === 'PRODUCER_CREATE' && !this.has(ctx, 'producer:create')) return { code: 'PERMISSION_DENIED', message: 'Tu rol no permite registrar productores.' };
+    if (type === 'PLOT_CREATE' && !this.has(ctx, 'plot:create') && !this.has(ctx, 'plot:create_assigned') && !this.has(ctx, 'plot:create_own')) return { code: 'PERMISSION_DENIED', message: 'Tu rol no permite registrar parcelas.' };
     if (!need.every((p) => this.has(ctx, p))) return { code: 'PERMISSION_DENIED', message: 'Tu rol ya no permite esta operación.' };
     if (plotId) {
       try { await this.plots.get(user, ctx.organizationId, plotId); } catch { return { code: 'RESOURCE_NOT_AVAILABLE', message: 'La parcela no existe o ya no está en tu alcance.' }; }
@@ -211,16 +243,39 @@ export class SyncService {
       note: scan === 'CLEAN' ? 'Archivo procesado por la app (sin metadatos embebidos salvo la orientación), íntegro y analizado; disponible según los permisos de Documentos. No prueba captura real ni verifica ninguna afirmación.' : 'Archivo recibido; análisis antimalware pendiente o fallido: no disponible todavía.' };
   }
 
-  private async pushOne(user: AuthUser, ctx: TenantContext, deviceId: string, op: OperationDto, requestId?: string): Promise<OpResult> {
+  private async pushOne(user: AuthUser, ctx: TenantContext, deviceId: string, op0: OperationDto, requestId?: string): Promise<OpResult> {
+    let op = op0; // `op0` es lo recibido (el hash se calcula sobre ello); `op` es la operación con las referencias locales ya resueltas
     const orgId = ctx.organizationId;
     const base = { operation_id: op.operation_id, replayed: false, result: null, error: null } as OpResult;
-    const content = { operation_type: op.operation_type, entity_id: op.entity_id, base_version: op.base_version ?? null, depends_on: op.depends_on, captured_at: op.captured_at, payload: op.payload };
+    const content = { operation_type: op0.operation_type, entity_id: op0.entity_id, base_version: op0.base_version ?? null, depends_on: op0.depends_on, captured_at: op0.captured_at, payload: op0.payload };
     const hash = operationHash(content);
-    if (hash !== op.content_hash) return { ...base, status: 'REJECTED', error: err('HASH_MISMATCH', 'El hash del contenido no coincide con lo recibido: la operación llegó alterada o incompleta. Se conserva en el dispositivo.') };
-    const plotId = typeof op.payload.plot_id === 'string' ? op.payload.plot_id : undefined;
+    if (hash !== op0.content_hash) return { ...base, status: 'REJECTED', error: err('HASH_MISMATCH', 'El hash del contenido no coincide con lo recibido: la operación llegó alterada o incompleta. Se conserva en el dispositivo.') };
+    let plotId = typeof op0.payload.plot_id === 'string' ? op0.payload.plot_id : undefined;
     try {
       return await this.db.transaction().execute(async (trx) => {
         await sql`SELECT pg_advisory_xact_lock(hashtext(${`sync:${orgId}:${op.operation_id}`}))`.execute(trx);
+        // Referencias locales: se resuelven SOLO por la tabla de correspondencias de ESTA organización y ESTE usuario (nunca por nombre ni proximidad).
+        const refOf = (local: string, type: 'PRODUCER' | 'PLOT') => trx.selectFrom('sync_entity_refs').selectAll().where('organization_id', '=', orgId).where('user_id', '=', user.id).where('local_ref', '=', local).where('entity_type', '=', type).executeTakeFirst();
+        // Si una dependencia ya fue rechazada o quedó en conflicto, la referencia no se va a resolver con ella: se dice así, no como espera.
+        const unresolved = async (message: string) => {
+          const deps = op0.depends_on.length ? await trx.selectFrom('sync_operations').select(['operation_id', 'status']).where('organization_id', '=', orgId).where('operation_id', 'in', op0.depends_on).execute() : [];
+          const failed = deps.filter((d) => d.status !== 'ACCEPTED');
+          if (failed.length) return this.store(trx, user, ctx, deviceId, op0, hash, 'REJECTED', null, err('DEPENDENCY_FAILED', 'Una operación previa fue rechazada o quedó en conflicto: resuélvela primero.', failed.map((d) => d.operation_id)));
+          return { ...base, status: 'DEPENDENCY_PENDING' as Status, error: err('LOCAL_REF_UNRESOLVED', message) };
+        };
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        for (const k of ['plot_local_ref', 'producer_local_ref']) {
+          const v = op0.payload[k];
+          if (v !== undefined && (typeof v !== 'string' || !UUID_RE.test(v))) return this.store(trx, user, ctx, deviceId, op0, hash, 'REJECTED', null, err('PAYLOAD_INVALID', 'Una referencia local debe ser un UUID generado por el dispositivo; no se resuelve por nombre ni por otros datos.', [k]));
+        }
+        if (typeof op0.payload.plot_local_ref === 'string') {
+          const ref = await refOf(op0.payload.plot_local_ref, 'PLOT');
+          if (!ref) return unresolved('La parcela creada sin conexión todavía no está registrada en el servidor: se reintentará cuando su alta se acepte.');
+          const { plot_local_ref: _drop, ...rest } = op0.payload; void _drop;
+          // Primera captura sobre una parcela recién creada: la versión esperada es la que produjo su alta.
+          op = { ...op0, payload: { ...rest, plot_id: ref.server_id }, base_version: op0.base_version ?? (ref.produced_row_version == null ? null : Number(ref.produced_row_version)) };
+          plotId = ref.server_id;
+        }
         const prior = await trx.selectFrom('sync_operations').selectAll().where('organization_id', '=', orgId).where('operation_id', '=', op.operation_id).executeTakeFirst();
         if (prior) {
           if (prior.content_hash !== hash) return { ...base, status: 'CONFLICT' as Status, error: err('OPERATION_ID_REUSED', 'Ese identificador de operación ya se usó con otro contenido.') };
@@ -263,6 +318,43 @@ export class SyncService {
             if (e instanceof AppError && e.status < 500) {
               return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err(e.code, e.message, e.details));
             }
+            throw e;
+          }
+        }
+        if (op.operation_type === 'PRODUCER_CREATE' || op.operation_type === 'PLOT_CREATE') {
+          const isProducer = op.operation_type === 'PRODUCER_CREATE';
+          const p = isProducer ? await this.validatePayload(ProducerCreatePayload, op.payload) : await this.validatePayload(PlotCreatePayload, op.payload);
+          if ('invalid' in p) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('PAYLOAD_INVALID', 'Contenido del alta no válido.', p.invalid));
+          const used = await trx.selectFrom('sync_entity_refs').select('server_id').where('organization_id', '=', orgId).where('user_id', '=', user.id).where('local_ref', '=', op.entity_id).executeTakeFirst();
+          if (used) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('LOCAL_REF_ALREADY_USED', 'Esa referencia local ya se resolvió con otra operación.', { server_id: used.server_id }));
+          // Un alta que falla por una regla (código repetido, productor fuera de alcance) no debe dejar la transacción abortada: punto de guarda.
+          await sql`SAVEPOINT alta_local`.execute(trx);
+          try {
+            let entity: Record<string, unknown>; let serverId: string; let version: number | null = null;
+            if (isProducer) {
+              const r = await this.producers.createForSync(trx, ctx, user, p as ProducerCreatePayload, requestId);
+              serverId = r.id; entity = { entity: 'PRODUCER', producer_code: r.producer_code, duplicate_reviews_pending: r.duplicate_reviews_pending };
+            } else {
+              const pc = p as PlotCreatePayload;
+              if ((pc.producer_id ? 1 : 0) + (pc.producer_local_ref ? 1 : 0) !== 1) {
+                await sql`ROLLBACK TO SAVEPOINT alta_local`.execute(trx);
+                return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('PRODUCER_REFERENCE_INVALID', 'Indica el productor con exactamente una referencia: su identificador del servidor o su referencia local.'));
+              }
+              let producerId = pc.producer_id;
+              if (pc.producer_local_ref) {
+                const pr = await refOf(pc.producer_local_ref, 'PRODUCER');
+                if (!pr) { await sql`ROLLBACK TO SAVEPOINT alta_local`.execute(trx); return unresolved('El productor creado sin conexión todavía no está registrado en el servidor.'); }
+                producerId = pr.server_id;
+              }
+              const r = await this.plots.createForSync(trx, ctx, user, { ...pc, producer_id: producerId! }, requestId);
+              serverId = r.id; version = r.row_version; entity = { entity: 'PLOT', plot_code: r.plot_code, plot_row_version: r.row_version, producer_id: producerId };
+            }
+            await trx.insertInto('sync_entity_refs').values({ organization_id: orgId, user_id: user.id, local_ref: op.entity_id, entity_type: isProducer ? 'PRODUCER' : 'PLOT', server_id: serverId, operation_id: op.operation_id, device_id: deviceId, produced_row_version: version === null ? null : String(version) }).execute();
+            await sql`RELEASE SAVEPOINT alta_local`.execute(trx);
+            return this.store(trx, user, ctx, deviceId, op, hash, 'ACCEPTED', { ...entity, local_ref: op.entity_id, server_id: serverId, note: 'Alta registrada con su identificador definitivo. Lo que dependa de la referencia local se resuelve con esta correspondencia.' }, null);
+          } catch (e) {
+            await sql`ROLLBACK TO SAVEPOINT alta_local`.execute(trx);
+            if (e instanceof AppError && e.status < 500) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err(e.code, e.message, e.details));
             throw e;
           }
         }

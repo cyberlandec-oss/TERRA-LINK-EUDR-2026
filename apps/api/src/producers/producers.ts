@@ -323,6 +323,20 @@ export class ProducersService {
     return { producer: p, pendingReviews };
   }
 
+  /**
+   * Alta desde la sincronización de campo (operación PRODUCER_CREATE), DENTRO de la transacción del llamador para que el alta y el
+   * registro de la operación sean atómicos. El llamador ya revalidó producer:create; aquí se aplica la misma regla de responsable que create().
+   */
+  async createForSync(trx: Transaction<Database>, ctx: TenantContext, user: AuthUser, dto: ProducerFieldsDto & { producer_code: string; status?: 'DRAFT' | 'ACTIVE' }, requestId?: string) {
+    if (!CODE.test(dto.producer_code)) throw new AppError(422, 'PAYLOAD_INVALID', 'producer_code: 1–40 caracteres alfanuméricos, . _ -');
+    let assignee: string | null = null;
+    if (!ctx.permissions.includes('producer:read')) assignee = ctx.membershipId; // quien solo trabaja con asignados queda como responsable
+    const fields = this.normalize(dto);
+    this.assertNames(fields);
+    const { producer, pendingReviews } = await this.createInTx(trx, ctx, user, dto.producer_code, fields, { status: dto.status ?? 'ACTIVE', assignee, requestId, source: { channel: 'MOBILE_SYNC' } });
+    return { id: producer.id, producer_code: producer.producer_code, duplicate_reviews_pending: pendingReviews };
+  }
+
   private normalize(dto: ProducerFieldsDto): Partial<Record<EditableField, string | null>> {
     const out: Partial<Record<EditableField, string | null>> = {};
     for (const f of EDITABLE_FIELDS) {
