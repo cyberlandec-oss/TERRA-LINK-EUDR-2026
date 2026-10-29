@@ -87,6 +87,17 @@ async function logout() {
   await waitFor(/Iniciar sesión/);
   return t;
 }
+/** Contenido de la pantalla de captura (ubicación guardada y vértices), leído desplazando de arriba abajo: se compara CONTENIDO, no recuentos. */
+async function leerBorrador() {
+  for (let i = 0; i < 8; i++) { scroll('up'); await sleep(250); }
+  const lineas = [];
+  for (let i = 0; i < 6; i++) { for (const l of allText().split('\n').map((x) => x.trim()).filter(Boolean)) if (!lineas.includes(l)) lineas.push(l); scroll('down'); await sleep(350); }
+  const txt = lineas.join('\n');
+  const antesLectura = txt.split('Lectura de «Mi ubicación»')[0];
+  const loc = /(?:^|\n)Lat (-?\d+\.\d+) · Lon (-?\d+\.\d+)/.exec(antesLectura);
+  const vertices = [...txt.matchAll(/(?:^|\n)(\d+)\. Lat (-?\d+\.\d+) · Lon (-?\d+\.\d+)/g)].map((m) => m[1] + ':' + m[2] + ',' + m[3]);
+  return { ubicacion: loc ? loc[1] + ',' + loc[2] : null, vertices, texto: txt };
+}
 async function abrirCaptura(codigo) {
   // Reinicio de la app: descarta la captura abierta en memoria y deja la sesión (guardada) para llegar a la lista «Nueva captura» sin depender del scroll de Inicio.
   await restart(); const pri = await waitFor(/Elige la organización|Mi jornada/, { timeout: 30000 }); if (/Elige/.test(pri.text + pri.desc)) { await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/); }
@@ -440,6 +451,78 @@ const steps = {
     adb('shell', 'pm', 'grant', PKG, 'android.permission.ACCESS_COARSE_LOCATION');
     record('ubicacion-denegada-conserva-borrador', explicado && sinLectura && sinUbicacion && n1 === n0 + 1,
       { dialogo_del_sistema_negado: dialogo, mensaje_explica_y_conserva: explicado, sin_lectura_mostrada: sinLectura, sin_ubicacion_escrita: sinUbicacion, borradores: { antes: n0, despues_de_reabrir: n1 } }, shotDenegada);
+  },
+  // ── Cierre acotado de ubicación denegada y almacenamiento lleno (2026-10-29): se compara CONTENIDO, no solo recuentos ──────────────────
+  async ubicacionDenegadaContenido() {
+    // Trabajo previo REAL (un vértice guardado con el permiso concedido); se revoca el permiso (Android cierra la app), se reabre ESE borrador y se
+    // comprueba: mensaje explicativo, vértice idéntico, ninguna ubicación ni vértice nuevos.
+    adb('shell', 'pm', 'grant', PKG, 'android.permission.ACCESS_FINE_LOCATION'); adb('shell', 'pm', 'grant', PKG, 'android.permission.ACCESS_COARSE_LOCATION');
+    await abrirCaptura(state.plot.plot_code);
+    adb('emu', 'geo', 'fix', '-80.1604', '-0.8484'); await sleep(1200);
+    await ver(/^Mi ubicación$/, 60000); await tap(/^Mi ubicación$/); await ver(/Lectura de «Mi ubicación» \(todavía no guardada\)/, 90000);
+    await ver(/^Añadir vértice con la lectura/, 30000); await tap(/^Añadir vértice con la lectura/); await sleep(2500); /* el aviso puede quedar fuera de la vista: el resultado se comprueba por CONTENIDO (leerBorrador) */
+    const c0 = await leerBorrador();
+    await ver(/^Guardar en cola$/, 25000); await tap(/^Guardar en cola$/); await waitFor(/Pendientes/); // el borrador queda en el dispositivo
+    adb('shell', 'pm', 'revoke', PKG, 'android.permission.ACCESS_FINE_LOCATION'); adb('shell', 'pm', 'revoke', PKG, 'android.permission.ACCESS_COARSE_LOCATION');
+    await restart(); const pri = await waitFor(/Elige la organización|Mi jornada/, { timeout: 30000 }); if (/Elige/.test(pri.text + pri.desc)) { await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/); }
+    // ese borrador ya está en cola (no editable): se intenta una captura NUEVA sobre la misma parcela con el permiso denegado y se comprueba que lo anterior sigue idéntico
+    await abrirCaptura(state.plot.plot_code);
+    await ver(/^Mi ubicación$/, 60000); await tap(/^Mi ubicación$/);
+    let dialogo = false;
+    for (let i = 0; i < 25; i++) {
+      const deny = find(/permission_deny_button|permission_deny_and_dont_ask_again_button|^(Don.t allow|DENY|No permitir)$/i);
+      if (deny.length) { dialogo = true; tapNode(deny[0]); await sleep(1500); continue; }
+      if (/Permiso de ubicación denegado/.test(allText())) break;
+      await sleep(1000);
+    }
+    const c1 = await leerBorrador();
+    const mensaje = /Permiso de ubicación denegado/.test(c1.texto) && /se conservan/.test(c1.texto);
+    const sinLectura = !/Lectura de «Mi ubicación» \(todavía no guardada\)/.test(c1.texto);
+    await tab('Pendientes'); await sleep(1500); const pend = allText();
+    adb('shell', 'pm', 'grant', PKG, 'android.permission.ACCESS_FINE_LOCATION'); adb('shell', 'pm', 'grant', PKG, 'android.permission.ACCESS_COARSE_LOCATION');
+    record('ubicacion-denegada-contenido', mensaje && sinLectura && c1.ubicacion === null && c1.vertices.length === 0 && c0.vertices.length === 1,
+      { dialogo_del_sistema_negado: dialogo, mensaje_explica_y_conserva: mensaje, sin_lectura_mostrada: sinLectura, trabajo_previo_guardado: c0.vertices, captura_nueva_sin_ubicacion_ni_vertices: c1.ubicacion === null && c1.vertices.length === 0,
+        pendientes_conserva_la_captura_previa: /Pendiente \(en cola\)/.test(pend) }, shot('ubicacion-denegada-contenido'));
+  },
+  async almacenamientoControlado() {
+    // Hipótesis: con CERO bloques libres una escritura de Terra Link (añadir un vértice) falla con SQLITE_FULL/ENOSPC; el mensaje es recuperable, el contenido anterior
+    // no cambia, no queda un vértice a medias y, al liberar espacio, la misma acción funciona. Se compara el CONTENIDO (coordenadas), no recuentos.
+    adb('shell', 'pm', 'grant', PKG, 'android.permission.ACCESS_FINE_LOCATION'); adb('shell', 'pm', 'grant', PKG, 'android.permission.ACCESS_COARSE_LOCATION');
+    await abrirCaptura(state.plot.plot_code);
+    adb('emu', 'geo', 'fix', '-80.1600', '-0.8480'); await sleep(1200);
+    await ver(/^Mi ubicación$/, 60000); await tap(/^Mi ubicación$/); await ver(/Lectura de «Mi ubicación» \(todavía no guardada\)/, 90000);
+    await ver(/^Añadir vértice con la lectura/, 30000); await tap(/^Añadir vértice con la lectura/); await sleep(2500); /* el aviso puede quedar fuera de la vista: el resultado se comprueba por CONTENIDO (leerBorrador) */
+    const c0 = await leerBorrador();
+    adb('emu', 'geo', 'fix', '-80.1596', '-0.8476'); await sleep(1200);
+    await ver(/^Mi ubicación$/, 60000); await tap(/^Mi ubicación$/); await ver(/Lectura de «Mi ubicación» \(todavía no guardada\)/, 90000);
+    const hostGb = () => { const st = statfsSync('C:/'); return (st.bavail * st.bsize) / 1024 ** 3; };
+    if (hostGb() < 12) throw new Error('C: con menos de 12 GB libres: no se rellena el emulador');
+    adb('logcat', '-c');
+    let part = 0; const libreKb = () => Number(adb('shell', 'df', '-k', '/data').split('\n').filter((l) => /\/data/.test(l)).pop().trim().split(/\s+/)[3]);
+    try {
+      for (const kb of [1048576, 1048576, 1048576, 1048576, 524288, 262144, 131072, 65536, 32768, 16384, 8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4]) {
+        for (let i = 0; i < 6; i++) { try { adb('shell', 'fallocate', '-l', kb + 'K', '/data/local/tmp/tl-relleno-' + (part++)); } catch { break; } if (kb >= 4096 && libreKb() < kb) break; }
+        if (hostGb() < 10) throw new Error('C: bajó de 10 GB durante el relleno');
+      }
+      const libre = libreKb();
+      await ver(/^Añadir vértice con la lectura/, 30000); await tap(/^Añadir vértice con la lectura/);
+      for (let i = 0; i < 20 && !/5 MB libres|No hay espacio/.test(allText()); i++) await sleep(1000);
+      const c1 = await leerBorrador();
+      const t = c1.texto;
+      const mensaje = /No hay espacio libre en el dispositivo para guardar este cambio/.test(t); const tecnico = /database or disk is full|NativeStatement|SQLITE_FULL/.test(t);
+      const pid = adb('shell', 'pidof', PKG).trim().split(/\s+/)[0];
+      const log = adb('logcat', '-d').split('\n').filter((l) => /disk is full|ENOSPC|SQLITE_FULL|No space left/i.test(l)).filter((l) => !pid || l.includes(' ' + pid + ' ')).slice(0, 3).map((l) => l.slice(0, 200));
+      const igual = JSON.stringify(c1.vertices) === JSON.stringify(c0.vertices) && c1.ubicacion === c0.ubicacion;
+      const sh = shot('almacenamiento-controlado-fallo');
+      adb('shell', 'rm -f /data/local/tmp/tl-relleno-*');
+      await sleep(1500);
+      await ver(/^Mi ubicación$/, 60000); await tap(/^Mi ubicación$/); await ver(/Lectura de «Mi ubicación» \(todavía no guardada\)/, 90000);
+      await ver(/^Añadir vértice con la lectura/, 30000); await tap(/^Añadir vértice con la lectura/); await sleep(2500); /* el aviso puede quedar fuera de la vista: el resultado se comprueba por CONTENIDO (leerBorrador) */
+      const c2 = await leerBorrador();
+      const recupera = c2.vertices.length === c0.vertices.length + 1 && JSON.stringify(c2.vertices.slice(0, c0.vertices.length)) === JSON.stringify(c0.vertices);
+      record('almacenamiento-lleno-controlado', mensaje && !tecnico && igual && recupera,
+        { libre_kb_antes_de_escribir: libre, mensaje_en_espanol: mensaje, sin_error_tecnico_en_pantalla: !tecnico, error_real_de_android_en_logcat_del_proceso_de_la_app: log, pid_app: pid, contenido_antes: { ubicacion: c0.ubicacion, vertices: c0.vertices }, contenido_tras_el_fallo: { ubicacion: c1.ubicacion, vertices: c1.vertices }, contenido_igual: igual, tras_liberar: { ubicacion: c2.ubicacion, vertices: c2.vertices }, recupera_sin_duplicar: recupera, nota: 'FALLO REAL de almacenamiento provocado en el emulador con relleno hasta cero bloques; no es una simulación del arnés' }, sh);
+    } finally { adb('shell', 'rm -f /data/local/tmp/tl-relleno-*'); }
   },
   async adjuntoInterrumpido() {
     await proxy('pass'); await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);

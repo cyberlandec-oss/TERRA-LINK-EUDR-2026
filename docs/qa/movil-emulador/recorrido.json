@@ -2715,6 +2715,184 @@
         "commit": "233b548",
         "modificado_sin_commit": true
       }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-29T17:49:27.662Z",
+      "ok": true,
+      "detalle": "Nuevo inicio de sesión online (la anterior vencía a la hora)",
+      "captura": null,
+      "script": {
+        "sha256": "5c97b1278449878a5605a8f9c9a46be3904d1981cf4aca6e9fe69bd383e24d26",
+        "commit": "0619055",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacionDenegadaContenido",
+      "en": "2026-10-29T17:51:22.344Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Permiso de ubicación denegado/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/219-fallo-ubicacionDenegadaContenido.png",
+      "script": {
+        "sha256": "5c97b1278449878a5605a8f9c9a46be3904d1981cf4aca6e9fe69bd383e24d26",
+        "commit": "0619055",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoControlado",
+      "en": "2026-10-29T17:54:12.173Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Lectura de «Mi ubicación» \\(todavía no guardada\\)/ en 90000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/220-fallo-almacenamientoControlado.png",
+      "script": {
+        "sha256": "5c97b1278449878a5605a8f9c9a46be3904d1981cf4aca6e9fe69bd383e24d26",
+        "commit": "0619055",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacionDenegadaContenido",
+      "en": "2026-10-29T17:59:04.788Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Permiso de ubicación denegado/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/222-fallo-ubicacionDenegadaContenido.png",
+      "script": {
+        "sha256": "3b797f9a0add75c6c8b2ce896790166555c951607188870361f2f552fa752db7",
+        "commit": "0619055",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamiento-lleno-controlado",
+      "en": "2026-10-29T18:05:32.245Z",
+      "ok": false,
+      "detalle": {
+        "libre_kb_antes_de_escribir": 0,
+        "mensaje_en_espanol": false,
+        "sin_error_tecnico_en_pantalla": true,
+        "error_real_de_android_en_logcat": [
+          "10-29 18:02:17.926  1116 27257 W SharedPreferencesImpl: java.io.IOException: write failed: ENOSPC (No space left on device)\r",
+          "10-29 18:02:17.926  1116 27257 W SharedPreferencesImpl: Caused by: android.system.ErrnoException: write failed: ENOSPC (No space left on device)\r",
+          "10-29 18:02:17.930  1116 27257 W AsyncOperation: Caused by: java.io.IOException: write failed: ENOSPC (No space left on device)\r"
+        ],
+        "contenido_antes": {
+          "ubicacion": null,
+          "vertices": [
+            "1:-0.847998,-80.159998"
+          ]
+        },
+        "contenido_tras_el_fallo": {
+          "ubicacion": null,
+          "vertices": [
+            "1:-0.847998,-80.159998"
+          ]
+        },
+        "contenido_igual": true,
+        "tras_liberar": {
+          "ubicacion": null,
+          "vertices": [
+            "1:-0.847998,-80.159998",
+            "2:-0.847600,-80.159598"
+          ]
+        },
+        "recupera_sin_duplicar": true,
+        "nota": "FALLO REAL de almacenamiento provocado en el emulador con relleno hasta cero bloques; no es una simulación del arnés"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/223-almacenamiento-controlado-fallo.png",
+      "script": {
+        "sha256": "3b797f9a0add75c6c8b2ce896790166555c951607188870361f2f552fa752db7",
+        "commit": "0619055",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacionDenegadaContenido",
+      "en": "2026-10-29T18:08:59.647Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Vértice añadido al borrador/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/224-fallo-ubicacionDenegadaContenido.png",
+      "script": {
+        "sha256": "f11362b64e0564d1ee867ed4761f736b4241a8713c0b67f2041cb2816f7b5ae3",
+        "commit": "0619055",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoControlado",
+      "en": "2026-10-29T18:11:41.059Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Vértice añadido al borrador/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/225-fallo-almacenamientoControlado.png",
+      "script": {
+        "sha256": "f11362b64e0564d1ee867ed4761f736b4241a8713c0b67f2041cb2816f7b5ae3",
+        "commit": "0619055",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacion-denegada-contenido",
+      "en": "2026-10-29T18:19:47.838Z",
+      "ok": true,
+      "detalle": {
+        "dialogo_del_sistema_negado": false,
+        "mensaje_explica_y_conserva": true,
+        "sin_lectura_mostrada": true,
+        "trabajo_previo_guardado": [
+          "1:-0.848400,-80.160398"
+        ],
+        "captura_nueva_sin_ubicacion_ni_vertices": true,
+        "pendientes_conserva_la_captura_previa": true
+      },
+      "captura": "docs/qa/capturas/movil-emulador/226-ubicacion-denegada-contenido.png",
+      "script": {
+        "sha256": "38b5322e64b61ee99f3780fafdd17b2fa349d9f948c9abea05155a4f10d3f8ab",
+        "commit": "0619055",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamiento-lleno-controlado",
+      "en": "2026-10-29T18:26:32.088Z",
+      "ok": false,
+      "detalle": {
+        "libre_kb_antes_de_escribir": 0,
+        "mensaje_en_espanol": false,
+        "sin_error_tecnico_en_pantalla": true,
+        "error_real_de_android_en_logcat_del_proceso_de_la_app": [],
+        "pid_app": "2761",
+        "contenido_antes": {
+          "ubicacion": null,
+          "vertices": [
+            "1:-0.847998,-80.159998"
+          ]
+        },
+        "contenido_tras_el_fallo": {
+          "ubicacion": null,
+          "vertices": [
+            "1:-0.847998,-80.159998",
+            "2:-0.847600,-80.159598"
+          ]
+        },
+        "contenido_igual": false,
+        "tras_liberar": {
+          "ubicacion": null,
+          "vertices": [
+            "1:-0.847998,-80.159998",
+            "2:-0.847600,-80.159598",
+            "3:-0.847600,-80.159598"
+          ]
+        },
+        "recupera_sin_duplicar": false,
+        "nota": "FALLO REAL de almacenamiento provocado en el emulador con relleno hasta cero bloques; no es una simulación del arnés"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/227-almacenamiento-controlado-fallo.png",
+      "script": {
+        "sha256": "38b5322e64b61ee99f3780fafdd17b2fa349d9f948c9abea05155a4f10d3f8ab",
+        "commit": "0619055",
+        "modificado_sin_commit": true
+      }
     }
   ]
 }
