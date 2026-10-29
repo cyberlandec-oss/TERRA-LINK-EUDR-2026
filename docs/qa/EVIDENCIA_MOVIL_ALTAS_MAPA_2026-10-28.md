@@ -41,3 +41,16 @@ En emulador real también se vio y se registró: los deslizamientos sobre el map
 
 ## Recorridos por rol y cadena (web, despliegue `b995aa3`)
 `node e2e/review/web-por-rol.mjs`: **APROBADO** (22 combinaciones, 19 cuentas vigentes, sin crear usuarios). `node e2e/review/cadena-integral-web.mjs`: T1–T14 OK; **bloqueos esperados** conservados (riesgo D-05.B, expediente D-07.5/7.6, despacho con 3 comprobaciones bloqueantes); **T15 NO DEFINIDO** (traspaso entre organizaciones). Satélite: servidor controlado/fixture; **Whisp real no ejecutado** (`WHISP_API_KEY` vacía y sin autorización expresa de envío).
+
+## Repetición en emulador LIMPIO con el APK vigente `0f68196` (2026-10-28/29)
+Emulador recreado con `-wipe-data`, APK `0f68196` (SHA-256 `bb9cea2f…8095`), cuenta DEMO vigente `tecnico1.cooperativa`. Resultado por comprobación:
+| Comprobación | Resultado |
+| --- | --- |
+| Persistencia: guardar sin conexión → cierre forzado → reapertura (mismos identificadores de operación) | **OK** |
+| Respuesta perdida tras commit en el servidor → reintento sin duplicar (1 muestra, 2 filas de sincronización) | **OK** |
+| Foto: «archivo recibido, análisis pendiente» (no descargable) → «archivo disponible» tras el análisis | **OK** |
+| Sesión vencida (reloj +2 h) bloquea la captura sin borrar pendientes; reloj atrasado bloquea | **OK** |
+| «Mi ubicación» muestra la lectura sin guardar (flujo completo continuó con foto y cola) | el paso registró FALLA por una aserción atada al diseño anterior; el comportamiento se observó en las capturas, **no** cuenta como demostrado hasta reescribir la aserción |
+| Ubicación denegada | **NO demostrada**: la captura se tomó antes del mensaje; falta ajustar el paso (el diálogo del sistema) |
+| Almacenamiento lleno | **NO demostrada**: el paso no llegó a la pantalla de captura; falta repetirla |
+Pendiente real: ubicación denegada y almacenamiento lleno (y reescribir la aserción de «Mi ubicación») antes del teléfono físico.

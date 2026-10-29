@@ -1806,6 +1806,570 @@
         "commit": "0f68196",
         "modificado_sin_commit": true
       }
+    },
+    {
+      "paso": "preparar",
+      "en": "2026-10-28T22:55:16.497Z",
+      "ok": true,
+      "detalle": "Permisos de ubicación y cámara concedidos por adb; posición EMULADA -0.8479, -80.1601; proxy en modo pass",
+      "captura": "docs/qa/capturas/movil-emulador/148-inicio.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "login",
+      "en": "2026-10-28T22:56:57.066Z",
+      "ok": true,
+      "detalle": "Inicio de sesión online como tecnico1 (DEMO) y organización DEMO · Cooperativa",
+      "captura": "docs/qa/capturas/movil-emulador/149-mi-jornada.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "descargar-asignaciones",
+      "en": "2026-10-28T22:57:21.430Z",
+      "ok": true,
+      "detalle": "11 parcela(s) autorizadas descargadas",
+      "captura": "docs/qa/capturas/movil-emulador/150-descarga.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "capturar-ubicacion",
+      "en": "2026-10-28T22:58:21.126Z",
+      "ok": false,
+      "detalle": "Mi ubicación EMULADA en CAD-1027213440: la lectura se mostró SIN guardar (el borrador seguía «Sin ubicación.») y solo se guardó con «Usar esta ubicación en el borrador»",
+      "captura": "docs/qa/capturas/movil-emulador/151-ubicacion.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "foto",
+      "en": "2026-10-28T22:59:08.210Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Tomar foto$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/152-fallo-foto.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "guardarOffline",
+      "en": "2026-10-28T22:59:59.028Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Observación de campo/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/153-fallo-guardarOffline.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "cierre-forzado-y-reapertura",
+      "en": "2026-10-28T23:00:51.068Z",
+      "ok": false,
+      "detalle": {
+        "despues": []
+      },
+      "captura": "docs/qa/capturas/movil-emulador/154-tras-reapertura.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "interrupcion-tras-commit",
+      "en": "2026-10-28T23:01:33.963Z",
+      "ok": false,
+      "detalle": {
+        "respuesta_cortada": true,
+        "operaciones_confirmadas_en_servidor": 0,
+        "muestras_creadas": 0
+      },
+      "captura": "docs/qa/capturas/movil-emulador/155-sync-cortada.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "cortarTrasCommit",
+      "en": "2026-10-28T23:01:40.916Z",
+      "ok": false,
+      "detalle": "excepción: Command failed: docker compose exec -T postgres sh -c psql -U \"$POSTGRES_USER\" -d terra_link -tAc \"select count(*) from location_samples where operation_id in ()\"\nERROR:  syntax error at or near \")\"\nLINE 1: ...lect count(*) from location_samples where operation_id in ()\n                                                                      ^\n",
+      "captura": "docs/qa/capturas/movil-emulador/156-fallo-cortarTrasCommit.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "fotoAnalisis",
+      "en": "2026-10-28T23:02:18.630Z",
+      "ok": false,
+      "detalle": "excepción: Cannot read properties of undefined (reading 'find')",
+      "captura": "docs/qa/capturas/movil-emulador/157-fallo-fotoAnalisis.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "ubicacion-denegada-conserva-borrador",
+      "en": "2026-10-28T23:03:59.360Z",
+      "ok": false,
+      "detalle": "Con el permiso denegado el mensaje es recuperable y el borrador se conserva",
+      "captura": "docs/qa/capturas/movil-emulador/158-ubicacion-denegada.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "sesion-vencida-bloquea-sin-borrar",
+      "en": "2026-10-28T23:04:38.229Z",
+      "ok": false,
+      "detalle": "reloj del emulador +2 h: captura bloqueada; pendientes visibles",
+      "captura": "docs/qa/capturas/movil-emulador/159-sesion-vencida.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "reloj-atrasado-bloquea",
+      "en": "2026-10-28T23:04:52.078Z",
+      "ok": true,
+      "detalle": "reloj del emulador −1 día: bloqueo por reloj atrasado",
+      "captura": "docs/qa/capturas/movil-emulador/160-reloj-atrasado.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-28T23:07:47.342Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Captura · |No hay espacio libre/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/161-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "preparar",
+      "en": "2026-10-28T23:08:24.342Z",
+      "ok": true,
+      "detalle": "Permisos de ubicación y cámara concedidos por adb; posición EMULADA -0.8479, -80.1601; proxy en modo pass",
+      "captura": "docs/qa/capturas/movil-emulador/162-inicio.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-28T23:09:48.954Z",
+      "ok": true,
+      "detalle": "Nuevo inicio de sesión online (la anterior vencía a la hora)",
+      "captura": null,
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "descargar-asignaciones",
+      "en": "2026-10-28T23:10:12.007Z",
+      "ok": true,
+      "detalle": "11 parcela(s) autorizadas descargadas",
+      "captura": "docs/qa/capturas/movil-emulador/163-descarga.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "capturar-ubicacion",
+      "en": "2026-10-28T23:11:21.057Z",
+      "ok": false,
+      "detalle": "Mi ubicación EMULADA en CAD-1027213440: la lectura se mostró SIN guardar (el borrador seguía «Sin ubicación.») y solo se guardó con «Usar esta ubicación en el borrador»",
+      "captura": "docs/qa/capturas/movil-emulador/164-ubicacion.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "foto",
+      "en": "2026-10-28T23:12:09.108Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Tomar foto$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/165-fallo-foto.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "guardarOffline",
+      "en": "2026-10-28T23:12:57.961Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Observación de campo/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/166-fallo-guardarOffline.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "cierre-forzado-y-reapertura",
+      "en": "2026-10-28T23:13:51.829Z",
+      "ok": false,
+      "detalle": {
+        "despues": []
+      },
+      "captura": "docs/qa/capturas/movil-emulador/167-tras-reapertura.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "interrupcion-tras-commit",
+      "en": "2026-10-28T23:14:38.375Z",
+      "ok": false,
+      "detalle": {
+        "respuesta_cortada": true,
+        "operaciones_confirmadas_en_servidor": 0,
+        "muestras_creadas": 0
+      },
+      "captura": "docs/qa/capturas/movil-emulador/168-sync-cortada.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "cortarTrasCommit",
+      "en": "2026-10-28T23:14:46.249Z",
+      "ok": false,
+      "detalle": "excepción: Command failed: docker compose exec -T postgres sh -c psql -U \"$POSTGRES_USER\" -d terra_link -tAc \"select count(*) from location_samples where operation_id in ()\"\nERROR:  syntax error at or near \")\"\nLINE 1: ...lect count(*) from location_samples where operation_id in ()\n                                                                      ^\n",
+      "captura": "docs/qa/capturas/movil-emulador/169-fallo-cortarTrasCommit.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "fotoAnalisis",
+      "en": "2026-10-28T23:15:26.876Z",
+      "ok": false,
+      "detalle": "excepción: Cannot read properties of undefined (reading 'find')",
+      "captura": "docs/qa/capturas/movil-emulador/170-fallo-fotoAnalisis.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacion-denegada-conserva-borrador",
+      "en": "2026-10-28T23:17:12.576Z",
+      "ok": false,
+      "detalle": "Con el permiso denegado el mensaje es recuperable y el borrador se conserva",
+      "captura": "docs/qa/capturas/movil-emulador/171-ubicacion-denegada.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "sesion-vencida-bloquea-sin-borrar",
+      "en": "2026-10-28T23:17:49.855Z",
+      "ok": false,
+      "detalle": "reloj del emulador +2 h: captura bloqueada; pendientes visibles",
+      "captura": "docs/qa/capturas/movil-emulador/172-sesion-vencida.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "reloj-atrasado-bloquea",
+      "en": "2026-10-28T23:18:03.324Z",
+      "ok": true,
+      "detalle": "reloj del emulador −1 día: bloqueo por reloj atrasado",
+      "captura": "docs/qa/capturas/movil-emulador/173-reloj-atrasado.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-28T23:20:57.159Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Captura · |No hay espacio libre/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/174-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "9cfa09deae033c7f1d9e004a58822ac17c2f5e321fa9e57d7962589fe49e543f",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "preparar",
+      "en": "2026-10-28T23:52:11.254Z",
+      "ok": true,
+      "detalle": "Permisos de ubicación y cámara concedidos por adb; posición EMULADA -0.8479, -80.1601; proxy en modo pass",
+      "captura": "docs/qa/capturas/movil-emulador/176-inicio.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-28T23:53:38.747Z",
+      "ok": true,
+      "detalle": "Nuevo inicio de sesión online (la anterior vencía a la hora)",
+      "captura": null,
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "descargar-asignaciones",
+      "en": "2026-10-28T23:54:02.897Z",
+      "ok": true,
+      "detalle": "11 parcela(s) autorizadas descargadas",
+      "captura": "docs/qa/capturas/movil-emulador/177-descarga.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "capturar-ubicacion",
+      "en": "2026-10-28T23:55:05.160Z",
+      "ok": false,
+      "detalle": "Mi ubicación EMULADA en CAD-1027213440: la lectura se mostró SIN guardar (el borrador seguía «Sin ubicación.») y solo se guardó con «Usar esta ubicación en el borrador»",
+      "captura": "docs/qa/capturas/movil-emulador/178-ubicacion.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "foto",
+      "en": "2026-10-28T23:55:49.265Z",
+      "ok": true,
+      "detalle": "Foto de la cámara VIRTUAL del emulador (escena sintética); metadatos quitados por la app",
+      "captura": "docs/qa/capturas/movil-emulador/179-foto.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "guardar-offline",
+      "en": "2026-10-28T23:56:16.226Z",
+      "ok": true,
+      "detalle": {
+        "modo_red": "offline (proxy)",
+        "operaciones": [
+          "Muestra de ubicación:28fd343e",
+          "Foto:22c00ea0"
+        ]
+      },
+      "captura": "docs/qa/capturas/movil-emulador/180-pendientes-offline.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "cierre-forzado-y-reapertura",
+      "en": "2026-10-28T23:57:09.432Z",
+      "ok": true,
+      "detalle": {
+        "antes": [
+          "Muestra de ubicación:28fd343e",
+          "Foto:22c00ea0"
+        ],
+        "despues": [
+          "Muestra de ubicación:28fd343e",
+          "Foto:22c00ea0"
+        ]
+      },
+      "captura": "docs/qa/capturas/movil-emulador/181-tras-reapertura.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "interrupcion-tras-commit",
+      "en": "2026-10-28T23:57:54.166Z",
+      "ok": true,
+      "detalle": {
+        "respuesta_cortada": true,
+        "operaciones_confirmadas_en_servidor": 2,
+        "muestras_creadas": 1
+      },
+      "captura": "docs/qa/capturas/movil-emulador/182-sync-cortada.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "reintento-sin-duplicar",
+      "en": "2026-10-28T23:58:30.214Z",
+      "ok": true,
+      "detalle": {
+        "muestras_tras_reintento": 1,
+        "filas_sync": 2,
+        "ids_mostrados": [
+          "Muestra de ubicación:28fd343e",
+          "Foto:22c00ea0"
+        ],
+        "mismos_ids": true
+      },
+      "captura": "docs/qa/capturas/movil-emulador/183-sync-reintento.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "foto-sin-analisis-no-disponible",
+      "en": "2026-10-28T23:59:09.541Z",
+      "ok": true,
+      "detalle": {
+        "app": "archivo recibido, análisis pendiente",
+        "documentos": "SCAN_FAILED",
+        "descargable": false,
+        "tipo": "FIELD_PHOTO"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/184-foto-analisis-pendiente.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "foto-disponible-tras-analisis",
+      "en": "2026-10-29T00:00:16.032Z",
+      "ok": true,
+      "detalle": {
+        "reintento_analisis": 200,
+        "documentos": "AVAILABLE",
+        "app": "archivo disponible en el servidor"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/185-foto-disponible.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacion-denegada-conserva-borrador",
+      "en": "2026-10-29T00:02:01.255Z",
+      "ok": false,
+      "detalle": "Con el permiso denegado el mensaje es recuperable y el borrador se conserva",
+      "captura": "docs/qa/capturas/movil-emulador/186-ubicacion-denegada.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "sesion-vencida-bloquea-sin-borrar",
+      "en": "2026-10-29T00:02:40.301Z",
+      "ok": true,
+      "detalle": "reloj del emulador +2 h: captura bloqueada; pendientes visibles",
+      "captura": "docs/qa/capturas/movil-emulador/187-sesion-vencida.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "reloj-atrasado-bloquea",
+      "en": "2026-10-29T00:02:54.447Z",
+      "ok": true,
+      "detalle": "reloj del emulador −1 día: bloqueo por reloj atrasado",
+      "captura": "docs/qa/capturas/movil-emulador/188-reloj-atrasado.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-29T00:05:48.995Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Captura · |No hay espacio libre/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/189-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "92a496a86e3f366a01b2e10bfc8bc95f1d7ef1696333009645851a0c567eda6c",
+        "commit": "6902448",
+        "modificado_sin_commit": true
+      }
     }
   ]
 }

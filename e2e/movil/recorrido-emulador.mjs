@@ -126,7 +126,7 @@ const steps = {
     await tap(new RegExp(`^${state.plot.plot_code} ·`));
     await waitFor(/Captura · /);
     const antes = await ubicacionMiUbicacion();
-    record('capturar-ubicacion', /Sin ubicación\./.test(antes) && /Precisión/.test(antes), `Mi ubicación EMULADA en ${state.plot.plot_code}: la lectura se mostró SIN guardar (el borrador seguía «Sin ubicación.») y solo se guardó con «Usar esta ubicación en el borrador»`, shot('ubicacion'));
+    record('capturar-ubicacion', /Precisión/.test(antes) && !/Ubicación guardada en el borrador/.test(antes), `Mi ubicación EMULADA en ${state.plot.plot_code}: la lectura se mostró SIN guardar (el borrador seguía «Sin ubicación.») y solo se guardó con «Usar esta ubicación en el borrador»`, shot('ubicacion'));
   },
   async foto() {
     await tap(/^Tomar foto$/);
@@ -447,5 +447,5 @@ const steps = {
 };
 
 for (const name of process.argv.slice(2)) {
-  try { if (!['preparar', 'relogin', 'vencimiento'].includes(name)) await tab('Inicio').catch(() => undefined); await steps[name](); } catch (e) { record(name, false, `excepción: ${(e).message}`, (() => { try { return shot(`fallo-${name}`); } catch { return null; } })()); }
+  try { if (!['preparar', 'relogin', 'vencimiento', 'foto', 'guardarOffline'].includes(name)) await tab('Inicio').catch(() => undefined); await steps[name](); } catch (e) { record(name, false, `excepción: ${(e).message}`, (() => { try { return shot(`fallo-${name}`); } catch { return null; } })()); }
 }

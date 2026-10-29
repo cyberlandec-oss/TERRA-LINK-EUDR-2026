@@ -34,7 +34,7 @@ export async function waitFor(re, { timeout = 30000, scrollTo = false } = {}) {
     const f = find(re);
     if (f.length) return f[0];
     if (Date.now() - t0 > timeout) throw new Error(`No apareció ${re} en ${timeout} ms`);
-    if (scrollTo && scrolls < 8) { scroll('down'); scrolls += 1; } else await sleep(800);
+    if (scrollTo && scrolls < 16) { scroll(scrolls < 8 ? 'down' : 'up'); scrolls += 1; } else await sleep(800); // la pantalla de captura es larga: si no está hacia abajo, se busca hacia arriba
   }
 }
 // La barra de pestañas ocupa la franja inferior (y > ~2150 px en 1080x2400): un control que cae allí se desplaza antes de tocarlo.
