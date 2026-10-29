@@ -44,7 +44,7 @@ Propuestas adicionales rastreables: outbox y ledger (ADR-0003), membresías/gran
 | Fuente | Requisito / QA | Historia | Evidencia | Estado |
 | --- | --- | --- | --- | --- |
 | docs/14 «Workflows de punta a punta» 3–6 y 7 (parte de consulta) | RF-31; QA-07 | P0-031 (preparación) | `docs/qa/RECORRIDO_INTEGRAL_WEB_2026-10-21.md`, `e2e/review/cadena-integral-web.mjs` | Recorrido web por rol **demostrado** (T1–T8, T10, T13, T14); **bloqueos esperados** en riesgo (D-05.B), expediente (D-07.5/7.6) y despacho (D-34). Sin defectos del producto. No es el piloto |
-| docs/14 workflow 6 («compartir información autorizada») entre organizaciones | — | — | T15 | **NO DEFINIDO** (traspaso de lotes entre organizaciones; pantalla de concesiones del propietario): decisión del producto, no implementado |
+| docs/14 workflow 6 («compartir información autorizada») entre organizaciones | — | — | T15 | **RESUELTO por A-02 (pantalla de concesiones, DONE_LOCAL) y A-03 (traspaso de custodia, RF-50, DONE_LOCAL, `d99f40a`)**; el recorrido T15 solo comprueba que, sin un traspaso ejecutado, la exportadora no ve lotes ajenos. La salida real del traspaso sigue bloqueada (D4). Estado vigente: `docs/decisiones/CIERRE_E_PENDIENTES_2026-10-29.md` |
 
 Fuera del conteo 42/60 y 30/44; no altera A-01 ni la aceptación externa pendiente.
 

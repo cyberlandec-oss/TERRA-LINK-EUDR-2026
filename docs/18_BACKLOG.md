@@ -199,7 +199,7 @@ Estado (2026-10-16, revisión 5): **DONE_LOCAL**. Los tres bloqueos que quedaban
 Depende P0-001–030 aplicables. Como cliente piloto, necesito operar la cadena sin intervención de desarrollador.
 Aceptación: recorrido con dataset/usuarios de piloto, Android real, discrepancias gestionadas, restore DB+objetos y capacitación/manual; hallazgos priorizados y gates pendientes explícitos. RF-31; QA-16/17.
 
-**Preparación (2026-10-21)**: recorrido integral desde la web, por rol, sobre datos DEMO — `docs/qa/RECORRIDO_INTEGRAL_WEB_2026-10-21.md`. Resultado: 15 transiciones, 0 defectos del producto, bloqueos esperados (D-05.B, D-07.5/7.6, D-34), y dos puntos **no definidos** que requieren decisión del producto (traspaso de lotes entre organizaciones; pantalla del propietario para concesiones). **P0-031 sigue NO INICIADA como piloto.**
+**Preparación (2026-10-21)**: recorrido integral desde la web, por rol, sobre datos DEMO — `docs/qa/RECORRIDO_INTEGRAL_WEB_2026-10-21.md`. Resultado: 15 transiciones, 0 defectos del producto, bloqueos esperados (D-05.B, D-07.5/7.6, D-34), y dos puntos que en ese momento eran **no definidos** (hoy resueltos por A-02/A-03, DONE_LOCAL; ver `docs/decisiones/CIERRE_E_PENDIENTES_2026-10-29.md`) (traspaso de lotes entre organizaciones; pantalla del propietario para concesiones). **P0-031 sigue NO INICIADA como piloto.**
 
 ## Historias P1
 
