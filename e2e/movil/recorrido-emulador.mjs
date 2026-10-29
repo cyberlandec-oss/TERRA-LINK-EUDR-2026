@@ -136,8 +136,15 @@ const steps = {
     await tap(/^Nueva captura$/);
     await tap(new RegExp(`^${state.plot.plot_code} ·`));
     await waitFor(/Captura · /);
-    const antes = await ubicacionMiUbicacion();
-    record('capturar-ubicacion', /Precisión/.test(antes) && !/Ubicación guardada en el borrador/.test(antes), `Mi ubicación EMULADA en ${state.plot.plot_code}: la lectura se mostró SIN guardar (el borrador seguía «Sin ubicación.») y solo se guardó con «Usar esta ubicación en el borrador»`, shot('ubicacion'));
+    await ver(/^Mi ubicación$/, 60000); await tap(/^Mi ubicación$/); await ver(/Lectura de «Mi ubicación» \(todavía no guardada\)/, 90000);
+    const sin = await leerBorrador(); // contenido de la pantalla con la lectura mostrada
+    const lect = /Lectura de «Mi ubicación» \(todavía no guardada\)\s*\nLat (-?\d+\.\d+) · Lon (-?\d+\.\d+)/.exec(sin.texto);
+    const noGuardaAntes = sin.ubicacion === null && !!lect; // hay lectura, pero la ubicación guardada del borrador sigue sin existir
+    await ver(/^(Usar esta ubicación en el borrador|Reemplazar la ubicación del borrador con esta lectura)$/, 30000);
+    await tap(/^(Usar esta ubicación en el borrador|Reemplazar la ubicación del borrador con esta lectura)$/); await sleep(2500);
+    const con = await leerBorrador();
+    const guardaDespues = !!lect && con.ubicacion === lect[1] + ',' + lect[2]; // solo tras la acción explícita, y con las mismas coordenadas de la lectura
+    record('capturar-ubicacion', noGuardaAntes && guardaDespues, { lectura: lect ? lect[1] + ',' + lect[2] : null, guardada_antes: sin.ubicacion, guardada_despues: con.ubicacion, nota: 'Mi ubicación EMULADA: la lectura se mostró sin guardar y solo la acción explícita la guardó, con las mismas coordenadas' }, shot('ubicacion'));
   },
   async foto() {
     await tap(/^Tomar foto$/);
@@ -523,6 +530,69 @@ const steps = {
       record('almacenamiento-lleno-controlado', mensaje && !tecnico && igual && recupera,
         { libre_kb_antes_de_escribir: libre, mensaje_en_espanol: mensaje, sin_error_tecnico_en_pantalla: !tecnico, error_real_de_android_en_logcat_del_proceso_de_la_app: log, pid_app: pid, contenido_antes: { ubicacion: c0.ubicacion, vertices: c0.vertices }, contenido_tras_el_fallo: { ubicacion: c1.ubicacion, vertices: c1.vertices }, contenido_igual: igual, tras_liberar: { ubicacion: c2.ubicacion, vertices: c2.vertices }, recupera_sin_duplicar: recupera, nota: 'FALLO REAL de almacenamiento provocado en el emulador con relleno hasta cero bloques; no es una simulación del arnés' }, sh);
     } finally { adb('shell', 'rm -f /data/local/tmp/tl-relleno-*'); }
+  },
+  // ── Interacción del mapa con el formulario y soportes documentales (2026-10-29) ───────────────────────────────────────────────
+  async mapaDesplazamiento() {
+    // El dedo dentro del mapa mueve el mapa (esperado); fuera de él desplaza la página: no hay atrapamiento y se llega a todos los controles.
+    adb('shell', 'pm', 'grant', PKG, 'android.permission.ACCESS_FINE_LOCATION');
+    await abrirCaptura(state.plot.plot_code);
+    for (const g of [['-80.1600', '-0.8480'], ['-80.1596', '-0.8476']]) {
+      adb('emu', 'geo', 'fix', ...g); await sleep(1200);
+      await ver(/^Mi ubicación$/, 60000); await tap(/^Mi ubicación$/); await ver(/Lectura de «Mi ubicación» \(todavía no guardada\)/, 90000);
+      await ver(/^Añadir vértice con la lectura/, 30000); await tap(/^Añadir vértice con la lectura/); await sleep(2500);
+    }
+    for (let i = 0; i < 8; i++) { scroll('up'); await sleep(250); }
+    const pos = (re) => { const n = find(re)[0]; return n ? [n.bounds[0], n.bounds[1]] : null; };
+    await waitFor(/Vértice 1|Vértice 2/, { timeout: 20000 });
+    const m0 = pos(/Vértice 1/); const titulo0 = pos(/^Mapa$/);
+    // 1) arrastrar DENTRO del mapa (centro de la tarjeta, bajo el título): el mapa se mueve y la página no se desplaza
+    adb('shell', 'input', 'swipe', '700', String((titulo0?.[1] ?? 600) + 500), '300', String((titulo0?.[1] ?? 600) + 500), '400'); await sleep(1500);
+    const m1 = pos(/Vértice 1/); const titulo1 = pos(/^Mapa$/);
+    const mapaSeMovio = !!m0 && !!m1 && (Math.abs(m0[0] - m1[0]) > 40 || Math.abs(m0[1] - m1[1]) > 40);
+    const paginaQuieta = !!titulo0 && !!titulo1 && titulo0[1] === titulo1[1];
+    const sh1 = shot('mapa-arrastre-dentro');
+    // 2) arrastrar FUERA del mapa (borde izquierdo): la página sí se desplaza y se llega a «Guardar en cola»
+    for (let i = 0; i < 12 && !find(/^Guardar en cola$/).length; i++) { scroll('down'); await sleep(300); }
+    const llegaAlFinal = find(/^Guardar en cola$/).length > 0;
+    for (let i = 0; i < 12 && !find(/^Mapa$/).length; i++) { scroll('up'); await sleep(300); }
+    const vuelve = find(/^Mapa$/).length > 0; // sin atrapamiento: se puede volver arriba también
+    record('mapa-desplazamiento-y-formulario', mapaSeMovio && paginaQuieta && llegaAlFinal && vuelve, { mapa_se_movio_con_el_dedo: mapaSeMovio, pagina_quieta_al_arrastrar_el_mapa: paginaQuieta, llega_a_guardar_en_cola_deslizando_fuera: llegaAlFinal, vuelve_arriba: vuelve, vertices_conservados: find(/Vértice 1/).length > 0 }, sh1);
+  },
+  async soporteAdjunto() {
+    // Soporte PDF sobre una parcela CREADA SIN CONEXIÓN (referencia local): picker del sistema → cola en dependencia → subida interrumpida → recuperación → un solo documento
+    const crypto = await import('node:crypto'); const { writeFileSync: wf } = await import('node:fs');
+    const pdf = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\n% soporte de prueba emulador ' + Date.now() + '\ntrailer<<>>\n%%EOF\n', 'latin1');
+    const sha = crypto.createHash('sha256').update(pdf).digest('hex');
+    const tmp = join(root, 'validation-results', 'soporte-prueba.pdf'); mkdirSync(join(root, 'validation-results'), { recursive: true }); wf(tmp, pdf);
+    adb('push', tmp, '/sdcard/Download/soporte-prueba.pdf'); adb('shell', 'am', 'broadcast', '-a', 'android.intent.action.MEDIA_SCANNER_SCAN_FILE', '-d', 'file:///sdcard/Download/soporte-prueba.pdf');
+    await abrirCaptura(state.plotCode);
+    await ver(/Soportes documentales/, 30000);
+    await ver(/^Documento de tenencia de la tierra$|Documento de tenencia de la tierra/, 30000); await tap(/Documento de tenencia de la tierra/);
+    await typeInto(/Título del soporte/, 'Soporte prueba emulador'); hideKeyboard(); await sleep(500);
+    await ver(/^Elegir PDF o imagen$/, 30000); await tap(/^Elegir PDF o imagen$/);
+    for (let i = 0; i < 30 && !/Soporte guardado en el dispositivo/.test(allText()); i++) {
+      const f1 = find(/soporte-prueba\.pdf/); if (f1.length) { tapNode(f1[0]); await sleep(2500); continue; }
+      const dl = find(/^(Downloads|Descargas)$/); if (dl.length) { tapNode(dl[0]); await sleep(1500); continue; }
+      const menu = find(/Show roots|Mostrar raíces|Open drawer|Abrir panel/i); if (menu.length && i % 3 === 2) { tapNode(menu[0]); await sleep(1200); continue; }
+      await sleep(1000);
+    }
+    await ver(/Soporte prueba emulador/, 30000);
+    const antes = await leerBorrador();
+    const enLista = /Soporte prueba emulador/.test(antes.texto) && /archivo pendiente de subir/.test(antes.texto);
+    await ver(/^Guardar en cola$/, 30000); await tap(/^Guardar en cola$/); await waitFor(/Pendientes/);
+    const ops = await pendingText(); const registrado = /Soporte «Soporte prueba emulador»: archivo pendiente de subir/.test(ops);
+    // subida interrumpida: el servidor recibe el archivo pero la respuesta se pierde
+    await proxy('cortar-subida'); await tab('Inicio');
+    await tap(/Sincronizar ahora/); await waitFor(/Sincronización (detenida|terminada)/, { timeout: 90000 });
+    const docsTras1 = Number(sql("select count(*) from documents where title = 'Soporte prueba emulador' and owner_type = 'plot'"));
+    await proxy('pass'); await tab('Inicio'); await tap(/Sincronizar ahora/); await waitFor(/Sincronización terminada/, { timeout: 90000 });
+    const fin = await pendingText();
+    const fila = sql("select d.document_type || '|' || d.owner_id || '|' || v.sha256 || '|' || (select count(*) from document_versions x where x.document_id = d.id) from documents d join document_versions v on v.id = d.current_version_id where d.title = 'Soporte prueba emulador' and d.owner_type = 'plot'").trim().split('\n');
+    const plotServer = sql("select id from plots where plot_code = '" + state.plotCode + "'").trim();
+    const [tipo, owner, hash, versiones] = (fila[0] ?? '').split('|');
+    const aprobado = sql("select count(*) from document_version_reviews r join document_versions v on v.id = r.version_id join documents d on d.id = v.document_id where d.title = 'Soporte prueba emulador'").trim();
+    record('soporte-pdf-sobre-parcela-nueva', enLista && registrado && fila.length === 1 && tipo === 'LAND_TENURE' && owner === plotServer && hash === sha && Number(versiones) === 1 && aprobado === '0' && /archivo (recibido|disponible)/.test(fin),
+      { picker_del_sistema: true, aparece_pendiente_antes_de_subir: enLista, operacion_registrada_en_cola: registrado, documentos_tras_la_subida_interrumpida: docsTras1, documentos_tras_la_recuperacion: fila.length, tipo, titular_es_la_parcela_definitiva: owner === plotServer, sha256_igual: hash === sha, versiones: Number(versiones), revisiones_humanas: aprobado, estado_en_la_app: /análisis pendiente/.test(fin) ? 'archivo recibido, análisis pendiente' : /disponible/.test(fin) ? 'archivo disponible (sin revisar)' : 'otro' }, shot('soporte-recuperado'));
   },
   async adjuntoInterrumpido() {
     await proxy('pass'); await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);

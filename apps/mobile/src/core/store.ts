@@ -29,6 +29,8 @@ export interface OutboxOp {
 export interface DraftView {
   id: string; plot_id: string; plot_code: string | null; note: string; status: 'DRAFT' | 'QUEUED'; created_at: string; updated_at: string; queued_at: string | null;
   location: (LocationSampleInput & { id: string; recorded_at: string; source: string }) | null;
+  /** Soportes documentales (PDF o imagen) aportados sobre la parcela de la captura; su estado (registro, archivo, análisis) es independiente y NO equivale a revisión ni aprobación. */
+  supports: SupportView[];
   photos: Array<{ id: string; storage: string; sha256: string; size_bytes: number; captured_at: string | null; stored_at: string; upload_state: string; server_status: string | null; server_detail: string | null; file_present: boolean }>;
   /** Vértices de polígono en orden de captura (solo borrador: confirmar el polígono es una decisión humana en la web). */
   vertices: Array<LocationSampleInput & { id: string; seq: number; recorded_at: string }>;
@@ -42,7 +44,10 @@ export type LocalState = 'DRAFT' | 'PENDING' | 'SYNCED' | 'REJECTED' | 'CONFLICT
 export interface LocalProducerView extends LocalProducerInput { id: string; status: 'DRAFT' | 'QUEUED'; server_id: string | null; state: LocalState; last_error: string | null; operation_id: string | null }
 export interface LocalPlotView extends LocalPlotInput { id: string; status: 'DRAFT' | 'QUEUED'; server_id: string | null; state: LocalState; last_error: string | null; operation_id: string | null }
 export interface ReferenceProducer { id: string; producer_code: string; display_name: string | null }
-export interface ReferenceData { producers?: ReferenceProducer[]; products: Array<{ id: string; code: string; name: string; product_state: string; unit: string; status: string }>; locations: Array<{ id: string; code: string; name: string; location_type: string }> }
+export interface ReferenceDocumentType { code: string; label: string; allowed_owner_types: string[] }
+export const MAX_SUPPORT_BYTES = 10 * 1024 * 1024;
+export interface SupportView { id: string; document_type: string; title: string; mime_type: string; size_bytes: number; sha256: string; upload_state: string; server_status: string | null; server_detail: string | null }
+export interface ReferenceData { document_types?: ReferenceDocumentType[]; producers?: ReferenceProducer[]; products: Array<{ id: string; code: string; name: string; product_state: string; unit: string; status: string }>; locations: Array<{ id: string; code: string; name: string; location_type: string }> }
 export const DECIMAL_KG = /^\d{1,12}(\.\d{1,3})?$/;
 export interface LocalDeliveryInput {
   producer: { kind: 'SERVER' | 'LOCAL'; id: string }; product_id: string; location_id: string; delivery_date: string; quantity_declared: string; unit: 'KG';
@@ -52,6 +57,13 @@ export interface LocalDeliveryView extends LocalDeliveryInput { id: string; stat
 export interface RecoveryReport { recovered_operations: string[]; incomplete_temp_files: string[]; orphan_files: string[]; missing_files: string[] }
 export type ServerOutcome = { operation_id: string; status: 'ACCEPTED' | 'DUPLICATE' | 'REJECTED' | 'CONFLICT' | 'DEPENDENCY_PENDING' | 'FORBIDDEN' | 'TRANSIENT_ERROR'; result?: Record<string, unknown> | null; error?: { code: string; message: string; details?: unknown } | null };
 
+/** Tipo real por firma de bytes (como el servidor): PDF, JPEG o PNG; cualquier otra cosa es null. */
+export function sniffSupportMime(b: Uint8Array): 'application/pdf' | 'image/jpeg' | 'image/png' | null {
+  if (b.length >= 5 && String.fromCharCode(b[0], b[1], b[2], b[3], b[4]) === '%PDF-') return 'application/pdf';
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
+  if (b.length >= 8 && [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((x, i) => b[i] === x)) return 'image/png';
+  return null;
+}
 export const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
 const MIN_FREE_BYTES = 5 * 1024 * 1024;
 
@@ -211,6 +223,54 @@ export class LocalStore {
   }
 
   /**
+   * Soporte documental (PDF, JPEG o PNG) sobre la parcela de la captura. Reutiliza Documentos: el tipo sale del catálogo descargado, el archivo se valida por su
+   * FIRMA de bytes (no por la extensión), las imágenes pierden sus metadatos, se calcula su SHA-256 y viaja aparte (estado de subida y de análisis separados).
+   * Aportar un soporte NO lo revisa ni lo aprueba, y no crea tipos nuevos.
+   */
+  async addSupport(draftId: string, sourceUri: string, declaredMime: string, input: { document_type: string; title: string }): Promise<string> {
+    this.writable();
+    await this.db.transaction((tx) => this.editable(tx, draftId));
+    const tipo = (await this.supportTypes()).find((t) => t.code === input.document_type);
+    if (!tipo) throw new Error('Ese tipo de soporte no está entre los que tu rol puede aportar para una parcela. Sincroniza para actualizar la lista.');
+    const title = (input.title ?? '').trim();
+    if (!title || title.length > 160) throw new Error('Indica un título para el soporte (hasta 160 caracteres).');
+    const free = await this.p.files.freeBytes();
+    if (free !== null && free < MIN_FREE_BYTES) throw new StorageFullError('Queda menos de 5 MB libres: libera espacio antes de adjuntar el soporte. El borrador se conserva.');
+    const id = this.p.uuid();
+    try {
+      const raw = await this.p.files.readExternal(sourceUri);
+      if (raw.length <= 0) throw new Error('El archivo está vacío.');
+      const real = sniffSupportMime(raw);
+      if (!real) throw new Error('Solo se admiten PDF, JPEG o PNG (se comprueba por el contenido del archivo, no por su nombre).');
+      if (declaredMime && declaredMime !== real && !(declaredMime === 'image/jpg' && real === 'image/jpeg')) throw new Error('El contenido del archivo no coincide con su tipo declarado (' + declaredMime + '): se rechaza.');
+      if (real !== 'application/pdf' && input.document_type === 'FIELD_EVIDENCE') throw new Error('Las evidencias del recorrido son PDF. Una fotografía se aporta como foto de campo.');
+      const bytes = real === 'application/pdf' ? raw : stripImageMetadata(raw, real);
+      if (bytes.length > MAX_SUPPORT_BYTES) throw new Error('El archivo supera 10 MB.');
+      const hash = await this.p.sha256(bytes);
+      await this.db.transaction(async (tx) => {
+        await this.editable(tx, draftId);
+        await tx.run("INSERT INTO attachments (id, draft_id, kind, storage, path, content, sha256, size_bytes, mime_type, captured_at, stored_at, doc_type, title) VALUES (?,?, 'SUPPORT', 'DB', NULL, ?,?,?,?,?,?,?,?)",
+          [id, draftId, bytes, hash, bytes.length, real, this.now(), this.now(), input.document_type, title]);
+        await tx.run('UPDATE drafts SET updated_at = ? WHERE id = ?', [this.now(), draftId]);
+      });
+      await this.p.files.deleteExternal(sourceUri).catch(() => undefined);
+      return id;
+    } catch (err) {
+      if (isStorageFull(err)) throw new StorageFullError('No hay espacio para guardar el soporte. El borrador y lo anterior se conservan.');
+      throw err;
+    }
+  }
+  /** Quita un soporte que aún no se puso en cola (el borrador sigue editable); lo ya encolado no se borra. */
+  async removeSupport(draftId: string, attachmentId: string): Promise<void> {
+    this.writable();
+    await this.db.transaction(async (tx) => {
+      await this.editable(tx, draftId);
+      await tx.run("DELETE FROM attachments WHERE id = ? AND draft_id = ? AND kind = 'SUPPORT' AND upload_state = 'LOCAL'", [attachmentId, draftId]);
+      await tx.run('UPDATE drafts SET updated_at = ? WHERE id = ?', [this.now(), draftId]);
+    });
+  }
+
+  /**
    * Encolar: en UNA transacción el borrador pasa a QUEUED y se crean sus operaciones reales (operation_id estable y hash):
    * PLOT_LOCATION_SAMPLE_CREATE y PLOT_PHOTO_ATTACH (que depende de la muestra si la hay). La nota viaja como leyenda de
    * las fotos; una nota sin foto no tiene entidad en el servidor y no se encola.
@@ -231,9 +291,10 @@ export class LocalStore {
       }
       const plotRef = (): Record<string, unknown> => (localPlot ? { plot_local_ref: localPlot.id } : { plot_id: d.plot_id });
       const loc = await tx.get<{ id: string; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; provider_detail: string; mocked: number | null }>('SELECT * FROM location_samples WHERE draft_id = ?', [draftId]);
-      const photos = await tx.all<{ id: string; sha256: string; size_bytes: number; mime_type: string; captured_at: string | null }>('SELECT id, sha256, size_bytes, mime_type, captured_at FROM attachments WHERE draft_id = ? ORDER BY stored_at, id', [draftId]);
+      const photos = await tx.all<{ id: string; sha256: string; size_bytes: number; mime_type: string; captured_at: string | null }>("SELECT id, sha256, size_bytes, mime_type, captured_at FROM attachments WHERE draft_id = ? AND kind = 'PHOTO' ORDER BY stored_at, id", [draftId]);
+      const supports = await tx.all<{ id: string; sha256: string; size_bytes: number; mime_type: string; doc_type: string; title: string; stored_at: string }>("SELECT id, sha256, size_bytes, mime_type, doc_type, title, stored_at FROM attachments WHERE draft_id = ? AND kind = 'SUPPORT' ORDER BY stored_at, id", [draftId]);
       const verts = await tx.all<{ id: string; seq: number; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; provider_detail: string; mocked: number | null }>('SELECT * FROM polygon_vertices WHERE draft_id = ? ORDER BY seq', [draftId]);
-      if (!loc && !photos.length && !verts.length) throw new Error(d.note.trim() ? 'Una nota sin ubicación, vértices ni foto no tiene entidad en el servidor: agrega ubicación, vértices o foto.' : 'La captura está vacía: agrega ubicación, vértices o foto.');
+      if (!loc && !photos.length && !verts.length && !supports.length) throw new Error(d.note.trim() ? 'Una nota sin ubicación, vértices, foto ni soporte no tiene entidad en el servidor: agrega ubicación, vértices, foto o un soporte.' : 'La captura está vacía: agrega ubicación, vértices, foto o un soporte.');
       const at = this.now();
       let seq = ((await tx.get<{ n: number | null }>('SELECT max(seq) AS n FROM outbox'))?.n ?? 0);
       const ops: string[] = [];
@@ -258,6 +319,9 @@ export class LocalStore {
       for (const ph of photos) {
         await add('PLOT_PHOTO_ATTACH', ph.id, null, { ...plotRef(), sha256: ph.sha256, size_bytes: ph.size_bytes, mime_type: ph.mime_type,
           caption: (d.note.trim() || `Foto de campo ${plot?.plot_code ?? ''}`).slice(0, 160) }, prev ? [prev] : [], [ph.id], ph.captured_at ?? at);
+      }
+      for (const sp of supports) {
+        await add('DOCUMENT_ATTACH', sp.id, null, { owner_type: 'plot', ...plotRef(), document_type: sp.doc_type, title: sp.title, sha256: sp.sha256, size_bytes: sp.size_bytes, mime_type: sp.mime_type }, prev ? [prev] : [], [sp.id], sp.stored_at);
       }
       await tx.run("UPDATE drafts SET status = 'QUEUED', queued_at = ?, updated_at = ? WHERE id = ?", [at, at, draftId]);
       return ops;
@@ -375,7 +439,8 @@ export class LocalStore {
   // ---- Datos de referencia (productos y centros) y entregas declaradas sin conexión ----
   async applyReference(ref: ReferenceData): Promise<void> {
     await this.db.transaction(async (tx) => {
-      await tx.run('DELETE FROM dataset_products'); await tx.run('DELETE FROM dataset_locations'); await tx.run('DELETE FROM dataset_producers');
+      await tx.run('DELETE FROM dataset_products'); await tx.run('DELETE FROM dataset_locations'); await tx.run('DELETE FROM dataset_producers'); await tx.run('DELETE FROM dataset_document_types');
+      for (const t of ref.document_types ?? []) await tx.run('INSERT INTO dataset_document_types (code, label, allowed_owner_types) VALUES (?,?,?)', [t.code, t.label, JSON.stringify(t.allowed_owner_types)]);
       for (const p of ref.producers ?? []) await tx.run('INSERT INTO dataset_producers (id, producer_code, display_name) VALUES (?,?,?)', [p.id, p.producer_code, p.display_name]);
       for (const p of ref.products) await tx.run('INSERT INTO dataset_products (id, code, name, product_state, unit, status) VALUES (?,?,?,?,?,?)', [p.id, p.code, p.name, p.product_state, p.unit, p.status]);
       for (const l of ref.locations) await tx.run('INSERT INTO dataset_locations (id, code, name, location_type) VALUES (?,?,?,?)', [l.id, l.code, l.name, l.location_type]);
@@ -387,6 +452,11 @@ export class LocalStore {
   }
   private async knownServerProducer(id: string): Promise<boolean> {
     return !!(await this.db.get('SELECT 1 AS x FROM dataset_producers WHERE id = ? UNION SELECT 1 FROM dataset_plots WHERE producer_id = ?', [id, id]));
+  }
+  /** Tipos documentales que el rol puede aportar desde el móvil para una parcela (de la referencia descargada; vacío si el rol no sube documentos). */
+  async supportTypes(): Promise<ReferenceDocumentType[]> {
+    const rows = await this.db.all<{ code: string; label: string; allowed_owner_types: string }>('SELECT code, label, allowed_owner_types FROM dataset_document_types ORDER BY code');
+    return rows.map((r) => ({ code: r.code, label: r.label, allowed_owner_types: JSON.parse(r.allowed_owner_types) as string[] })).filter((t) => t.allowed_owner_types.includes('plot'));
   }
   async products(): Promise<ReferenceData['products']> { return this.db.all('SELECT id, code, name, product_state, unit, status FROM dataset_products ORDER BY code'); }
   async locations(): Promise<ReferenceData['locations']> { return this.db.all('SELECT id, code, name, location_type FROM dataset_locations ORDER BY name'); }
@@ -599,12 +669,12 @@ export class LocalStore {
 
   // ---- Adjuntos (estado separado del registro) ----
   async attachmentsToUpload(): Promise<Array<{ id: string; operation_id: string; sha256: string; size_bytes: number; mime_type: string }>> {
-    return this.db.all(`SELECT a.id, o.operation_id, a.sha256, a.size_bytes, a.mime_type FROM attachments a JOIN outbox o ON o.operation_type = 'PLOT_PHOTO_ATTACH' AND o.attachment_refs LIKE '%' || a.id || '%'
+    return this.db.all(`SELECT a.id, o.operation_id, a.sha256, a.size_bytes, a.mime_type FROM attachments a JOIN outbox o ON o.operation_type IN ('PLOT_PHOTO_ATTACH', 'DOCUMENT_ATTACH') AND o.attachment_refs LIKE '%' || a.id || '%'
       WHERE a.upload_state = 'LOCAL' AND o.state = 'SYNCED' ORDER BY o.seq`);
   }
   /** Fotos ya subidas cuyo análisis no ha concluido: se consulta su estado reenviando su operación confirmada (idempotente). */
   async attachmentsAwaitingAnalysis(): Promise<Array<{ id: string; op: OutboxOp }>> {
-    const rows = await this.db.all<Row & { attachment_id: string }>(`SELECT o.*, a.id AS attachment_id FROM attachments a JOIN outbox o ON o.operation_type = 'PLOT_PHOTO_ATTACH' AND o.attachment_refs LIKE '%' || a.id || '%'
+    const rows = await this.db.all<Row & { attachment_id: string }>(`SELECT o.*, a.id AS attachment_id FROM attachments a JOIN outbox o ON o.operation_type IN ('PLOT_PHOTO_ATTACH', 'DOCUMENT_ATTACH') AND o.attachment_refs LIKE '%' || a.id || '%'
       WHERE a.upload_state = 'UPLOADED' AND coalesce(a.server_status, '') NOT IN ('AVAILABLE', 'REJECTED') AND o.state = 'SYNCED' ORDER BY o.seq`);
     return rows.map((r) => ({ id: r.attachment_id, op: toOp(r) }));
   }
@@ -646,14 +716,15 @@ export class LocalStore {
     for (const d of ds) {
       const loc = await this.db.get<{ id: string; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; recorded_at: string; source: string; provider_detail: string; mocked: number | null }>('SELECT * FROM location_samples WHERE draft_id = ?', [d.id]);
       const photos = await this.db.all<{ id: string; storage: string; path: string | null; has_content: number; sha256: string; size_bytes: number; captured_at: string | null; stored_at: string; upload_state: string; server_status: string | null; server_detail: string | null }>(
-        'SELECT id, storage, path, content IS NOT NULL AS has_content, sha256, size_bytes, captured_at, stored_at, upload_state, server_status, server_detail FROM attachments WHERE draft_id = ? ORDER BY stored_at', [d.id]);
+        "SELECT id, storage, path, content IS NOT NULL AS has_content, sha256, size_bytes, captured_at, stored_at, upload_state, server_status, server_detail FROM attachments WHERE draft_id = ? AND kind = 'PHOTO' ORDER BY stored_at", [d.id]);
+      const supports = await this.db.all<SupportView>("SELECT id, doc_type AS document_type, title, mime_type, size_bytes, sha256, upload_state, server_status, server_detail FROM attachments WHERE draft_id = ? AND kind = 'SUPPORT' ORDER BY stored_at", [d.id]);
       const ops = (await this.db.all<Row>('SELECT * FROM outbox WHERE draft_id = ? ORDER BY seq', [d.id])).map(toOp);
       const ph = [];
       for (const x of photos) ph.push({ id: x.id, storage: x.storage, sha256: x.sha256, size_bytes: x.size_bytes, captured_at: x.captured_at, stored_at: x.stored_at, upload_state: x.upload_state, server_status: x.server_status, server_detail: x.server_detail,
         file_present: x.storage === 'DB' ? x.has_content === 1 : await this.p.files.exists(x.path!) });
       const vertices = (await this.db.all<{ id: string; seq: number; latitude: number; longitude: number; accuracy_m: number | null; acquired_at: string; recorded_at: string; provider_detail: string; mocked: number | null }>('SELECT * FROM polygon_vertices WHERE draft_id = ? ORDER BY seq', [d.id]))
         .map((v) => ({ ...v, mocked: v.mocked === null ? null : v.mocked === 1 }));
-      out.push({ ...d, vertices, location: loc ? { ...loc, mocked: loc.mocked === null ? null : loc.mocked === 1 } : null, photos: ph, operations: ops });
+      out.push({ ...d, vertices, location: loc ? { ...loc, mocked: loc.mocked === null ? null : loc.mocked === 1 } : null, photos: ph, supports, operations: ops });
     }
     return out;
   }

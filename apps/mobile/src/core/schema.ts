@@ -82,6 +82,19 @@ const MIGRATIONS: string[] = [
   // 7 (D): cartografía preparada para el área de trabajo (teselas vectoriales públicas del servicio `maps` del propio despliegue). Sin coordenadas de parcelas.
   `CREATE TABLE map_areas (id TEXT PRIMARY KEY, label TEXT NOT NULL, center_lat REAL NOT NULL, center_lon REAL NOT NULL, radius_km REAL NOT NULL, min_zoom INTEGER NOT NULL, max_zoom INTEGER NOT NULL, tiles INTEGER NOT NULL, bytes INTEGER NOT NULL, prepared_at TEXT NOT NULL, source_label TEXT NOT NULL);
    CREATE TABLE map_tiles (z INTEGER NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, data BLOB NOT NULL, PRIMARY KEY (z, x, y));`,
+  // 8 (D): soportes documentales (PDF o imagen) sobre la parcela de la captura: el adjunto admite kind SUPPORT con su tipo documental y título; catálogo de tipos descargado con la sincronización.
+  `CREATE TABLE attachments_v3 (
+     id TEXT PRIMARY KEY, draft_id TEXT NOT NULL REFERENCES drafts(id), kind TEXT NOT NULL CHECK (kind IN ('PHOTO','SUPPORT')),
+     storage TEXT NOT NULL CHECK (storage IN ('DB','FILE')), path TEXT UNIQUE, content BLOB,
+     sha256 TEXT NOT NULL, size_bytes INTEGER NOT NULL CHECK (size_bytes > 0), mime_type TEXT NOT NULL, captured_at TEXT, stored_at TEXT NOT NULL,
+     upload_state TEXT NOT NULL DEFAULT 'LOCAL' CHECK (upload_state IN ('LOCAL','UPLOADED','REJECTED')), server_status TEXT, server_detail TEXT,
+     doc_type TEXT, title TEXT,
+     CHECK ((storage = 'DB') = (content IS NOT NULL)), CHECK ((storage = 'FILE') = (path IS NOT NULL)));
+   INSERT INTO attachments_v3 (id, draft_id, kind, storage, path, content, sha256, size_bytes, mime_type, captured_at, stored_at, upload_state, server_status, server_detail)
+     SELECT id, draft_id, kind, storage, path, content, sha256, size_bytes, mime_type, captured_at, stored_at, upload_state, server_status, server_detail FROM attachments;
+   DROP TABLE attachments;
+   ALTER TABLE attachments_v3 RENAME TO attachments;
+   CREATE TABLE dataset_document_types (code TEXT PRIMARY KEY, label TEXT NOT NULL, allowed_owner_types TEXT NOT NULL);`,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

@@ -34,7 +34,7 @@ import { hasImageMetadata } from './image-metadata';
 
 export const MAX_BATCH = 50;
 export const CURSOR_TTL_DAYS = 7;
-export const SUPPORTED_OPERATION_TYPES = ['PLOT_LOCATION_SAMPLE_CREATE', 'PLOT_PHOTO_ATTACH', 'PLOT_POLYGON_VERTEX_ADD', 'PRODUCER_CREATE', 'PLOT_CREATE', 'DELIVERY_CREATE'] as const;
+export const SUPPORTED_OPERATION_TYPES = ['PLOT_LOCATION_SAMPLE_CREATE', 'PLOT_PHOTO_ATTACH', 'PLOT_POLYGON_VERTEX_ADD', 'PRODUCER_CREATE', 'PLOT_CREATE', 'DELIVERY_CREATE', 'DOCUMENT_ATTACH'] as const;
 
 export const canonical = (v: unknown): string => Array.isArray(v) ? `[${v.map(canonical).join(',')}]`
   : v && typeof v === 'object' ? `{${Object.keys(v as object).sort().filter((k) => (v as Record<string, unknown>)[k] !== undefined).map((k) => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`).join(',')}}`
@@ -136,6 +136,21 @@ class DeliveryCreatePayload {
   @IsOptional() @IsArray() @ArrayMaxSize(20) @ValidateNested({ each: true }) @Type(() => DeliveryOriginPayload) origins?: DeliveryOriginPayload[];
   @IsOptional() @IsString() @Length(0, 500) notes?: string;
   @IsOptional() @IsBoolean() register?: boolean;
+}
+/** Tipos de soporte que el móvil puede aportar: los de Documentos con titular parcela o productor. FIELD_PHOTO tiene su propia operación; DELIVERY_SUPPORT se vincula desde la entrega. */
+export const MOBILE_SUPPORT_TYPES = ['ENVIRONMENTAL_SUPPORT', 'FIELD_EVIDENCE', 'LABOR_SUPPORT', 'LAND_TENURE', 'THIRD_PARTY_RIGHTS_SUPPORT'] as const;
+/** Soporte documental sobre una parcela o un productor (existentes o creados sin conexión). El archivo llega aparte y pasa por Documentos (integridad, escaneo, permisos). Aportar no aprueba ni revisa nada. */
+class DocumentAttachPayload {
+  @IsIn(['plot', 'producer']) owner_type!: 'plot' | 'producer';
+  @IsOptional() @IsUUID() plot_id?: string;
+  @IsOptional() @IsUUID() plot_local_ref?: string;
+  @IsOptional() @IsUUID() producer_id?: string;
+  @IsOptional() @IsUUID() producer_local_ref?: string;
+  @IsIn([...MOBILE_SUPPORT_TYPES]) document_type!: string;
+  @IsString() @Length(1, 160) title!: string;
+  @Matches(/^[0-9a-f]{64}$/) sha256!: string;
+  @IsInt() @Min(1) size_bytes!: number;
+  @IsIn(['application/pdf', 'image/jpeg', 'image/png']) mime_type!: string;
 }
 class PhotoPayload {
   @IsUUID() plot_id!: string;
@@ -246,7 +261,7 @@ export class SyncService {
 
   /** Autorización actual para el tipo y el recurso (también al devolver un resultado anterior). */
   private async authorizeType(user: AuthUser, ctx: TenantContext, type: string, plotId: string | undefined): Promise<{ code: string; message: string } | null> {
-    const need: Permission[] = type === 'PLOT_LOCATION_SAMPLE_CREATE' || type === 'PLOT_POLYGON_VERTEX_ADD' ? ['plot:read_geometry'] : type === 'PLOT_PHOTO_ATTACH' ? ['document:upload'] : [];
+    const need: Permission[] = type === 'PLOT_LOCATION_SAMPLE_CREATE' || type === 'PLOT_POLYGON_VERTEX_ADD' ? ['plot:read_geometry'] : type === 'PLOT_PHOTO_ATTACH' || type === 'DOCUMENT_ATTACH' ? ['document:upload'] : [];
     if ((type === 'PLOT_LOCATION_SAMPLE_CREATE' || type === 'PLOT_POLYGON_VERTEX_ADD') && !this.has(ctx, 'plot:update') && !this.has(ctx, 'plot:update_assigned') && !this.has(ctx, 'plot:update_own')) return { code: 'PERMISSION_DENIED', message: 'Tu rol ya no permite registrar ubicaciones en parcelas.' };
     if (type === 'PRODUCER_CREATE' && !this.has(ctx, 'producer:create')) return { code: 'PERMISSION_DENIED', message: 'Tu rol no permite registrar productores.' };
     if (type === 'DELIVERY_CREATE' && !this.has(ctx, 'delivery:create') && !this.has(ctx, 'delivery:create_assigned')) return { code: 'PERMISSION_DENIED', message: 'Tu rol no permite declarar entregas.' };
@@ -263,7 +278,7 @@ export class SyncService {
     if (!u) return { status: 'AWAITING_CONTENT', note: 'El registro llegó; el archivo todavía no. Metadata recibida no significa archivo disponible.' };
     const scan = (await sql<{ result: string | null }>`SELECT result FROM document_version_scans WHERE version_id = ${u.version_id} ORDER BY id DESC LIMIT 1`.execute(this.db)).rows[0]?.result ?? null;
     return { status: scan === 'CLEAN' ? 'AVAILABLE' : scan === 'INFECTED' ? 'REJECTED' : 'PENDING_SCAN', document_id: u.document_id, version_id: u.version_id,
-      note: scan === 'CLEAN' ? 'Archivo procesado por la app (sin metadatos embebidos salvo la orientación), íntegro y analizado; disponible según los permisos de Documentos. No prueba captura real ni verifica ninguna afirmación.' : 'Archivo recibido; análisis antimalware pendiente o fallido: no disponible todavía.' };
+      note: scan === 'CLEAN' ? 'Archivo íntegro y analizado (las imágenes, procesadas por la app sin metadatos embebidos salvo la orientación); disponible según los permisos de Documentos. No prueba captura real, no está revisado ni aprobado y no verifica ninguna afirmación.' : 'Archivo recibido; análisis antimalware pendiente o fallido: no disponible todavía.' };
   }
 
   private async pushOne(user: AuthUser, ctx: TenantContext, deviceId: string, op0: OperationDto, requestId?: string): Promise<OpResult> {
@@ -305,7 +320,7 @@ export class SyncService {
           const denied = await this.authorizeType(user, ctx, prior.operation_type, plotId);
           if (denied) return { ...base, status: 'FORBIDDEN' as Status, error: err(denied.code, denied.message) };
           const r = prior.result as Record<string, unknown>;
-          const result = prior.operation_type === 'PLOT_PHOTO_ATTACH' && prior.status === 'ACCEPTED' ? { ...r, attachment: await this.attachmentStatus(orgId, op.operation_id) } : r;
+          const result = (prior.operation_type === 'PLOT_PHOTO_ATTACH' || prior.operation_type === 'DOCUMENT_ATTACH') && prior.status === 'ACCEPTED' ? { ...r, attachment: await this.attachmentStatus(orgId, op.operation_id) } : r;
           return { ...base, replayed: true, status: (prior.status === 'ACCEPTED' ? 'DUPLICATE' : prior.status) as Status, result: prior.status === 'ACCEPTED' ? result : null,
             error: prior.status === 'ACCEPTED' ? null : (r.error as OpResult['error']) };
         }
@@ -462,6 +477,28 @@ export class SyncService {
             throw e;
           }
         }
+        if (op.operation_type === 'DOCUMENT_ATTACH') {
+          const p = await this.validatePayload(DocumentAttachPayload, op.payload);
+          if ('invalid' in p) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('PAYLOAD_INVALID', 'Contenido del soporte no válido.', p.invalid));
+          const idKey = p.owner_type === 'plot' ? 'plot_id' : 'producer_id'; const otherKey = p.owner_type === 'plot' ? 'producer_id' : 'plot_id';
+          if (p[otherKey] || (p.owner_type === 'plot' && p.producer_local_ref) || (p.owner_type === 'producer' && p.plot_local_ref)) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('OWNER_REFERENCE_INVALID', 'Indica solo el titular elegido (parcela o productor).'));
+          let ownerId = p[idKey];
+          if (p.owner_type === 'producer' && p.producer_local_ref) {
+            if (p.producer_id) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('OWNER_REFERENCE_INVALID', 'Indica el productor con exactamente una referencia.'));
+            const pr = await refOf(p.producer_local_ref, 'PRODUCER');
+            if (!pr) return unresolved('El productor creado sin conexión todavía no está registrado en el servidor.');
+            ownerId = pr.server_id;
+          }
+          if (!ownerId) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('OWNER_REFERENCE_INVALID', 'Falta el titular del soporte.'));
+          // Titular existente y dentro del alcance AHORA (se vuelve a comprobar al recibir el archivo).
+          if (p.owner_type === 'producer') { try { await this.producers.get(user, orgId, ownerId); } catch { return { ...base, status: 'FORBIDDEN' as Status, error: err('RESOURCE_NOT_AVAILABLE', 'El productor no existe o ya no está en tu alcance.') }; } }
+          const dt = await trx.selectFrom('document_types').select(['code', 'allowed_owner_types']).where('code', '=', p.document_type).executeTakeFirst();
+          if (!dt) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('DOCUMENT_TYPE_UNKNOWN', 'Tipo de documento no admitido.'));
+          if (!(dt.allowed_owner_types as string[]).includes(p.owner_type)) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('OWNER_TYPE_NOT_ALLOWED', 'Este tipo de documento no admite ese titular.'));
+          if (p.document_type === 'FIELD_EVIDENCE' && p.mime_type !== 'application/pdf') return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('EVIDENCE_IMAGE_USE_FIELD_PHOTO', 'Las evidencias del recorrido son PDF; las fotografías van como «Fotografía de campo».'));
+          return this.store(trx, user, ctx, deviceId, op, hash, 'ACCEPTED', { owner_type: p.owner_type, owner_id: ownerId, document_type: p.document_type, title: p.title, sha256: p.sha256, size_bytes: p.size_bytes, mime_type: p.mime_type,
+            attachment: { status: 'AWAITING_CONTENT', note: 'El registro llegó; el archivo todavía no. Aportar un soporte no lo aprueba ni lo revisa: sigue el estado de Documentos.' } }, null);
+        }
         // PLOT_PHOTO_ATTACH: se acepta el registro; el archivo llega aparte y pasa por Documentos (integridad, escaneo, permisos).
         const p = await this.validatePayload(PhotoPayload, op.payload);
         if ('invalid' in p) return this.store(trx, user, ctx, deviceId, op, hash, 'REJECTED', null, err('PAYLOAD_INVALID', 'Contenido de la foto no válido.', p.invalid));
@@ -489,10 +526,12 @@ export class SyncService {
     if (v.length) throw new AppError(400, 'VALIDATION_FAILED', 'device_id es obligatorio.', [{ field: 'device_id', reason: 'REQUIRED_UUID' }]);
     const device = await this.device(ctx, user, fields.device_id);
     const op = await this.db.selectFrom('sync_operations').selectAll().where('organization_id', '=', orgId).where('operation_id', '=', operationId).executeTakeFirst();
-    if (!op || op.user_id !== user.id || op.operation_type !== 'PLOT_PHOTO_ATTACH') throw new AppError(404, 'OPERATION_NOT_FOUND', 'No hay una foto registrada con ese identificador para tu cuenta.');
+    if (!op || op.user_id !== user.id || (op.operation_type !== 'PLOT_PHOTO_ATTACH' && op.operation_type !== 'DOCUMENT_ATTACH')) throw new AppError(404, 'OPERATION_NOT_FOUND', 'No hay un adjunto registrado con ese identificador para tu cuenta.');
     if (op.status !== 'ACCEPTED') throw conflict('OPERATION_NOT_ACCEPTED', 'La operación de la foto no fue aceptada.');
-    const r = op.result as { plot_id: string; sha256: string; size_bytes: number; mime_type: string; caption: string };
-    const denied = await this.authorizeType(user, ctx, 'PLOT_PHOTO_ATTACH', r.plot_id);
+    const isSupport = op.operation_type === 'DOCUMENT_ATTACH';
+    const r = op.result as { plot_id: string; sha256: string; size_bytes: number; mime_type: string; caption: string; owner_type?: 'plot' | 'producer'; owner_id?: string; document_type?: string; title?: string };
+    const denied = await this.authorizeType(user, ctx, op.operation_type, isSupport ? (r.owner_type === 'plot' ? r.owner_id : undefined) : r.plot_id);
+    if (!denied && isSupport && r.owner_type === 'producer') { try { await this.producers.get(user, orgId, r.owner_id!); } catch { throw forbidden('RESOURCE_NOT_AVAILABLE', 'El productor no existe o ya no está en tu alcance.'); } }
     if (denied) throw forbidden(denied.code, denied.message);
     const existing = await this.db.selectFrom('sync_attachment_uploads').selectAll().where('organization_id', '=', orgId).where('operation_id', '=', operationId).executeTakeFirst();
     if (existing) return { replayed: true, attachment: await this.attachmentStatus(orgId, operationId) };
@@ -502,17 +541,18 @@ export class SyncService {
       await this.audit.record(this.db, { organizationId: orgId, actorUserId: user.id, action: 'sync.attachment_rejected', entityType: 'device', entityId: device.id, requestId, result: 'DENIED', after: { reason: 'ATTACHMENT_INTEGRITY_MISMATCH' } });
       throw new AppError(422, 'ATTACHMENT_INTEGRITY_MISMATCH', 'El archivo recibido no coincide con el registrado (tamaño o SHA-256): transferencia incompleta o alterada. Se conserva en el dispositivo; reintenta.', [{ field: 'file', reason: 'INTEGRITY_MISMATCH' }]);
     }
-    // D-41: metadatos embebidos (EXIF/XMP con coordenadas o dispositivo) eludirían la clasificación: se rechaza.
-    if (hasImageMetadata(new Uint8Array(file.buffer), r.mime_type)) {
+    // D-41: metadatos embebidos (EXIF/XMP con coordenadas o dispositivo) eludirían la clasificación: se rechaza. Un soporte aportado desde el móvil pasa por la misma regla si es imagen.
+    if (r.mime_type !== 'application/pdf' && hasImageMetadata(new Uint8Array(file.buffer), r.mime_type)) {
       await this.audit.record(this.db, { organizationId: orgId, actorUserId: user.id, action: 'sync.attachment_rejected', entityType: 'device', entityId: device.id, requestId, result: 'DENIED', after: { reason: 'PHOTO_METADATA_PRESENT' } });
       throw new AppError(422, 'PHOTO_METADATA_PRESENT', 'La foto conserva metadatos embebidos (EXIF/XMP) o no tiene una estructura válida: la app debe quitarlos antes de enviarla.', [{ field: 'file', reason: 'METADATA_PRESENT' }]);
     }
     // Título y nombre de archivo neutros: la leyenda libre de campo no se publica en el documento (podría contener datos
     // personales visibles sin permiso de identidad); se conserva solo en el registro de sincronización de su autor.
-    const plotCode = await this.plots.get(user, orgId, r.plot_id).then((x) => (x as { plot_code: string }).plot_code).catch(() => 'parcela');
-    const ext = r.mime_type === 'image/png' ? 'png' : 'jpg';
-    const up = await this.documents.upload(user, orgId, { operation_id: operationId, document_type: 'FIELD_PHOTO', owner_type: 'plot', owner_id: r.plot_id, title: `Fotografía de campo · ${plotCode}` },
-      { buffer: file.buffer, mimetype: r.mime_type, originalname: `foto-campo-${operationId.slice(0, 8)}.${ext}` } as never, null, requestId);
+    const ext = r.mime_type === 'image/png' ? 'png' : r.mime_type === 'application/pdf' ? 'pdf' : 'jpg';
+    const meta = isSupport
+      ? { operation_id: operationId, document_type: r.document_type!, owner_type: r.owner_type!, owner_id: r.owner_id!, title: r.title! }
+      : { operation_id: operationId, document_type: 'FIELD_PHOTO', owner_type: 'plot', owner_id: r.plot_id, title: `Fotografía de campo · ${await this.plots.get(user, orgId, r.plot_id).then((x) => (x as { plot_code: string }).plot_code).catch(() => 'parcela')}` };
+    const up = await this.documents.upload(user, orgId, meta, { buffer: file.buffer, mimetype: r.mime_type, originalname: `${isSupport ? 'soporte' : 'foto-campo'}-${operationId.slice(0, 8)}.${ext}` } as never, null, requestId);
     const docView = up.document as { id: string; versions: Array<{ id: string; operation_id?: string; sha256?: string }> };
     const version = await this.db.selectFrom('document_versions').select('id').where('organization_id', '=', orgId).where('operation_id', '=', operationId).executeTakeFirstOrThrow();
     await this.db.insertInto('sync_attachment_uploads').values({ operation_id: operationId, organization_id: orgId, document_id: docView.id, version_id: version.id, sha256: sha, uploaded_by: user.id, device_id: device.id })
@@ -547,7 +587,7 @@ export class SyncService {
     const expires = new Date(Date.now() + CURSOR_TTL_DAYS * 86_400_000);
     await this.db.insertInto('sync_cursors').values({ id, organization_id: orgId, user_id: user.id, device_id: device.id, scope: 'PLOTS', visible: JSON.stringify(visible), expires_at: expires }).execute();
     // Datos de referencia para declarar entregas sin conexión (catálogo de productos y centros de la organización), solo si el rol los puede leer.
-    const reference: { products: unknown[]; locations: unknown[]; producers: unknown[] } = { products: [], locations: [], producers: [] };
+    const reference: { products: unknown[]; locations: unknown[]; producers: unknown[]; document_types?: unknown[] } = { products: [], locations: [], producers: [] };
     // Productores del alcance del usuario (propio/asignado/organización según su permiso), aunque aún no tengan parcelas: solo lo mínimo para referenciarlos (identificador, código, nombre visible).
     if (this.has(ctx, 'plot:create') || this.has(ctx, 'plot:create_assigned') || this.has(ctx, 'plot:create_own') || this.has(ctx, 'delivery:create') || this.has(ctx, 'delivery:create_assigned')) {
       try {
@@ -558,6 +598,9 @@ export class SyncService {
           pn = pg.next_cursor;
         } while (pn && reference.producers.length < 2000);
       } catch { /* sin permiso de lectura de productores: vacío */ }
+    }
+    if (this.has(ctx, 'document:upload')) {
+      reference.document_types = (await this.db.selectFrom('document_types').select(['code', 'label', 'allowed_owner_types']).where('code', 'in', [...MOBILE_SUPPORT_TYPES]).orderBy('code').execute()).map((t) => ({ code: t.code, label: t.label, allowed_owner_types: (t.allowed_owner_types as string[]).filter((o) => o === 'plot' || o === 'producer') }));
     }
     if (this.has(ctx, 'delivery:create') || this.has(ctx, 'delivery:create_assigned')) {
       try { reference.products = (await this.products.list(user, orgId, { limit: 200 } as never)).items.map((p) => ({ id: p.id, code: p.code, name: p.name, product_state: p.product_state.code, unit: p.unit.code, status: p.status })); } catch { /* sin permiso de catálogo: vacío */ }

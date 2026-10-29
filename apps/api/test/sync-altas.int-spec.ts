@@ -193,4 +193,70 @@ describeDb('D altas sin conexión: referencias locales y dependencias', () => {
     expect(statuses(await push(TECH, dev, [mk('DELIVERY_CREATE', randomUUID(), { producer_id: r.body.results[0].result.server_id, product_id: product, location_id: center, delivery_date: hoy, quantity_declared: '5', unit: 'KG', origins: [{ plot_local_ref: randomUUID() }] })]))).toEqual(['DEPENDENCY_PENDING']);
     expect(statuses(await push(TECH, dev, [mk('DELIVERY_CREATE', randomUUID(), { producer_id: r.body.results[0].result.server_id, origins: [{}] })]))).toEqual(['REJECTED']);
   });
+
+  it('soportes documentales (PDF o imagen) sobre parcela y productor creados sin conexión: registro, archivo aparte con integridad, estados de Documentos y sin convertirse en evidencia aprobada', async () => {
+    const dev = await device(TECH); const lp = randomUUID(); const lq = randomUUID();
+    const p = producerOp(lp, 'MOV-8'); const q = plotOp(lq, lp, 'MOV-8-P1', [p.operation_id]);
+    const pdf = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n', 'latin1');
+    const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
+    const soporte = (type: string, owner: Record<string, unknown>, bytes: Buffer, mime: string, deps: string[], over: Record<string, unknown> = {}) =>
+      mk('DOCUMENT_ATTACH', randomUUID(), { document_type: type, title: 'Soporte de ensayo', sha256: sha(bytes), size_bytes: bytes.length, mime_type: mime, ...owner, ...over }, deps);
+    const deParcela = soporte('LAND_TENURE', { owner_type: 'plot', plot_local_ref: lq }, pdf, 'application/pdf', [q.operation_id]);
+    const deProductor = soporte('LABOR_SUPPORT', { owner_type: 'producer', producer_local_ref: lp }, pdf, 'application/pdf', [p.operation_id], { title: 'Soporte laboral' });
+    const r = await push(TECH, dev, [p, q, deParcela, deProductor]);
+    expect(statuses(r)).toEqual(['ACCEPTED', 'ACCEPTED', 'ACCEPTED', 'ACCEPTED']);
+    const plotServer = r.body.results[1].result.server_id as string; const prodServer = r.body.results[0].result.server_id as string;
+    expect(r.body.results[2].result).toMatchObject({ owner_type: 'plot', owner_id: plotServer, document_type: 'LAND_TENURE', attachment: { status: 'AWAITING_CONTENT' } }); // registro aceptado, archivo todavía no
+    expect(r.body.results[3].result).toMatchObject({ owner_type: 'producer', owner_id: prodServer });
+    // el archivo se sube aparte; antes de eso no hay documento
+    expect((await http().get(base(org) + '/documents?owner_type=plot&owner_id=' + plotServer).set(as(ADMIN)).expect(200)).body).toHaveLength(0);
+    const subir = (op: string, bytes: Buffer, mime: string, who = TECH) => http().post(base(org) + '/sync/attachments/' + op + '/content').set(as(who)).field('device_id', dev).attach('file', bytes, { filename: 'x', contentType: mime });
+    const up = await subir(deParcela.operation_id, pdf, 'application/pdf');
+    expect([200, 201]).toContain(up.status);
+    expect(['PENDING_SCAN', 'AVAILABLE']).toContain(up.body.attachment.status); // el análisis no se da por limpio sin escáner
+    expect((await subir(deProductor.operation_id, pdf, 'application/pdf')).status).toBeLessThan(300);
+    // el reintento (respuesta perdida) no duplica el documento ni la versión
+    expect((await subir(deParcela.operation_id, pdf, 'application/pdf')).body.replayed).toBe(true);
+    const docs = (await http().get(base(org) + '/documents?owner_type=plot&owner_id=' + plotServer).set(as(ADMIN)).expect(200)).body as Array<{ document_type: string; owner_id: string; versions: Array<{ sha256: string; mime_type: string }>; title: string }>;
+    expect(docs).toHaveLength(1);
+    expect(docs[0]).toMatchObject({ document_type: 'LAND_TENURE', owner_id: plotServer, title: 'Soporte de ensayo' });
+    expect(docs[0].versions).toHaveLength(1); expect(docs[0].versions[0]).toMatchObject({ sha256: sha(pdf), mime_type: 'application/pdf' });
+    expect(JSON.stringify(docs[0])).not.toMatch(/ACCEPTED/); // aportar no revisa ni aprueba: ninguna revisión humana registrada
+    expect((await http().get(base(org) + '/documents?owner_type=producer&owner_id=' + prodServer).set(as(ADMIN)).expect(200)).body).toHaveLength(1);
+    // reenviar la operación: duplicado, con el estado actual del archivo
+    expect(statuses(await push(TECH, dev, [deParcela]))).toEqual(['DUPLICATE']);
+  });
+
+  it('soportes: tipos y titulares fuera de alcance, integridad y permisos se rechazan sin guardar nada', async () => {
+    const dev = await device(TECH); const lp = randomUUID(); const lq = randomUUID();
+    const p = producerOp(lp, 'MOV-9'); const q = plotOp(lq, lp, 'MOV-9-P1', [p.operation_id]);
+    const png = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex');
+    const pdf = Buffer.from('%PDF-1.4\nsoporte\n%%EOF\n', 'latin1');
+    const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
+    const mkS = (over: Record<string, unknown>, deps: string[] = [q.operation_id]) => mk('DOCUMENT_ATTACH', randomUUID(), { owner_type: 'plot', plot_local_ref: lq, document_type: 'ENVIRONMENTAL_SUPPORT', title: 'S', sha256: sha(pdf), size_bytes: pdf.length, mime_type: 'application/pdf', ...over }, deps);
+    const buenos = await push(TECH, dev, [p, q]); expect(statuses(buenos)).toEqual(['ACCEPTED', 'ACCEPTED']);
+    // tipos que NO se crean ni se admiten desde esta operación: fotografía (tiene su propia operación), soporte de entrega (se vincula desde la entrega) y tipos inexistentes
+    for (const tipo of ['FIELD_PHOTO', 'DELIVERY_SUPPORT', 'TIPO_INVENTADO']) expect(statuses(await push(TECH, dev, [mkS({ document_type: tipo })]))).toEqual(['REJECTED']);
+    // titular que el tipo no admite / imagen como evidencia del recorrido (debe ser PDF) / MIME no admitido / titular ambiguo
+    expect(statuses(await push(TECH, dev, [mkS({ document_type: 'FIELD_EVIDENCE', mime_type: 'image/png', sha256: sha(png), size_bytes: png.length })]))).toEqual(['REJECTED']);
+    expect(statuses(await push(TECH, dev, [mkS({ mime_type: 'application/zip' })]))).toEqual(['REJECTED']);
+    expect(statuses(await push(TECH, dev, [mkS({ producer_local_ref: lp })]))).toEqual(['REJECTED']);
+    // imagen válida como soporte ambiental: se acepta el registro, y un archivo con otros bytes se rechaza por integridad sin guardar
+    const img = mkS({ mime_type: 'image/png', sha256: sha(png), size_bytes: png.length });
+    expect(statuses(await push(TECH, dev, [img]))).toEqual(['ACCEPTED']);
+    const mal = await http().post(base(org) + '/sync/attachments/' + img.operation_id + '/content').set(as(TECH)).field('device_id', dev).attach('file', Buffer.concat([png, Buffer.from([1])]), { filename: 'x.png', contentType: 'image/png' });
+    expect(mal.status).toBeGreaterThanOrEqual(400);
+    // contenido que no es un PDF aunque se declare como PDF: el servidor decide por la firma de bytes
+    const falso = mkS({ sha256: sha(Buffer.from('no soy un pdf')), size_bytes: Buffer.from('no soy un pdf').length });
+    await push(TECH, dev, [falso]);
+    expect((await http().post(base(org) + '/sync/attachments/' + falso.operation_id + '/content').set(as(TECH)).field('device_id', dev).attach('file', Buffer.from('no soy un pdf'), { filename: 'x.pdf', contentType: 'application/pdf' })).status).toBeGreaterThanOrEqual(400);
+    const guardados = await h.db.selectFrom('document_versions').select(h.db.fn.countAll().as('n')).where('organization_id', '=', org).where('operation_id', 'in', [img.operation_id, falso.operation_id]).executeTakeFirstOrThrow();
+    expect(Number(guardados.n)).toBe(0);
+    // otra persona (TECH2) no puede subir el archivo de una operación ajena; el Productor sin permiso de subir ni registra
+    const ok = mkS({}); expect(statuses(await push(TECH, dev, [ok]))).toEqual(['ACCEPTED']);
+    expect((await http().post(base(org) + '/sync/attachments/' + ok.operation_id + '/content').set(as(TECH2)).field('device_id', await device(TECH2)).attach('file', pdf, { filename: 'x.pdf', contentType: 'application/pdf' })).status).toBeGreaterThanOrEqual(400);
+    // la referencia de tipos documentales llega solo a quien puede subir documentos
+    const pull = await http().get(base(org) + '/sync/pull?device_id=' + dev).set(as(TECH)).expect(200);
+    expect(pull.body.reference.document_types.map((t: { code: string }) => t.code)).toEqual(['ENVIRONMENTAL_SUPPORT', 'FIELD_EVIDENCE', 'LABOR_SUPPORT', 'LAND_TENURE', 'THIRD_PARTY_RIGHTS_SUPPORT']);
+  });
 });

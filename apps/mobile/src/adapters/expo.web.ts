@@ -134,7 +134,7 @@ const err = (status: number, code: string, message: string) => json(status, { er
 
 /** Cuentas sintéticas de la vista previa: el prefijo del correo elige los permisos (para revisar cada forma de «Altas» según el rol). */
 function previewPermissions(email: string | null): string[] {
-  const base = ['plot:read', 'plot:update_assigned'];
+  const base = ['plot:read', 'plot:update_assigned', 'document:upload'];
   if (email?.startsWith('jefe@')) return [...base, 'producer:create', 'plot:create_assigned', 'delivery:create_assigned', 'sync:use'];
   if (email?.startsWith('productor@')) return ['plot:read_own', 'plot:create_own', 'plot:update_own', 'sync:use'];
   if (email?.startsWith('entregas@')) return [...base, 'delivery:create_assigned', 'sync:use'];
@@ -159,7 +159,7 @@ export const apiFetch: FetchLike | undefined = async (url, init) => {
   if (st.scenario === 'DEVICE_REVOKED' && path.includes('/sync/')) return err(403, 'DEVICE_REVOKED', 'Este dispositivo fue revocado: no puede enviar ni recibir datos. Tus capturas locales se conservan; contacta al administrador.');
   if (path.endsWith('/devices')) return json(201, { device: { id: '00000000-0000-4000-8000-0000000000d1' } });
   if (path.endsWith('/sync/pull')) {
-    return json(200, { cursor: `c-${Date.now()}`, full: true, tombstones: [], reference: { producers: [SIN_PARCELAS], products: [{ id: 'vp-prod-1', code: 'CACAO_BABA', name: 'Cacao en baba (sintético)', product_state: 'CACAO_BABA', unit: 'KG', status: 'ACTIVE' }], locations: [{ id: 'vp-loc-1', code: 'CA-VP-01', name: 'Centro de acopio sintético', location_type: 'COLLECTION_CENTER' }] }, changes: PLOTS.map(([code, name, producer], i) => ({ id: plotId(i), plot_code: code, name, row_version: st.versions[plotId(i)], status: 'ACTIVE', producer_id: `00000000-0000-4000-8000-00000000020${i}`, producer_code: `VP-PR-00${i + 1}`, producer_display_name: producer, geometry_status: 'DRAFT' })) });
+    return json(200, { cursor: `c-${Date.now()}`, full: true, tombstones: [], reference: { document_types: [{ code: 'ENVIRONMENTAL_SUPPORT', label: 'Soporte ambiental', allowed_owner_types: ['plot', 'producer'] }, { code: 'LAND_TENURE', label: 'Documento de tenencia de la tierra', allowed_owner_types: ['plot', 'producer'] }], producers: [SIN_PARCELAS], products: [{ id: 'vp-prod-1', code: 'CACAO_BABA', name: 'Cacao en baba (sintético)', product_state: 'CACAO_BABA', unit: 'KG', status: 'ACTIVE' }], locations: [{ id: 'vp-loc-1', code: 'CA-VP-01', name: 'Centro de acopio sintético', location_type: 'COLLECTION_CENTER' }] }, changes: PLOTS.map(([code, name, producer], i) => ({ id: plotId(i), plot_code: code, name, row_version: st.versions[plotId(i)], status: 'ACTIVE', producer_id: `00000000-0000-4000-8000-00000000020${i}`, producer_code: `VP-PR-00${i + 1}`, producer_display_name: producer, geometry_status: 'DRAFT' })) });
   }
   if (path.endsWith('/sync/push')) {
     const ops = (body.operations ?? []) as Array<{ operation_id: string; operation_type: string; base_version: number | null; payload: { plot_id?: string } }>;

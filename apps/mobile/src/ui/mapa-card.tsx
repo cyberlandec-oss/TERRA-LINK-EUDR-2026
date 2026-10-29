@@ -61,6 +61,7 @@ export function MapaCard({ store, draft, peek, now, mapsUrl, editable }: { store
       <Text style={s.muted}>Verde: vértice con precisión informada · ámbar: sin precisión o mayor a 30 m · rojo: marcado como simulado por el sistema · azul: «Mi ubicación» (sin guardar) y su círculo de precisión · gris: lectura vieja.</Text>
       <Text style={s.muted}>Referencia visual (OpenStreetMap): no acredita límites de propiedad, precisión GPS ni conformidad. Los puntos no se ajustan a elementos del mapa.</Text>
       {avisos.map((a) => <Text key={a} style={s.muted}>⚠ {a}</Text>)}
+      <Text style={s.muted}>Dentro del mapa, el dedo mueve el mapa. Para seguir con el formulario, desliza fuera de él (el texto de aquí abajo, el título o los bordes desplazan la página).</Text>
       <Button kind="secondary" label="Centrar en lo capturado" onPress={() => setRefit(refit + 1)} />
 
       <Text accessibilityRole="header" style={s.p}>Cartografía del área de trabajo</Text>

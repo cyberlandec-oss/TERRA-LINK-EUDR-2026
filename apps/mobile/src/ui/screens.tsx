@@ -18,6 +18,7 @@ import type { DatasetPlot, DraftView, LocalStore, RecoveryReport } from '../core
 import { Badge, Button, Card, Field, Notice, T, s } from './kit';
 import { Altas } from './altas';
 import { MapaCard } from './mapa-card';
+import { Soportes, SUPPORT_STATE } from './soportes';
 import { mapsUrlFor } from '../core/mapa';
 
 // Pantallas P0-023 (UX_UI §21): inicio de sesión online → organización → preparación (datos asignados) → captura
@@ -362,6 +363,7 @@ function Capture({ session, orgId, store, draftId, onDraft, onQueued }: { sessio
           ? <Button kind="secondary" label="Usar foto de prueba (sintética)" hint="Este entorno no usa la cámara real" onPress={() => void fixturePhoto()} disabled={busy} />
           : <Button kind="secondary" label="Tomar foto" onPress={() => void takePhoto()} disabled={busy} />)}
       </Card>
+      <Soportes store={store} draft={draft} editable={editable} synthetic={testEnv} act={act} busy={busy} />
       <Card title="Nota">
         {editable ? <Field label="Observación de campo" value={note} onChangeText={setNote} onEndEditing={() => void act(() => store.setNote(draft.id, note))} multiline maxLength={1000} /> : <Text style={s.p}>{draft.note || '—'}</Text>}
       </Card>
@@ -396,6 +398,7 @@ function Pending({ store, onOpen }: { store: LocalStore; onOpen: (d: string) => 
         <Card key={d.id} title={`${d.plot_code ?? 'Parcela'} · ${fmt(d.created_at)}`}>
           <Badge tone={d.status === 'DRAFT' ? 'neutral' : 'process'}>{d.status === 'DRAFT' ? 'Borrador local' : 'Pendiente (en cola)'}</Badge>
           <Text style={s.muted}>Ubicación: {d.location ? (d.location.accuracy_m === null ? 'sí (precisión no informada)' : `sí (±${Math.round(d.location.accuracy_m)} m)`) : 'no'}{d.plot_code ? '' : ' · la parcela ya no está en tus datos descargados'}</Text>
+          {d.supports.map((x) => <Text key={x.id} style={s.muted}>Soporte «{x.title}»: {SUPPORT_STATE(x)}{x.server_detail && x.upload_state !== 'UPLOADED' ? ` (${x.server_detail})` : ''}</Text>)}
           {d.photos.map((p) => <Text key={p.id} style={s.muted}>Foto {p.sha256.slice(0, 8)}…: {PHOTO_STATE(p)}{p.server_detail ? ` (${p.server_detail})` : ''}</Text>)}
           {d.operations.map((o) => {
             const [label, tone] = OP_STATE[o.state] ?? [o.state, 'neutral'];
@@ -404,7 +407,7 @@ function Pending({ store, onOpen }: { store: LocalStore; onOpen: (d: string) => 
             return (
               <View key={o.operation_id} style={{ marginTop: 6 }}>
                 <Badge tone={blocked ? 'blocked' : tone}>{blocked ? 'Bloqueado por acceso' : label}</Badge>
-                <Text style={s.muted}>{o.operation_type === 'PLOT_LOCATION_SAMPLE_CREATE' ? 'Muestra de ubicación' : o.operation_type === 'PLOT_POLYGON_VERTEX_ADD' ? `Vértice ${(o.payload as { vertex_seq?: number }).vertex_seq ?? ''} del polígono` : o.operation_type === 'PRODUCER_CREATE' ? 'Alta de productor' : o.operation_type === 'PLOT_CREATE' ? 'Alta de parcela' : o.operation_type === 'DELIVERY_CREATE' ? 'Declaración de entrega' : 'Foto'} · {o.operation_id.slice(0, 8)}{o.recovered_count ? ` · recuperada ${o.recovered_count} vez/veces` : ''}{o.resolved_by ? ' · resuelta con otra operación' : ''}</Text>
+                <Text style={s.muted}>{o.operation_type === 'PLOT_LOCATION_SAMPLE_CREATE' ? 'Muestra de ubicación' : o.operation_type === 'PLOT_POLYGON_VERTEX_ADD' ? `Vértice ${(o.payload as { vertex_seq?: number }).vertex_seq ?? ''} del polígono` : o.operation_type === 'PRODUCER_CREATE' ? 'Alta de productor' : o.operation_type === 'PLOT_CREATE' ? 'Alta de parcela' : o.operation_type === 'DELIVERY_CREATE' ? 'Declaración de entrega' : o.operation_type === 'DOCUMENT_ATTACH' ? 'Soporte documental' : 'Foto'} · {o.operation_id.slice(0, 8)}{o.recovered_count ? ` · recuperada ${o.recovered_count} vez/veces` : ''}{o.resolved_by ? ' · resuelta con otra operación' : ''}</Text>
                 {o.last_error && <Text style={s.muted}>{o.last_error}</Text>}
                 {o.state === 'CONFLICT' && (o.server_result?.error as { details?: { resolution?: string } } | null)?.details?.resolution && <Text style={s.muted}>{(o.server_result?.error as { details: { resolution: string } }).details.resolution}</Text>}
                 {o.state === 'CONFLICT' && !o.resolved_by && typeof serverVersion === 'number' && (

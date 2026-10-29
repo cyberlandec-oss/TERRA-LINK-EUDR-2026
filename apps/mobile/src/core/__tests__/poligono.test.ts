@@ -160,7 +160,7 @@ describe('D polígono por vértices en el dispositivo', () => {
 
   it('una captura sin ubicación, vértices ni foto sigue sin encolarse', async () => {
     const s = await open(); const d = await s.createDraft(PLOT.id);
-    await expect(s.enqueue(d)).rejects.toThrow(/agrega ubicación, vértices o foto/);
+    await expect(s.enqueue(d)).rejects.toThrow(/agrega ubicación, vértices, foto o un soporte/);
     await s.close();
   });
 });
