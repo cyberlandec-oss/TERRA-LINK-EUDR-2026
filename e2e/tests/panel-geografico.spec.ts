@@ -89,7 +89,11 @@ test('panel en español: vigencia, ausencia y obsolescencia distinguidas, pendie
   await expect(panel.getByRole('listitem').filter({ hasText: 'GEO-AUS' })).toContainText('Sin evaluación');
   await expect(panel.getByRole('listitem').filter({ hasText: 'GEO-OBS' })).toContainText('Obsoleta');
   await expect(panel.getByRole('link', { name: 'GEO-AUS' }).first()).toHaveAttribute('href', new RegExp(`/organizaciones/${orgA}/parcelas/`));
-  await expect(panel.getByText('Esto no cumple el requisito regulatorio', { exact: true })).toBeVisible();
+  // El aviso ya no es fijo: muestra el estado ACTUAL del requisito con su motivo (aquí, sin configuración adoptada), aparte de lo guardado en la instantánea.
+  await expect(panel.getByText('Estado actual del requisito GEOLOCATION_PROFILE', { exact: true })).toBeVisible();
+  await expect(panel).toContainText('no ha adoptado ninguna configuración de geolocalización');
+  await expect(panel).toContainText('Sin configuración adoptada');
+  await expect(panel).toContainText('Esto no habilita READY');
   await expect(panel).toContainText('Estado de GEOLOCATION_PROFILE en la última instantánea (1): No evaluable');
   await ctx.close();
 });
@@ -131,7 +135,8 @@ test('inglés, teclado y 390 px: el mismo panel, sin desborde y sin códigos int
   await expect(filas.filter({ hasText: 'GEO-OBS' })).toContainText('Outdated');
   await expect(filas.filter({ hasText: 'GEO-AUS' })).toContainText('No evaluation');
   await expect(filas.filter({ hasText: 'GEO-OK' })).toContainText('Current');
-  await expect(panel).toContainText('This does not meet the regulatory requirement');
+  await expect(panel).toContainText('Current status of requirement GEOLOCATION_PROFILE');
+  await expect(panel).toContainText('No configuration adopted');
   const texto = await panel.innerText();
   expect(texto).not.toMatch(/\b(NEVER_EVALUATED|GEOMETRY_VERSION_CHANGED|PROFILE_VERSION_CHANGED|NO_GEOMETRY_VERSION|MEETS_PROFILE|DOES_NOT_MEET|EVALUATE_PROFILE|CORRECT_GEOMETRY)\b/);
   const boton = panel.getByRole('button', { name: 'Look up again' });

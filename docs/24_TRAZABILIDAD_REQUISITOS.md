@@ -108,3 +108,8 @@ Textos desactualizados detectados: tarjeta «Mi finca… requiere vínculo» de 
 **Actualización (2026-10-24, AJ-06, `6239de1`):** RF-28 / P0-028 → avance, reanudación y cancelación del trabajo asíncrono y credencial cifrada por organización; probado con servidor controlado. Integración real NO EJECUTADA. Evidencia: `qa/EVIDENCIA_AJ06_TRABAJO_ASINCRONO_Y_CREDENCIAL_2026-10-24.md`.
 
 **Actualización (2026-10-25, AJ-07, `210d8f5`):** RF-28 / P0-028 → envío incierto sin reenvío, reserva de a un trabajo, original inmutable por arrendamiento y descarga autorizada con huella (H2–H6 del plan de revisión). H7 (riesgo) y H8 (expediente) **pendientes**. Evidencia: `qa/EVIDENCIA_AJ07_ENVIO_INCIERTO_ORIGINAL_Y_DESCARGA_2026-10-25.md`.
+
+## Actualización 2026-10-29 — panel geográfico y expediente DD-2026-00002
+| Fuente | Requisito | Historia | Estado |
+| --- | --- | --- | --- |
+| P0-022 (GEOLOCATION_PROFILE) | Aviso del panel sustituido por el estado ACTUAL del mecanismo | P0-022 | **Implementado y probado** (`4ff7cb2`; `geo-config.int-spec`, `dd-geo-panel.int-spec`; recorrido `e2e/review/dd-geo-panel-web.mjs`, `docs/qa/dd-geo-panel-web.json`). El requisito sigue NOT_EVALUABLE en DD-2026-00002 por falta de configuración adoptada; READY sigue bloqueado. Sin cambio de denominadores |

@@ -58,7 +58,7 @@ await caso('2 La pantalla muestra el panel separado, con vigencia/obsolescencia/
   const filas = await panel.locator('table tbody tr').count();
   await a.ctx.close();
   const c = elegido.p.counts;
-  return [filas === c.total && /Consulta actual, separada de la instantánea/.test(texto) && /Esto no cumple el requisito regulatorio/.test(texto) && /No forma parte del contenido de ninguna instantánea/.test(texto),
+  return [filas === c.total && /Consulta actual, separada de la instantánea/.test(texto) && /Estado actual del requisito GEOLOCATION_PROFILE/.test(texto) && /No forma parte del contenido de ninguna instantánea/.test(texto),
     `${elegido.c.case_number}: ${c.total} parcelas · cumplen ${c.meets_profile} · no cumplen ${c.does_not_meet} · revisión ${c.review_required} · no evaluable ${c.not_evaluable} · obsoletas ${c.obsolete} · sin evaluación ${c.absent}; filas=${filas}`];
 });
 
