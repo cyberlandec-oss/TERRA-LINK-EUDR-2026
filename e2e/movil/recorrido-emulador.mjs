@@ -566,12 +566,13 @@ const steps = {
     const tmp = join(root, 'validation-results', 'soporte-prueba.pdf'); mkdirSync(join(root, 'validation-results'), { recursive: true }); wf(tmp, pdf);
     adb('push', tmp, '/sdcard/Download/soporte-prueba.pdf'); adb('shell', 'am', 'broadcast', '-a', 'android.intent.action.MEDIA_SCANNER_SCAN_FILE', '-d', 'file:///sdcard/Download/soporte-prueba.pdf');
     await abrirCaptura(state.plotCode);
-    await ver(/Soportes documentales/, 30000);
-    await ver(/^Documento de tenencia de la tierra$|Documento de tenencia de la tierra/, 30000); await tap(/Documento de tenencia de la tierra/);
+    for (let i = 0; i < 20 && !find(/Soportes documentales/).length; i++) { scroll('down'); await sleep(400); }
+    for (let i = 0; i < 14 && !find(/Documento de tenencia de la tierra/).length; i++) { scroll('down'); await sleep(400); } // los tipos quedan bajo la cabecera de la tarjeta
+    await tap(/Documento de tenencia de la tierra/);
     await typeInto(/Título del soporte/, 'Soporte prueba emulador'); hideKeyboard(); await sleep(500);
     await ver(/^Elegir PDF o imagen$/, 30000); await tap(/^Elegir PDF o imagen$/);
     for (let i = 0; i < 30 && !/Soporte guardado en el dispositivo/.test(allText()); i++) {
-      const f1 = find(/soporte-prueba\.pdf/); if (f1.length) { tapNode(f1[0]); await sleep(2500); continue; }
+      const f1 = find(/^soporte-prueba\.pdf$/); if (f1.length) { tapNode(f1[0]); await sleep(2500); continue; }
       const dl = find(/^(Downloads|Descargas)$/); if (dl.length) { tapNode(dl[0]); await sleep(1500); continue; }
       const menu = find(/Show roots|Mostrar raíces|Open drawer|Abrir panel/i); if (menu.length && i % 3 === 2) { tapNode(menu[0]); await sleep(1200); continue; }
       await sleep(1000);

@@ -2893,6 +2893,308 @@
         "commit": "0619055",
         "modificado_sin_commit": true
       }
+    },
+    {
+      "paso": "login",
+      "en": "2026-10-29T22:43:18.771Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Iniciar sesión/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/228-fallo-login.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "capturar",
+      "en": "2026-10-29T22:44:24.880Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Nueva captura$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/229-fallo-capturar.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "preparar",
+      "en": "2026-10-29T22:44:48.035Z",
+      "ok": true,
+      "detalle": "Permisos de ubicación y cámara concedidos por adb; posición EMULADA -0.8479, -80.1601; proxy en modo pass",
+      "captura": "docs/qa/capturas/movil-emulador/230-inicio.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "login",
+      "en": "2026-10-29T22:45:53.337Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Iniciar sesión/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/231-fallo-login.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "descargar",
+      "en": "2026-10-29T22:46:57.671Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Descargar datos asignados/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/232-fallo-descargar.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "capturar",
+      "en": "2026-10-29T22:48:01.518Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Nueva captura$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/233-fallo-capturar.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "descargar",
+      "en": "2026-10-29T22:49:29.407Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /parcela\\(s\\) autorizadas descargadas/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/234-fallo-descargar.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "capturar",
+      "en": "2026-10-29T22:50:24.837Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^CAD-1027213440 ·/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/235-fallo-capturar.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "mapaDesplazamiento",
+      "en": "2026-10-29T22:51:46.260Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^CAD-1027213440 ·/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/236-fallo-mapaDesplazamiento.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-29T22:53:32.323Z",
+      "ok": true,
+      "detalle": "Nuevo inicio de sesión online (la anterior vencía a la hora)",
+      "captura": null,
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "descargar-asignaciones",
+      "en": "2026-10-29T22:53:56.653Z",
+      "ok": true,
+      "detalle": "11 parcela(s) autorizadas descargadas",
+      "captura": "docs/qa/capturas/movil-emulador/237-descarga.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "capturar-ubicacion",
+      "en": "2026-10-29T22:56:24.426Z",
+      "ok": true,
+      "detalle": {
+        "lectura": "-0.847900,-80.160098",
+        "guardada_antes": null,
+        "guardada_despues": "-0.847900,-80.160098",
+        "nota": "Mi ubicación EMULADA: la lectura se mostró sin guardar y solo la acción explícita la guardó, con las mismas coordenadas"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/238-ubicacion.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "mapa-desplazamiento-y-formulario",
+      "en": "2026-10-29T23:00:48.472Z",
+      "ok": true,
+      "detalle": {
+        "mapa_se_movio_con_el_dedo": true,
+        "pagina_quieta_al_arrastrar_el_mapa": true,
+        "llega_a_guardar_en_cola_deslizando_fuera": true,
+        "vuelve_arriba": true,
+        "vertices_conservados": true
+      },
+      "captura": "docs/qa/capturas/movil-emulador/239-mapa-arrastre-dentro.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "altas-productor-autorizado-sin-parcelas-visible",
+      "en": "2026-10-29T23:02:15.617Z",
+      "ok": true,
+      "detalle": "Tras la descarga, «Nueva parcela» ofrece MOV-SIN-PARC aunque no tiene parcelas",
+      "captura": "docs/qa/capturas/movil-emulador/241-altas-productor-sin-parcelas.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "altas-primera-parcela-offline-en-cola",
+      "en": "2026-10-29T23:03:25.152Z",
+      "ok": true,
+      "detalle": {
+        "codigo": "MOV-P-939535",
+        "red": "offline (proxy)"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/242-altas-parcela-en-cola.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "soporteAdjunto",
+      "en": "2026-10-29T23:05:27.248Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Documento de tenencia de la tierra$|Documento de tenencia de la tierra/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/243-fallo-soporteAdjunto.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "soporteAdjunto",
+      "en": "2026-10-29T23:08:14.996Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Documento de tenencia de la tierra$|Documento de tenencia de la tierra/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/244-fallo-soporteAdjunto.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "soporteAdjunto",
+      "en": "2026-10-29T23:10:18.632Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Soportes documentales/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/245-fallo-soporteAdjunto.png",
+      "script": {
+        "sha256": "d36bd9bc49362a066b97206b66f0e49826de96400ccb64a374bebf5ee5505c5b",
+        "commit": "70348c7",
+        "modificado_sin_commit": false
+      }
+    },
+    {
+      "paso": "soporteAdjunto",
+      "en": "2026-10-29T23:16:41.960Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Soporte prueba emulador/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/246-fallo-soporteAdjunto.png",
+      "script": {
+        "sha256": "b8fc71543c68cd85acab1a8e442ce61d5f4ca48142bb245fe8a39dd5a9f898e7",
+        "commit": "70348c7",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "soporteAdjunto",
+      "en": "2026-10-29T23:23:14.225Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Soporte prueba emulador/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/247-fallo-soporteAdjunto.png",
+      "script": {
+        "sha256": "b8fc71543c68cd85acab1a8e442ce61d5f4ca48142bb245fe8a39dd5a9f898e7",
+        "commit": "70348c7",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "soporteAdjunto",
+      "en": "2026-10-29T23:25:38.084Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Elegir PDF o imagen$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/248-fallo-soporteAdjunto.png",
+      "script": {
+        "sha256": "5ab8443e4de3fafa0be90a0874144565d2f5192440e9b86b62200314059ba2d3",
+        "commit": "70348c7",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "soporteAdjunto",
+      "en": "2026-10-29T23:31:34.753Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Soporte prueba emulador/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/249-fallo-soporteAdjunto.png",
+      "script": {
+        "sha256": "5ab8443e4de3fafa0be90a0874144565d2f5192440e9b86b62200314059ba2d3",
+        "commit": "70348c7",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "soporte-pdf-sobre-parcela-nueva",
+      "en": "2026-10-29T23:40:59.900Z",
+      "ok": true,
+      "detalle": {
+        "picker_del_sistema": true,
+        "aparece_pendiente_antes_de_subir": true,
+        "operacion_registrada_en_cola": true,
+        "documentos_tras_la_subida_interrumpida": 1,
+        "documentos_tras_la_recuperacion": 1,
+        "tipo": "LAND_TENURE",
+        "titular_es_la_parcela_definitiva": true,
+        "sha256_igual": true,
+        "versiones": 1,
+        "revisiones_humanas": "0",
+        "estado_en_la_app": "archivo disponible (sin revisar)"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/250-soporte-recuperado.png",
+      "script": {
+        "sha256": "c1f485fb04e3606ffa6ebec627d6e43ce3743459a322f17c2e91dcd8ca070c50",
+        "commit": "70348c7",
+        "modificado_sin_commit": true
+      }
     }
   ]
 }

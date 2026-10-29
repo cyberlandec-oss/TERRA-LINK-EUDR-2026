@@ -140,6 +140,7 @@ Endpoints (`/api/v1/organizations/{org}`): `POST /devices`, `GET /devices`, `POS
 | `PLOT_PHOTO_ATTACH` | Sí (registro + archivo vía Documentos) | Sí (la nota viaja como leyenda) |
 | `PRODUCER_CREATE` (D, 2026-10-28) | Sí (alta con referencia local; requiere `producer:create`; atómica con su registro) | Sí (pantalla «Altas») |
 | `PLOT_CREATE` (D, 2026-10-28) | Sí (productor por `producer_id` o `producer_local_ref`; alcance de alta del usuario) | Sí |
+| `DOCUMENT_ATTACH` (2026-10-29) | Sí (titular parcela o productor, existente o por referencia local; tipo del catálogo de Documentos con ese titular; sin tipos nuevos; excluye `FIELD_PHOTO` y `DELIVERY_SUPPORT`) | Sí (archivo aparte: SHA-256, firma de bytes, escaneo; estados independientes; aportar no revisa ni aprueba). Exige `document:upload`; el catálogo `reference.document_types` solo llega a quien lo tiene |
 | `DELIVERY_CREATE` (D, 2026-10-28) | Sí (declaración de entrega idempotente por `operation_id`; productor y parcelas de origen por id o por referencia local; `delivery:create` / `create_assigned`; borrador, o registrada solo si se pide y la compuerta lo permite) | Sí (pantalla «Altas») |
 | Recepciones, pesaje, calidad, lotes, inventario | No (`UNSUPPORTED_OPERATION_TYPE`) | No — por diseño: son flujos del servidor y la web; ninguna fuente (RF-23/24, S1 §§45–48, S4 §§5–7) los exige como operaciones móviles |
 
