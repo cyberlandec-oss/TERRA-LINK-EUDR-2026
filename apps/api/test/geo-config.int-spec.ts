@@ -32,6 +32,7 @@ describeDb('GEOLOCATION_PROFILE: configuración versionada de reglas', () => {
   }
   const mkCase = async (lot: string) => (await http().post(`${base(orgA)}/dd-cases`).set(as(E1)).send({ operation_id: randomUUID(), lot_id: lot, scope_note: 'Expediente sintético de configuración de geolocalización' }).expect(201)).body.case.id as string;
   const capture = async (caseId: string) => (await http().post(`${base(orgA)}/dd-cases/${caseId}/snapshots`).set(as(E1)).send({ operation_id: randomUUID() }).expect(201)).body.snapshot;
+  const regPanel = async (caseId: string) => (await http().get(`${base(orgA)}/dd-cases/${caseId}/geo-evaluation`).set(as(E1)).expect(200)).body.regulatory as { current: { status: string; status_label: string; detail: string; mechanism: Record<string, any> }; latest_snapshot: { number: number; status: string | null } | null; differs_from_latest_snapshot: boolean | null; message: string }; // eslint-disable-line @typescript-eslint/no-explicit-any
   const req = (s: { requirements: Array<{ code: string; status: string; detail: string; references: string[] }> }) => s.requirements.find((r) => r.code === 'GEOLOCATION_PROFILE')!;
 
   const fuente = { code: 'REG-SINT', title: 'Fuente sintética de prueba', citation: 'Artículo sintético', url: 'https://example.test/regla', file_sha256: 'b'.repeat(64) };
@@ -86,6 +87,10 @@ describeDb('GEOLOCATION_PROFILE: configuración versionada de reglas', () => {
     const s = await capture(caseA);
     expect(req(s).status).toBe('NOT_EVALUABLE'); // estado real conservado: sin configuración adoptada
     expect(req(s).detail).toMatch(/no ha adoptado ninguna configuración/);
+    const g0 = await regPanel(caseA); // el panel dice lo MISMO que el mecanismo, no un aviso fijo
+    expect(g0.current).toMatchObject({ status: 'NOT_EVALUABLE', mechanism: { config_adopted: false, review_decision: null } });
+    expect(g0.current.detail).toMatch(/no ha adoptado ninguna configuración/);
+    expect(g0.latest_snapshot).toMatchObject({ number: 1, status: 'NOT_EVALUABLE' }); expect(g0.differs_from_latest_snapshot).toBe(false);
   });
 
   it('preparar: se rechazan sin escribir una regla activa de período/país, una candidata sin preguntas, una fuente desconocida, otro perfil técnico, códigos repetidos y versión existente', async () => {
@@ -126,6 +131,9 @@ describeDb('GEOLOCATION_PROFILE: configuración versionada de reglas', () => {
     const s = await capture(caseA);
     expect(req(s).status).toBe('NOT_EVALUABLE');
     expect(req(s).detail).toMatch(/ninguna revisión registrada/);
+    const g1 = await regPanel(caseA);
+    expect(g1.current).toMatchObject({ status: 'NOT_EVALUABLE', mechanism: { config_adopted: true, config_version: '9.0.0', review_decision: null, applicable_to_organization: false } });
+    expect(g1.current.detail).toMatch(/ninguna revisión registrada/);
   });
 
   it('REVISADA PERO FUERA DE ALCANCE: declarada aplicable solo a OTRA organización → NOT_EVALUABLE para esta; la otra no ve a quién más se declaró', async () => {
@@ -133,6 +141,9 @@ describeDb('GEOLOCATION_PROFILE: configuración versionada de reglas', () => {
     const s = await capture(caseA);
     expect(req(s).status).toBe('NOT_EVALUABLE');
     expect(req(s).detail).toMatch(/NO la declara aplicable a esta organización/);
+    const g2 = await regPanel(caseA);
+    expect(g2.current).toMatchObject({ status: 'NOT_EVALUABLE', mechanism: { review_decision: 'REVIEWED', applicable_to_organization: false } });
+    expect(g2.current.detail).toMatch(/NO la declara aplicable/);
     // aislamiento: la vista de cada organización dice solo si la incluye a ELLA; nunca lista las demás
     const vistaA = (await http().get(`${base(orgA)}/geolocation-config/catalog`).set(as(ADMIN)).expect(200)).body;
     const vistaB = (await http().get(`${base(orgB)}/geolocation-config/catalog`).set(as(ADMIN_B)).expect(200)).body;
@@ -155,6 +166,10 @@ describeDb('GEOLOCATION_PROFILE: configuración versionada de reglas', () => {
     expect(req(snapMet).status).toBe('MET');
     expect(req(snapMet).references.sort()).toEqual([plot1, plot2].sort());
     expect(snapMet.readiness.captured).not.toBe('READY'); // MET de un requisito no es estar listo
+    const gm = await regPanel(caseA); // «Satisfecho» ahora, igual a lo guardado, y sin equivaler a READY ni a conclusión regulatoria
+    expect(gm.current).toMatchObject({ status: 'MET', status_label: 'Satisfecho', mechanism: { review_decision: 'REVIEWED', applicable_to_organization: true, rules: { active: 1, candidate: 0 } } });
+    expect(gm.latest_snapshot).toMatchObject({ number: expect.any(Number), status: 'MET' }); expect(gm.differs_from_latest_snapshot).toBe(false);
+    expect(gm.message).toMatch(/NO equivale a READY ni a una conclusión regulatoria/);
     expect(snapMet.requirements.find((r) => r.code === 'REGULATORY_CONCLUSION')!.status).toBe('NOT_EVALUABLE');
     // Trazabilidad en el contenido de la instantánea
     const contenido = (await sql<{ content: { profiles: { geolocation_profile: { config_version: string; review: { id: string; decision: string }; applicable_to_organization: boolean; plots: Array<{ plot_id: string; evaluation_id: string; status: string; plot_version_id: string }> } } } }>`
@@ -171,6 +186,7 @@ describeDb('GEOLOCATION_PROFILE: configuración versionada de reglas', () => {
     for (const [plot, esperado] of [[pendiente, 'PENDING'], [falla, 'INVALID'], [sinGeo, 'NOT_EVALUABLE']] as const) {
       const c = await mkCase(await lotFrom([plot]));
       expect(req(await capture(c)).status).toBe(esperado);
+      expect((await regPanel(c)).current.status).toBe(esperado); // el estado actual del panel coincide con el del mecanismo en cada caso
     }
     // geometría nueva en una parcela que cumplía: la evaluación anterior ya no es vigente
     const rv = Number((await sql<{ row_version: string }>`SELECT row_version FROM plots WHERE id = ${plot1}`.execute(h.db)).rows[0].row_version);
@@ -178,6 +194,8 @@ describeDb('GEOLOCATION_PROFILE: configuración versionada de reglas', () => {
     const detalle = (await http().get(`${base(orgA)}/dd-snapshots/${snapMet.id}`).set(as(E1)).expect(200)).body;
     expect(detalle.readiness.effective).toBe('STALE'); // la instantánea que decía MET queda desactualizada...
     expect(req(detalle).status).toBe('MET'); // ...pero lo capturado no se reescribe
+    const gd = await regPanel(caseA); // el panel separa: AHORA es PENDING; en la última instantánea quedó MET; difieren
+    expect(gd.current.status).toBe('PENDING'); expect(gd.latest_snapshot!.status).toBe('MET'); expect(gd.differs_from_latest_snapshot).toBe(true);
     const nueva = await capture(caseA);
     expect(req(nueva).status).toBe('PENDING');
     expect(req(nueva).detail).toMatch(/sin evaluación vigente/);
@@ -227,6 +245,8 @@ describeDb('GEOLOCATION_PROFILE: configuración versionada de reglas', () => {
     const s = await capture(caseA);
     expect(req(s).status).toBe('PENDING');
     expect(req(s).detail).toContain('CANDIDATAS sin resolver (GEO-PRODUCTION-COUNTRY, GEO-PRODUCTION-PERIOD)');
+    const gc = await regPanel(caseA);
+    expect(gc.current).toMatchObject({ status: 'PENDING', mechanism: { rules: { candidate: 2 } } }); expect(gc.current.detail).toContain('CANDIDATAS sin resolver');
     expect(s.readiness.captured).not.toBe('READY');
   });
 

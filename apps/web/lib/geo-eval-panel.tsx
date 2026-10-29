@@ -9,7 +9,7 @@ import { useWorkspace } from './workspace';
 import { Alert, ErrorPanel, Loading, StatusBadge, type Tone } from './ui';
 
 // «Evaluación geográfica técnica actual» del expediente. Es una CONSULTA de solo lectura, separada del contenido de la instantánea: no la modifica, no cambia su
-// frescura y no es una conclusión regulatoria. El requisito GEOLOCATION_PROFILE sigue pendiente (D-05.B); este panel no lo cumple ni lo sustituye.
+// frescura y no es una conclusión regulatoria. Muestra por separado (1) la evaluación técnica actual de las parcelas, (2) el estado ACTUAL del requisito GEOLOCATION_PROFILE con su motivo (mismo mecanismo que la instantánea) y (3) lo guardado en la última instantánea.
 
 interface PanelEval {
   id: string; evaluated_version_number: number; profile: { id: string; version: string }; source: { service_version: string; document_version: string; page_date: string };
@@ -25,12 +25,17 @@ interface Panel {
   consulted_at: string; note: string; profile: { id: string; version: string };
   counts: { total: number; meets_profile: number; does_not_meet: number; review_required: number; not_evaluable: number; obsolete: number; absent: number };
   pending: Array<{ plot_id: string; plot_code: string; kind: 'ABSENT' | 'OBSOLETE' | 'NOT_EVALUABLE' }>; plots: PanelPlot[];
-  regulatory: { requirement: string; latest_snapshot: { number: number; captured_at: string; status: string | null } | null; message: string };
+  regulatory: {
+    requirement: string; message: string;
+    current: { status: string; status_label: string; detail: string; mechanism: { config_adopted: boolean; config_version: string | null; review_decision: string | null; applicable_to_organization: boolean; rules: { active: number; candidate: number } } };
+    latest_snapshot: { number: number; captured_at: string; status: string | null; detail: string | null } | null; differs_from_latest_snapshot: boolean | null;
+  };
 }
 
 const VIGENCIA_TONE: Record<PanelPlot['vigencia'], Tone> = { CURRENT: 'process', OBSOLETE: 'review', ABSENT: 'neutral' };
 const PENDING_LABEL: Record<'ABSENT' | 'OBSOLETE' | 'NOT_EVALUABLE', string> = { ABSENT: 'Sin evaluación', OBSOLETE: 'Obsoleta', NOT_EVALUABLE: 'No evaluable' };
-const REQ_LABEL: Record<string, string> = { MET: 'Cumplido', PENDING: 'Pendiente', INVALID: 'Inválido', NOT_EVALUABLE: 'No evaluable' };
+const REQ_LABEL: Record<string, string> = { MET: 'Satisfecho', PENDING: 'Pendiente', INVALID: 'Inválido', NOT_EVALUABLE: 'No evaluable' };
+const DECISION_LABEL: Record<string, string> = { REVIEWED: 'revisada', OBJECTED: 'objetada', WITHDRAWN: 'retirada' };
 
 export const GEO_PANEL_TABLAS = { PENDING_LABEL, REQ_LABEL };
 
@@ -107,12 +112,20 @@ export function GeoEvaluationPanel({ orgId, caseId }: { orgId: string; caseId: s
             </table>
           </div>
 
-          <Alert tone="review" title={t('Esto no cumple el requisito regulatorio')}>
+          <Alert tone="review" title={t('Estado actual del requisito {req}', { req: p.regulatory.requirement })}>
+            <p><strong>{t(REQ_LABEL[p.regulatory.current.status] ?? 'No evaluable')}</strong>: {t(p.regulatory.current.detail)}</p>
+            <ul className="muted">
+              <li>{p.regulatory.current.mechanism.config_adopted ? t('Configuración adoptada: {v}', { v: p.regulatory.current.mechanism.config_version ?? '' }) : t('Sin configuración adoptada')}</li>
+              <li>{t('Revisión vigente')}: {p.regulatory.current.mechanism.review_decision ? t(DECISION_LABEL[p.regulatory.current.mechanism.review_decision] ?? p.regulatory.current.mechanism.review_decision) : t('ninguna')} · {p.regulatory.current.mechanism.applicable_to_organization ? t('aplicable a tu organización') : t('sin aplicabilidad declarada')}</li>
+              <li>{t('Reglas')}: {p.regulatory.current.mechanism.rules.active} {t('activa(s)')} · {p.regulatory.current.mechanism.rules.candidate} {t('candidata(s) sin resolver')}</li>
+            </ul>
             <p>{t(p.regulatory.message)}</p>
             <p className="muted">
               {p.regulatory.latest_snapshot
                 ? t('Estado de {req} en la última instantánea ({n}): {estado}', { req: p.regulatory.requirement, n: p.regulatory.latest_snapshot.number, estado: t(REQ_LABEL[p.regulatory.latest_snapshot.status ?? ''] ?? 'No evaluable') })
                 : t('Todavía no hay instantáneas.')}
+              {p.regulatory.differs_from_latest_snapshot === true && <> {t('Difiere del estado actual: genera una instantánea nueva para registrarlo (la anterior no se modifica).')}</>}
+              {p.regulatory.differs_from_latest_snapshot === false && <> {t('Coincide con el estado actual.')}</>}
             </p>
           </Alert>
           <div className="actions"><button type="button" className="secondary" onClick={() => void load()}>{t('Volver a consultar')}</button></div>

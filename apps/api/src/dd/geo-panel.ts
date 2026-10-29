@@ -2,6 +2,8 @@ import { sql, type Kysely } from 'kysely';
 import type { Database } from '../db/schema';
 import type { TenantContext } from '../authz/authorization.service';
 import { GEO_PROFILE, STATUS_LABEL, type ProfileStatus } from '../plots/geo-profile';
+import { geoConfigContent } from '../geo/geo-config';
+import { geolocationRequirement, type ReqStatus } from './requirements';
 
 // «Evaluación geográfica técnica actual» del expediente (requisito original GEOLOCATION_PROFILE, implementación pendiente I1–I4).
 //
@@ -10,13 +12,15 @@ import { GEO_PROFILE, STATUS_LABEL, type ProfileStatus } from '../plots/geo-prof
 //
 // QUÉ NO ES: no es contenido de ninguna instantánea. No entra en `DdContent`, en su hash ni en sus secciones, de modo que añadirlo NO modifica las
 // instantáneas existentes ni las declara obsoletas. Los mecanismos que detectan cambios materiales en sus fuentes (`isStale`) no se tocan. Tampoco es una
-// conclusión regulatoria ni cumple el requisito `GEOLOCATION_PROFILE`, que sigue pendiente de D-05.B y de la definición de «satisfecho». Si más adelante el
+// conclusión regulatoria ni sustituye el requisito `GEOLOCATION_PROFILE`: el estado ACTUAL de ese requisito (configuración adoptada, revisión, aplicabilidad y evaluaciones vigentes) se calcula con el MISMO mecanismo que usa el expediente
+// y se muestra APARTE de la evaluación técnica y de lo guardado en la última instantánea. Si más adelante el
 // resultado debe entrar al contenido formal de la instantánea, será mediante un contrato versionado y una transición explícita.
 
 export type Vigencia = 'CURRENT' | 'OBSOLETE' | 'ABSENT';
 export type PendienteKind = 'ABSENT' | 'OBSOLETE' | 'NOT_EVALUABLE';
 
-export const GEO_PANEL_NOTE = 'Consulta ACTUAL de las evaluaciones del perfil técnico de destino. No forma parte del contenido de ninguna instantánea, no la modifica ni cambia su frescura, y no es una conclusión regulatoria: el requisito GEOLOCATION_PROFILE sigue pendiente (D-05.B).';
+export const GEO_PANEL_NOTE = 'Consulta ACTUAL de las evaluaciones del perfil técnico de destino. No forma parte del contenido de ninguna instantánea, no la modifica ni cambia su frescura, y no es una conclusión regulatoria: el estado actual del requisito GEOLOCATION_PROFILE y el guardado en la última instantánea se muestran aparte, cada uno con su motivo.';
+export const REQ_STATUS_LABEL: Record<ReqStatus, string> = { MET: 'Satisfecho', PENDING: 'Pendiente', INVALID: 'Inválido', NOT_EVALUABLE: 'No evaluable' };
 export const VIGENCIA_LABEL: Record<Vigencia, string> = { CURRENT: 'Vigente', OBSOLETE: 'Obsoleta', ABSENT: 'Sin evaluación' };
 export const REASON_LABEL: Record<string, string> = {
   NO_GEOMETRY_VERSION: 'La parcela no tiene versión geométrica que evaluar.',
@@ -52,8 +56,11 @@ export async function geoEvaluationPanel(db: Kysely<Database>, ctx: TenantContex
            e.source_page_date::text AS source_page_date, e.status, e.checks, e.area_basis, e.area_value_ha::text AS area_value_ha, e.evaluated_at
     FROM geo_profile_evaluations e JOIN plot_versions v ON v.id = e.plot_version_id AND v.organization_id = e.organization_id
     WHERE e.organization_id = ${orgId} AND e.plot_id = ANY(${plotIds}::uuid[]) ORDER BY e.evaluated_at DESC, e.id DESC`.execute(db)).rows : [];
-  const snap = (await sql<{ snapshot_number: number; captured_at: string; requirements: Array<{ code: string; status: string }> }>`
+  const snap = (await sql<{ snapshot_number: number; captured_at: string; requirements: Array<{ code: string; status: string; detail?: string }> }>`
     SELECT snapshot_number, captured_at, requirements FROM dd_snapshots WHERE organization_id = ${orgId} AND case_id = ${caseRow.id} ORDER BY snapshot_number DESC LIMIT 1`.execute(db)).rows[0] ?? null;
+  // Estado ACTUAL del requisito: el mismo mecanismo (configuración adoptada → revisión → aplicabilidad → reglas → evaluaciones vigentes) que usa la instantánea. Solo lee.
+  const cfg = await geoConfigContent(db, orgId, plots.map((p) => ({ plot_id: p.plot_id, version_id: p.version_id })));
+  const [reqStatus, reqDetail, reqSource, reqRefs] = geolocationRequirement(cfg);
 
   const items = plots.map((p) => {
     const mine = evals.filter((e) => e.plot_id === p.plot_id);
@@ -108,11 +115,23 @@ export async function geoEvaluationPanel(db: Kysely<Database>, ctx: TenantContex
     },
     pending: items.filter((i) => i.pending).map((i) => ({ plot_id: i.plot_id, plot_code: i.plot_code, kind: i.pending as PendienteKind })),
     plots: items,
-    // La guarda: el panel informa del requisito, no lo cambia. Se muestra el estado que quedó en la ÚLTIMA instantánea.
-    regulatory: {
-      requirement: 'GEOLOCATION_PROFILE',
-      latest_snapshot: snap ? { number: snap.snapshot_number, captured_at: snap.captured_at, status: snap.requirements.find((r) => r.code === 'GEOLOCATION_PROFILE')?.status ?? null } : null,
-      message: 'Tener todas las parcelas en «Cumple el perfil técnico» NO cumple GEOLOCATION_PROFILE ni habilita READY: falta la condición regulatoria revisada (D-05.B).',
-    },
+    // Tres cosas DISTINTAS, cada una con su fuente: (1) la evaluación técnica actual de las parcelas (arriba, `plots`); (2) el estado ACTUAL del requisito, calculado
+    // con el mismo mecanismo que la instantánea y con su motivo concreto; (3) lo que quedó GUARDADO en la última instantánea. Ninguna modifica a las otras ni a lo histórico.
+    regulatory: (() => {
+      const savedReq = snap?.requirements.find((r) => r.code === 'GEOLOCATION_PROFILE') ?? null;
+      const mech = cfg ? {
+        config_adopted: true, config_version: cfg.config_version, technical_profile: cfg.technical_profile, review_decision: cfg.review.decision, applicable_to_organization: cfg.applicable_to_organization,
+        rules: { active: cfg.rules.filter((x) => x.status === 'ACTIVE').length, candidate: cfg.rules.filter((x) => x.status === 'CANDIDATE').length },
+      } : { config_adopted: false, config_version: null, technical_profile: null, review_decision: null, applicable_to_organization: false, rules: { active: 0, candidate: 0 } };
+      return {
+        requirement: 'GEOLOCATION_PROFILE',
+        current: { status: reqStatus, status_label: REQ_STATUS_LABEL[reqStatus], detail: reqDetail, source: reqSource, plot_ids: reqRefs ?? [], mechanism: mech, evaluated_at: new Date().toISOString() },
+        latest_snapshot: snap ? { number: snap.snapshot_number, captured_at: snap.captured_at, status: savedReq?.status ?? null, detail: savedReq?.detail ?? null } : null,
+        differs_from_latest_snapshot: snap && savedReq ? savedReq.status !== reqStatus : null,
+        message: reqStatus === 'MET'
+          ? 'Estado actual: Satisfecho según la configuración adoptada, su revisión y las evaluaciones vigentes. Esto NO equivale a READY ni a una conclusión regulatoria: READY exige además el resto de requisitos, y la instantánea guardada no cambia hasta generar otra.'
+          : `Estado actual: ${REQ_STATUS_LABEL[reqStatus]}. ${reqDetail} Esto no habilita READY.`,
+      };
+    })(),
   };
 }

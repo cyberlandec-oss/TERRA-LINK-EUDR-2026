@@ -165,7 +165,8 @@ describeDb('DD: evaluación geográfica técnica actual (consulta separada de la
     const p = await panel(caseId);
     expect(p.counts).toMatchObject({ total: 2, meets_profile: 2, does_not_meet: 0, obsolete: 0, absent: 0 });
     expect(p.pending).toEqual([]);
-    expect(p.regulatory.message).toMatch(/NO cumple GEOLOCATION_PROFILE ni habilita READY/);
+    expect(p.regulatory.message).toMatch(/Estado actual: No evaluable..*no ha adoptado ninguna configuración.*no habilita READY/);
+    expect(p.regulatory.current).toMatchObject({ status: 'NOT_EVALUABLE', mechanism: { config_adopted: false } });
     const s = await capture(caseId);
     const req = (code: string) => s.requirements.find((r: { code: string }) => r.code === code);
     expect(req('GEOLOCATION_PROFILE').status).toBe('NOT_EVALUABLE');
