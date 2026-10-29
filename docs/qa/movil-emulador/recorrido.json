@@ -2370,6 +2370,351 @@
         "commit": "6902448",
         "modificado_sin_commit": true
       }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-29T01:48:56.875Z",
+      "ok": false,
+      "detalle": "excepción: Sin botón de confirmar cierre",
+      "captura": "docs/qa/capturas/movil-emulador/191-fallo-relogin.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacionDenegada",
+      "en": "2026-10-29T01:50:17.632Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Elige la organización/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/192-fallo-ubicacionDenegada.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-29T01:51:57.155Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Correo$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/193-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-29T01:53:11.597Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Correo$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/194-fallo-relogin.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacionDenegada",
+      "en": "2026-10-29T01:54:16.789Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Inicio$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/195-fallo-ubicacionDenegada.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-29T01:56:08.667Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Iniciar sesión/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/196-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-29T01:57:43.691Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Correo$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/197-fallo-relogin.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacionDenegada",
+      "en": "2026-10-29T01:58:48.899Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Inicio$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/198-fallo-ubicacionDenegada.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-29T02:00:46.633Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Iniciar sesión/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/199-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-29T02:02:42.387Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Correo$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/200-fallo-relogin.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-29T02:03:52.196Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Correo$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/201-fallo-relogin.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-29T02:37:12.416Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Elige la organización/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/202-fallo-relogin.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacionDenegada",
+      "en": "2026-10-29T02:38:17.601Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Inicio$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/203-fallo-ubicacionDenegada.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-29T02:41:26.555Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Elige la organización/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/204-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-29T02:46:43.531Z",
+      "ok": true,
+      "detalle": "Nuevo inicio de sesión online (la anterior vencía a la hora)",
+      "captura": null,
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacionDenegada",
+      "en": "2026-10-29T02:49:26.699Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Mi ubicación$/ en 60000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/205-fallo-ubicacionDenegada.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-29T02:51:20.156Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Iniciar sesión/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/206-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "61200c7eefe24277b7531cc0898a87625529072470eed3d6503327bc0ed43359",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "relogin",
+      "en": "2026-10-29T02:52:27.157Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Elige la organización|Iniciar sesión/ en 40000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/208-fallo-relogin.png",
+      "script": {
+        "sha256": "83837b985a5e2ebab9ece1891ad7f11bf03b03f835a28c592ed677b92c6b6f20",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacionDenegada",
+      "en": "2026-10-29T02:53:31.388Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Inicio$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/209-fallo-ubicacionDenegada.png",
+      "script": {
+        "sha256": "83837b985a5e2ebab9ece1891ad7f11bf03b03f835a28c592ed677b92c6b6f20",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-29T02:56:14.178Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /borrador(es) local(es)/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/210-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "83837b985a5e2ebab9ece1891ad7f11bf03b03f835a28c592ed677b92c6b6f20",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "ubicacion-denegada-conserva-borrador",
+      "en": "2026-10-29T02:59:12.285Z",
+      "ok": true,
+      "detalle": {
+        "dialogo_del_sistema_negado": false,
+        "mensaje_explica_y_conserva": true,
+        "sin_lectura_mostrada": true,
+        "sin_ubicacion_escrita": true,
+        "borradores": {
+          "antes": 6,
+          "despues_de_reabrir": 7
+        }
+      },
+      "captura": "docs/qa/capturas/movil-emulador/211-ubicacion-denegada-mensaje.png",
+      "script": {
+        "sha256": "822f9bc0f4b5219d90bf5cf7944fee56f52279a1ee3aebcdf8f2e79b1a60bed6",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-29T03:01:39.808Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /borrador(es) local(es)/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/212-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "822f9bc0f4b5219d90bf5cf7944fee56f52279a1ee3aebcdf8f2e79b1a60bed6",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-29T03:09:49.715Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Inicio$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/214-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "214aa236e9c5659cec5ad39dca2c83c8baa8053a52806bf4eb6abc6aaca97f48",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-29T03:13:46.875Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^CAD-1027213440 ·/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/214-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "e43c5a1659d0aa773bcf4f81c9a151ee87652ff128c09291c5532c0d6af6bcfb",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-29T03:17:42.533Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Guardar en cola$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/215-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "0cef0faae9c4e579752fcfd61cd7ebb19f7ed26bf1e04d50d8335d8c2b69dce5",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamiento-lleno-inducido",
+      "en": "2026-10-29T03:22:53.884Z",
+      "ok": false,
+      "detalle": "FALLO INDUCIDO en emulador, fase cola (archivo de relleno de 4574 MB, después borrado; C: {\"antes_GB\":58.71,\"minimo_GB\":58.71}); no es falta real de espacio",
+      "captura": "docs/qa/capturas/movil-emulador/216-almacenamiento-lleno-inducido.png",
+      "script": {
+        "sha256": "ebe77674fcc6012e4978e96764b15a592c20b07e1f4d741b8a5a393494790518",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamiento-lleno-inducido",
+      "en": "2026-10-29T03:29:51.769Z",
+      "ok": false,
+      "detalle": "FALLO INDUCIDO en emulador, fase cola (archivo de relleno de 4574 MB, después borrado; C: {\"antes_GB\":55.19,\"minimo_GB\":55.19}); no es falta real de espacio",
+      "captura": "docs/qa/capturas/movil-emulador/217-almacenamiento-lleno-inducido.png",
+      "script": {
+        "sha256": "f1b988192a09a4f4da6ee9eac05de9d7da83dea7319bef6346856d32f9ab2de8",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-29T03:35:00.085Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Guardar en cola$/ en 25000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/218-fallo-almacenamientoLleno.png",
+      "script": {
+        "sha256": "b4805495af119785b5d310ed43730e298c3a1f1bdff449dfb6e7d0b59e76ae1b",
+        "commit": "233b548",
+        "modificado_sin_commit": true
+      }
     }
   ]
 }

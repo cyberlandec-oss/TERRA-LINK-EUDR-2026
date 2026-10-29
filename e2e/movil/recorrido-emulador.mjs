@@ -89,7 +89,7 @@ async function logout() {
 }
 async function abrirCaptura(codigo) {
   // Reinicio de la app: descarta la captura abierta en memoria y deja la sesión (guardada) para llegar a la lista «Nueva captura» sin depender del scroll de Inicio.
-  await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);
+  await restart(); const pri = await waitFor(/Elige la organización|Mi jornada/, { timeout: 30000 }); if (/Elige/.test(pri.text + pri.desc)) { await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/); }
   await tab('Captura'); await tap(new RegExp('^' + codigo + ' ·')); await waitFor(/Captura · /);
 }
 const pendingText = async () => { await tab('Pendientes'); await sleep(1500); return allText(); };
@@ -266,8 +266,14 @@ const steps = {
     await tap(/DEMO · Cooperativa/, { timeout: 15000 }).catch(() => undefined);
     // Precondición: sesión vigente sin bloqueo de reloj (tras «vencimiento» hay que volver a iniciar sesión).
     await logout().catch(() => undefined); await loginAs('tecnico1.cooperativa'); // siempre: el botón deshabilitado no se distingue por texto
-    await tab('Inicio').catch(() => undefined); // precondición: pestaña Inicio
-    await waitFor(/^Nueva captura$/, { scrollTo: true });
+    await tab('Inicio').catch(() => undefined);
+    const borradores = () => Number(/(\d+) borrador\(es\) local\(es\)/.exec(allText())?.[1] ?? NaN);
+    await waitFor(/borrador\(es\) local\(es\)/, { scrollTo: true });
+    const n0 = borradores();
+    const enCola = () => Number(/(\d+) captura\(s\) en cola/.exec(allText())?.[1] ?? NaN);
+    const q0 = enCola();
+    await restart(); const org0 = await waitFor(/Elige la organización|Mi jornada/, { timeout: 30000 }); if (/Elige/.test(org0.text + org0.desc)) { await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/); } // sin captura abierta en memoria
+    await tab('Captura'); await waitFor(new RegExp('^' + state.plot.plot_code + ' ·'), { scrollTo: true }); // lista de parcelas, antes de llenar el disco
     const free = Number(adb('shell', 'df', '-k', '/data').split('\n')[1].trim().split(/\s+/)[3]);
     const fillMb = Math.max(0, Math.floor(free / 1024) - 3);
     // Llenado CONTROLADO: el disco de datos del emulador puede crecer en el equipo (C:). Se exige margen antes, se rellena por
@@ -278,29 +284,27 @@ const steps = {
     let part = 0; let left = fillMb - 64; let hostMin = hostBefore;
     const chunks = [];
     while (left > 0) { const mb = Math.min(1024, left); chunks.push(mb); left -= mb; }
-    chunks.push(32, 16, 8, 4, 2, 1); // bloques reservados: los tramos que no caben se ignoran
+    chunks.push(32, 16, 8, 4, 2, 1, 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625); // hasta 16 KB: sin margen, una escritura pequeña de la base ya necesita un bloque nuevo; bloques reservados: los tramos que no caben se ignoran
     for (const mb of chunks) {
-      try { adb('shell', 'fallocate', '-l', `${mb}M`, `/data/local/tmp/tl-relleno-${part}`); part += 1; } catch { /* no cabe */ }
+      try { adb('shell', 'fallocate', '-l', `${Math.round(mb * 1024)}K`, `/data/local/tmp/tl-relleno-${part}`); part += 1; } catch { /* no cabe */ }
       hostMin = Math.min(hostMin, hostGb());
       if (hostMin < 10) { adb('shell', 'rm -f /data/local/tmp/tl-relleno-*'); throw new Error(`C: bajó a ${hostMin.toFixed(2)} GB durante el relleno: abortado y relleno borrado`); }
     }
     state.hostDisk = { antes_GB: +hostBefore.toFixed(2), minimo_GB: +hostMin.toFixed(2) };
     let ok = false; let s = null; let fase = 'borrador';
     try {
-      await tap(/^Nueva captura$/);
       await tap(new RegExp(`^${state.plot.plot_code} ·`));
       // Con el disco lleno puede fallar ya la creación del borrador (mensaje en español) o, si cabe, la foto.
       const first = await waitFor(/Captura · |No hay espacio libre/);
       if (/Captura · /.test(`${first.text} ${first.desc}`)) {
-      fase = 'foto';
-      await tap(/^Tomar foto$/);
-      for (let i = 0; i < 30; i++) {
-        const t = allText();
-        if (/espacio|5 MB libres/.test(t)) break;
-        const shutter = find(/shutter_button|^Shutter$/); if (shutter.length) { tapNode(shutter[0]); await sleep(2500); continue; }
-        const done = find(/done_button|^Done$/); if (done.length) { tapNode(done[0]); await sleep(1500); continue; }
-        await sleep(1000);
-      }
+      // El borrador cupo: se intenta escribir DENTRO de la app (nota + «Guardar en cola», que escribe la operación). La cámara del sistema
+      // es otra aplicación y con el disco lleno falla por su cuenta, así que no sirve para probar el mensaje de Terra Link.
+      fase = 'cola';
+      // La nota se escribe al salir del campo (`onEndEditing` → `store.setNote`): ahí ocurre la escritura que no cabe.
+      await typeInto(/Observación de campo/, 'nota con disco lleno'); hideKeyboard(); await sleep(600);
+      // «Guardar en cola» escribe la nota y la operación (`setNote` + `enqueue`): con el disco sin un bloque libre debe fallar con mensaje en español.
+      await ver(/^Guardar en cola$/, 25000); await tap(/^Guardar en cola$/);
+      for (let i = 0; i < 20 && !/5 MB libres|No hay espacio/.test(allText()); i++) await sleep(1000);
       }
       const t = allText();
       // Correcto solo con mensaje en español y sin error técnico de SQLite.
@@ -309,6 +313,12 @@ const steps = {
     } finally {
       adb('shell', 'rm -f /data/local/tmp/tl-relleno-*'); // siempre, también si el paso falla
     }
+    // Sin escrituras parciales: tras liberar el espacio, los borradores son los de antes (más el abierto, si llegó a crearse) y nada quedó a medias.
+    await sleep(1500); await tab('Inicio'); await waitFor(/borrador\(es\) local\(es\)/, { scrollTo: true });
+    const n1 = borradores(); const q1 = enCola();
+    // Sin escrituras parciales: el borrador abierto existe (+1) pero la cola NO creció (la operación que no cupo no quedó a medias) y lo anterior sigue.
+    const sinParciales = (fase === 'borrador' ? n1 === n0 : n1 === n0 + 1) && q1 === q0;
+    ok = ok && sinParciales; state.borradores = { antes: n0, despues: n1, en_cola_antes: q0, en_cola_despues: q1, fase }; save();
     record('almacenamiento-lleno-inducido', ok, `FALLO INDUCIDO en emulador, fase ${fase} (archivo de relleno de ${fillMb} MB, después borrado; C: ${JSON.stringify(state.hostDisk)}); no es falta real de espacio`, s);
   },
   /** La sesión del servidor dura 1 h (ADR-0005): una tanda larga debe volver a iniciar sesión con conexión antes de seguir. */
@@ -400,17 +410,36 @@ const steps = {
     await proxy('pass');
   },
   async ubicacionDenegada() {
+    // Precondición: sesión vigente. Se parte de una captura con trabajo previo (nota) para comprobar que NADA de lo anterior se pierde.
+    const borradores = () => Number(/(\d+) borrador\(es\) local\(es\)/.exec(allText())?.[1] ?? NaN);
+    await tab('Inicio'); await waitFor(/borrador\(es\) local\(es\)/, { scrollTo: true }); const n0 = borradores();
+    // Revocar un permiso en ejecución hace que Android cierre la app: se revoca ANTES de abrirla de nuevo.
     adb('shell', 'pm', 'revoke', PKG, 'android.permission.ACCESS_FINE_LOCATION');
     adb('shell', 'pm', 'revoke', PKG, 'android.permission.ACCESS_COARSE_LOCATION');
-    await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);
     await abrirCaptura(state.plot.plot_code);
-    await tap(/^Mi ubicación$/);
-    for (let i = 0; i < 6 && !/Permiso de ubicación denegado|^Allow|Permitir/i.test(allText()); i++) await sleep(1000);
-    const deny = find(/^(Don.t allow|DENY|No permitir)$/i); if (deny.length) { tapNode(deny[0]); await sleep(1500); }
+    await typeInto(/Observación de campo/, 'trabajo previo conservado'); hideKeyboard(); await sleep(800);
+    await ver(/^Mi ubicación$/, 60000); await tap(/^Mi ubicación$/);
+    // Con el permiso revocado el sistema pregunta: se NIEGA (no se concede).
+    let dialogo = false;
+    for (let i = 0; i < 25 && !/Permiso de ubicación denegado/.test(allText()); i++) {
+      const deny = find(/permission_deny_button|permission_deny_and_dont_ask_again_button|^(Don.t allow|DENY|No permitir)$/i);
+      if (deny.length) { dialogo = true; tapNode(deny[0]); await sleep(1500); continue; }
+      await sleep(1000);
+    }
+    await ver(/Permiso de ubicación denegado/, 20000);
     const t = allText();
-    record('ubicacion-denegada-conserva-borrador', /Permiso de ubicación denegado/.test(t) && /Sin ubicación|Ubicación/.test(t), 'Con el permiso denegado el mensaje es recuperable y el borrador se conserva', shot('ubicacion-denegada'));
+    const explicado = /Permiso de ubicación denegado/.test(t) && /se conservan/.test(t);
+    const sinLectura = !/Lectura de «Mi ubicación» \(todavía no guardada\)/.test(t);
+    const shotDenegada = shot('ubicacion-denegada-mensaje');
+    // El trabajo anterior sigue: la nota y el borrador; y no se escribió ninguna ubicación.
+    await ver(/Ubicación/, 20000);
+    const sinUbicacion = /Sin ubicación\./.test(allText()) || (await ver(/Sin ubicación\./, 20000).then(() => true).catch(() => false));
+    await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);
+    await tab('Inicio'); await waitFor(/borrador\(es\) local\(es\)/, { scrollTo: true }); const n1 = borradores();
     adb('shell', 'pm', 'grant', PKG, 'android.permission.ACCESS_FINE_LOCATION');
     adb('shell', 'pm', 'grant', PKG, 'android.permission.ACCESS_COARSE_LOCATION');
+    record('ubicacion-denegada-conserva-borrador', explicado && sinLectura && sinUbicacion && n1 === n0 + 1,
+      { dialogo_del_sistema_negado: dialogo, mensaje_explica_y_conserva: explicado, sin_lectura_mostrada: sinLectura, sin_ubicacion_escrita: sinUbicacion, borradores: { antes: n0, despues_de_reabrir: n1 } }, shotDenegada);
   },
   async adjuntoInterrumpido() {
     await proxy('pass'); await restart(); await waitFor(/Elige la organización/, { timeout: 30000 }); await tap(/DEMO · Cooperativa/); await waitFor(/Mi jornada/);

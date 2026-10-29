@@ -47,7 +47,12 @@ export async function tap(re, opts = {}) {
 }
 /** Escribe en el campo cuya etiqueta (accesibilidad) coincide; borra antes. El valor no se registra. */
 export const keyboardShown = () => /mInputShown=true/.test(adb('shell', 'dumpsys', 'input_method'));
-export async function closeKeyboard() { if (keyboardShown()) { adb('shell', 'input', 'keyevent', 'KEYCODE_BACK'); await sleep(600); } }
+// Con el emulador CON ventana el teclado del equipo anfitrión deja `mInputShown=true` sin teclado visible: un BACK saca entonces a la app de
+// primer plano. Se comprueba el foco y, si se perdió, se vuelve a la app (su estado no se pierde: el proceso sigue vivo).
+const PKG_UI = 'ec.agtech.terralink.campo';
+const focoEsApp = () => adb('shell', 'dumpsys', 'window').split('\n').some((l) => l.includes('mCurrentFocus') && l.includes(PKG_UI));
+async function volverAApp() { if (!focoEsApp()) { adb('shell', 'monkey', '-p', PKG_UI, '-c', 'android.intent.category.LAUNCHER', '1'); await sleep(2500); } }
+export async function closeKeyboard() { if (keyboardShown()) { adb('shell', 'input', 'keyevent', 'KEYCODE_BACK'); await sleep(600); await volverAApp(); } }
 export async function typeInto(re, value, { clear = true } = {}) {
   await closeKeyboard(); // el teclado en pantalla tapa los campos inferiores
   const label = await waitFor(re, { scrollTo: true });
@@ -62,7 +67,7 @@ export async function typeInto(re, value, { clear = true } = {}) {
   await sleep(300);
 }
 export function back() { adb('shell', 'input', 'keyevent', 'KEYCODE_BACK'); }
-export function hideKeyboard() { if (keyboardShown()) adb('shell', 'input', 'keyevent', 'KEYCODE_BACK'); }
+export function hideKeyboard() { if (keyboardShown()) { adb('shell', 'input', 'keyevent', 'KEYCODE_BACK'); if (!focoEsApp()) { adb('shell', 'monkey', '-p', PKG_UI, '-c', 'android.intent.category.LAUNCHER', '1'); } } }
 export function screenshot(path) { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, adbBin('exec-out', 'screencap', '-p')); }
 
 /**
