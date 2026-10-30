@@ -51,7 +51,7 @@ No imprimir ni versionar `.env` (está en `.gitignore`).
 Las variables (`JWT_SECRET`, credenciales de PostgreSQL) se leen de `.env` al ejecutar; `.dockerignore` excluye `.env*` y nunca se copian a las imágenes. Puertos configurables con `API_HOST_PORT` y `WEB_HOST_PORT`. No arrancar a la vez que `dev:api`/`dev:web` en los mismos puertos.
 
 ## Arnés de carga (RNF-05; herramienta comprobada, plataforma no medida; 2026-10-30)
-`npm run carga:prueba` (10 pruebas contra un servidor controlado propio de la prueba; no usa el DEMO) y `npm run carga -- --config <archivo.json> [--validar]`. Plantilla, reglas y límites en `docs/17` («Herramienta de carga»). **No ejecutar sobre el DEMO (3000/4000)**; no forma parte de `npm run validate`.
+`npm run carga:prueba` (15 pruebas, versión 1.1.0: servidor controlado propio de la prueba y transporte/reloj simulados; no usa el DEMO) y `npm run carga -- --config <archivo.json> [--validar]`. Plantilla, reglas y límites en `docs/17` («Herramienta de carga»). **No ejecutar sobre el DEMO (3000/4000)**; no forma parte de `npm run validate`.
 
 ## Datos DEMO y revisión por rol (solo desarrollo local)
 

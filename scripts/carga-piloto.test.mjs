@@ -173,3 +173,81 @@ describe('arnés de carga: la herramienta, contra un servidor controlado', () =>
     assert.match(md, /SIN_OBJETIVOS_CONFIGURADOS/); assert.match(JSON.parse(json).veredicto, /sin veredicto/);
   });
 });
+
+// Pruebas de frontera (corrección acotada del arnés). Transporte y reloj SIMULADOS: sin red, sin DEMO, sin servicios externos.
+// Reloj virtual: cada petición avanza `msPorPeticion` milisegundos exactos, de modo que el número de muestras y sus latencias son deterministas.
+function mundoSimulado({ msPorPeticion, falla = () => false }) {
+  let t = 0; let n = 0;
+  return {
+    reloj: () => t,
+    fetchImpl: async () => { const i = n; n += 1; t += msPorPeticion; return { status: falla(i) ? 500 : 200, arrayBuffer: async () => new ArrayBuffer(0) }; },
+  };
+}
+const cfgFrontera = (over = {}) => ({
+  entorno: { etiqueta: 'transporte simulado', descripcion: 'sin red', representativo_del_piloto: false },
+  destino: { base_url: 'http://127.0.0.1:59999' },
+  dataset: { descripcion: 'ninguno', productores: 0, parcelas: 0, lotes: 0 },
+  carga: { concurrencia: 1, duracion_s: 1, calentamiento_s: 0, timeout_ms: 5000, semilla: 1 },
+  autenticacion: { tipo: 'ninguna' },
+  operaciones: [{ nombre: 'op', clase: 'prueba', metodo: 'GET', ruta: '/x', esperado: [200], peso: 1 }],
+  ...over,
+});
+
+describe('arnés de carga: fronteras de precisión y entradas peligrosas', () => {
+  it('latencia apenas superior al objetivo NO cumple (el redondeo de pantalla no decide la comparación)', async () => {
+    const m = mundoSimulado({ msPorPeticion: 100.004 });
+    const r = await ejecutar(cfgFrontera({ objetivos: { op: { p95_ms: 100, max_tasa_error: 0.5, min_muestras: 5 } } }), m);
+    assert.ok(r.por_operacion[0].total >= 5);
+    assert.equal(r.comparacion_con_objetivos[0].estado, 'NO_CUMPLE_OBJETIVO_DE_ENTRADA', JSON.stringify(r.comparacion_con_objetivos[0]));
+    assert.match(r.comparacion_con_objetivos[0].motivos.join(' '), /p95/);
+    // y exactamente en el objetivo sí cumple (la frontera es «mayor que», no «mayor o igual»)
+    const igual = await ejecutar(cfgFrontera({ objetivos: { op: { p95_ms: 100, max_tasa_error: 0.5, min_muestras: 5 } } }), mundoSimulado({ msPorPeticion: 100 }));
+    assert.equal(igual.comparacion_con_objetivos[0].estado, 'CUMPLE_OBJETIVO_DE_ENTRADA');
+  });
+
+  it('tasa de error apenas superior al objetivo NO cumple (1 fallo de 3 = 0,33333333… frente a 0,3333333)', async () => {
+    const m = mundoSimulado({ msPorPeticion: 1, falla: (i) => i === 0 });
+    const r = await ejecutar(cfgFrontera({ carga: { concurrencia: 1, duracion_s: 0.003, calentamiento_s: 0, timeout_ms: 5000, semilla: 1 }, objetivos: { op: { p95_ms: 100000, max_tasa_error: 0.3333333, min_muestras: 3 } } }), m);
+    const o = r.por_operacion[0];
+    assert.equal(o.total, 3); assert.equal(o.fallos, 1);
+    assert.equal(r.comparacion_con_objetivos[0].estado, 'NO_CUMPLE_OBJETIVO_DE_ENTRADA', JSON.stringify(r.comparacion_con_objetivos[0]));
+    assert.match(r.comparacion_con_objetivos[0].motivos.join(' '), /tasa de error/);
+    // exactamente en el objetivo sí cumple: 1 fallo de 4 = 0,25 frente a 0,25 (la frontera es «mayor que»)
+    const justo = await ejecutar(cfgFrontera({ carga: { concurrencia: 1, duracion_s: 0.004, calentamiento_s: 0, timeout_ms: 5000, semilla: 1 }, objetivos: { op: { p95_ms: 100000, max_tasa_error: 0.25, min_muestras: 4 } } }), mundoSimulado({ msPorPeticion: 1, falla: (i) => i === 0 }));
+    assert.equal(justo.por_operacion[0].total, 4);
+    assert.equal(justo.comparacion_con_objetivos[0].estado, 'CUMPLE_OBJETIVO_DE_ENTRADA');
+  });
+
+  it('el redondeo es solo de presentación: el resultado conserva los valores que se compararon', async () => {
+    const r = await ejecutar(cfgFrontera({ objetivos: { op: { p95_ms: 100, max_tasa_error: 0.5, min_muestras: 5 } } }), mundoSimulado({ msPorPeticion: 100.004 }));
+    const c = r.comparacion_con_objetivos[0];
+    assert.ok(c.valores_comparados && c.valores_comparados.p95_penalizado_ms > 100 && c.valores_comparados.p95_penalizado_ms < 100.01, JSON.stringify(c.valores_comparados));
+    assert.equal(c.valores_comparados.tasa_error, 0);
+    assert.ok(resumenMarkdown(r).includes('100')); // lo mostrado puede estar redondeado
+  });
+
+  it('rechaza base_url con usuario o contraseña (artificiales), query o fragmento: la base se concatena con las rutas y se repite en el resultado', () => {
+    const con = (u) => validarConfig(cfgFrontera({ destino: { base_url: u } }));
+    assert.ok(con('http://usuario-falso:clave-falsa@127.0.0.1:59999').some((m) => /usuario|contraseña|credenciales/i.test(m)), 'usuario y contraseña');
+    assert.ok(con('http://usuario-falso@127.0.0.1:59999').some((m) => /usuario|credenciales/i.test(m)), 'solo usuario');
+    assert.ok(con('http://127.0.0.1:59999?x=1').some((m) => /query/i.test(m)), 'query');
+    assert.ok(con('http://127.0.0.1:59999/#a').some((m) => /fragmento/i.test(m)), 'fragmento');
+    assert.ok(con('http://127.0.0.1:59999/?').some((m) => /query/i.test(m)), 'query vacía');
+    assert.deepEqual(con('http://127.0.0.1:59999'), []);
+    assert.deepEqual(con('http://127.0.0.1:59999/prefijo'), []); // un prefijo de ruta sí es legítimo
+  });
+
+  it('rechaza valores numéricos no finitos (duración infinita, NaN, 1e999 leído de JSON)', () => {
+    const infinita = validarConfig(cfgFrontera({ carga: { concurrencia: 1, duracion_s: Infinity, calentamiento_s: 0, timeout_ms: 5000 } }));
+    assert.ok(infinita.some((m) => /duracion_s/.test(m)), 'duración infinita: ' + JSON.stringify(infinita));
+    const json = JSON.parse('{"x": 1e999}'); assert.equal(json.x, Infinity); // JSON válido que produce Infinity
+    assert.ok(validarConfig(cfgFrontera({ carga: { concurrencia: 1, duracion_s: json.x, calentamiento_s: 0, timeout_ms: 5000 } })).some((m) => /duracion_s/.test(m)));
+    assert.ok(validarConfig(cfgFrontera({ carga: { concurrencia: 1, duracion_s: 1, calentamiento_s: Infinity, timeout_ms: 5000 } })).some((m) => /calentamiento_s/.test(m)));
+    assert.ok(validarConfig(cfgFrontera({ carga: { concurrencia: 1, duracion_s: NaN, calentamiento_s: 0, timeout_ms: 5000 } })).some((m) => /duracion_s/.test(m)));
+    assert.ok(validarConfig(cfgFrontera({ operaciones: [{ nombre: 'op', clase: 'p', metodo: 'GET', ruta: '/x', esperado: [200], peso: Infinity }] })).some((m) => /peso/.test(m)));
+    assert.ok(validarConfig(cfgFrontera({ objetivos: { op: { p95_ms: Infinity, max_tasa_error: 0.1, min_muestras: 1 } } })).some((m) => /p95_ms/.test(m)));
+    assert.ok(validarConfig(cfgFrontera({ objetivos: { op: { p95_ms: 10, max_tasa_error: NaN, min_muestras: 1 } } })).some((m) => /max_tasa_error/.test(m)));
+    assert.ok(validarConfig(cfgFrontera({ objetivos: { op: { p95_ms: 10, max_tasa_error: 0.1, min_muestras: Infinity } } })).some((m) => /min_muestras/.test(m)));
+    assert.deepEqual(validarConfig(cfgFrontera()), []); // control: la configuración finita es válida
+  });
+});

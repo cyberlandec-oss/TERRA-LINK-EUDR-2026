@@ -20,12 +20,13 @@ import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { pathToFileURL } from 'node:url';
 
-export const VERSION_ARNES = '1.0.0';
+export const VERSION_ARNES = '1.1.0';
 export const PUERTOS_DEMO_BLOQUEADOS = ['3000', '4000'];
 const LOCALES = new Set(['127.0.0.1', 'localhost', '[::1]', '::1']);
 
 const esEntero = (x, min = 1) => Number.isInteger(x) && x >= min;
 const esTexto = (x) => typeof x === 'string' && x.trim().length > 0;
+const esFinito = (x) => typeof x === 'number' && Number.isFinite(x); // rechaza Infinity y NaN (incluido 1e999 leído de un JSON)
 
 /** Valida la configuración. Devuelve la lista de errores (vacía si es utilizable). No toca la red y no lee valores secretos. */
 export function validarConfig(cfg, env = process.env) {
@@ -38,8 +39,8 @@ export function validarConfig(cfg, env = process.env) {
   for (const k of ['productores', 'parcelas', 'lotes']) if (!esEntero(cfg.dataset?.[k], 0)) e.push(`dataset.${k}: entero ≥ 0 declarado (obligatorio)`);
   const c = cfg.carga ?? {};
   if (!esEntero(c.concurrencia)) e.push('carga.concurrencia: entero ≥ 1 (obligatorio, sin valor por defecto)');
-  if (!(typeof c.duracion_s === 'number' && c.duracion_s > 0)) e.push('carga.duracion_s: número > 0 (obligatorio)');
-  if (!(typeof c.calentamiento_s === 'number' && c.calentamiento_s >= 0)) e.push('carga.calentamiento_s: número ≥ 0 (obligatorio; 0 si no hay)');
+  if (!(esFinito(c.duracion_s) && c.duracion_s > 0)) e.push('carga.duracion_s: número finito > 0 (obligatorio; una duración infinita o NaN no termina o no mide)');
+  if (!(esFinito(c.calentamiento_s) && c.calentamiento_s >= 0)) e.push('carga.calentamiento_s: número finito ≥ 0 (obligatorio; 0 si no hay)');
   if (!esEntero(c.timeout_ms)) e.push('carga.timeout_ms: entero ≥ 1 (obligatorio)');
   if (c.semilla !== undefined && !esEntero(c.semilla, 0)) e.push('carga.semilla: entero ≥ 0 si se indica (elige las operaciones de forma reproducible)');
 
@@ -48,6 +49,11 @@ export function validarConfig(cfg, env = process.env) {
   try { url = new URL(cfg.destino?.base_url); } catch { e.push('destino.base_url: URL válida (obligatoria)'); }
   if (url) {
     if (!['http:', 'https:'].includes(url.protocol)) e.push('destino.base_url: solo http o https');
+    // La base se concatena con las rutas y se repite en el resultado: no puede llevar credenciales, query ni fragmento.
+    const cruda = String(cfg.destino.base_url);
+    if (url.username || url.password) e.push('destino.base_url: no admite usuario ni contraseña (las credenciales viajan por la variable de entorno del token y no se escriben en la URL)');
+    if (url.search || cruda.includes('?')) e.push('destino.base_url: no admite query (?…); se concatenaría con las rutas');
+    if (url.hash || cruda.includes('#')) e.push('destino.base_url: no admite fragmento (#…); se concatenaría con las rutas');
     const puerto = url.port || (url.protocol === 'https:' ? '443' : '80');
     const local = LOCALES.has(url.hostname);
     if (local && PUERTOS_DEMO_BLOQUEADOS.includes(puerto)) e.push(`destino: el puerto ${puerto} es el DEMO local; no se ejecuta carga sobre él`);
@@ -80,7 +86,7 @@ export function validarConfig(cfg, env = process.env) {
       if (op.metodo !== 'GET' && !(op.mutante === true && cfg.permitir_mutaciones === true)) e.push(`${t}: ${op.metodo} escribe en el destino; exige operaciones[].mutante = true y permitir_mutaciones = true`);
       if (!esTexto(op.ruta) || !op.ruta.startsWith('/')) e.push(`${t}.ruta: debe empezar por /`);
       if (!Array.isArray(op.esperado) || op.esperado.length === 0 || !op.esperado.every((s) => esEntero(s, 100))) e.push(`${t}.esperado: lista de estados HTTP que cuentan como satisfactorios`);
-      if (!(typeof op.peso === 'number' && op.peso > 0)) e.push(`${t}.peso: número > 0`);
+      if (!(esFinito(op.peso) && op.peso > 0)) e.push(`${t}.peso: número finito > 0`);
       for (const m of String(op.ruta ?? '').matchAll(/\{(\w+)\}/g)) {
         const v = op.variables?.[m[1]] ?? cfg.variables?.[m[1]];
         if (!esTexto(v)) e.push(`${t}.ruta: falta la variable {${m[1]}} (en la operación o en «variables»)`);
@@ -91,8 +97,8 @@ export function validarConfig(cfg, env = process.env) {
   // Objetivos (opcionales; si se dan, completos)
   for (const [nombre, o] of Object.entries(cfg.objetivos ?? {})) {
     if (!nombres.has(nombre)) { e.push(`objetivos.${nombre}: no corresponde a ninguna operación`); continue; }
-    if (!(typeof o?.p95_ms === 'number' && o.p95_ms > 0)) e.push(`objetivos.${nombre}.p95_ms: número > 0`);
-    if (!(typeof o?.max_tasa_error === 'number' && o.max_tasa_error >= 0 && o.max_tasa_error <= 1)) e.push(`objetivos.${nombre}.max_tasa_error: entre 0 y 1`);
+    if (!(esFinito(o?.p95_ms) && o.p95_ms > 0)) e.push(`objetivos.${nombre}.p95_ms: número finito > 0`);
+    if (!(esFinito(o?.max_tasa_error) && o.max_tasa_error >= 0 && o.max_tasa_error <= 1)) e.push(`objetivos.${nombre}.max_tasa_error: número finito entre 0 y 1`);
     if (!esEntero(o?.min_muestras)) e.push(`objetivos.${nombre}.min_muestras: entero ≥ 1`);
   }
   return e;
@@ -104,7 +110,9 @@ export function percentil(ordenada, p) {
   const k = Math.min(ordenada.length, Math.max(1, Math.ceil((p / 100) * ordenada.length)));
   return ordenada[k - 1];
 }
+// Redondeo SOLO para presentar. Las comparaciones con objetivos usan los valores exactos (ver `exactosPorOperacion` en `ejecutar`).
 const redondeo = (x) => (x === null ? null : Math.round(x * 100) / 100);
+const redondeo6 = (x) => (x === null ? null : Math.round(x * 1e6) / 1e6);
 function resumenLatencias(valores) {
   const s = [...valores].sort((x, y) => x - y);
   if (s.length === 0) return { n: 0, min: null, p50: null, p90: null, p95: null, p99: null, max: null, media: null };
@@ -123,7 +131,7 @@ function construirRuta(op, cfg) {
 const clasificar = (err) => (err?.name === 'TimeoutError' || err?.name === 'AbortError' ? 'timeout' : 'red');
 
 /** Ejecuta la carga. Devuelve el resultado; no escribe nada y no imprime el token. */
-export async function ejecutar(cfg, { env = process.env } = {}) {
+export async function ejecutar(cfg, { env = process.env, fetchImpl = fetch, reloj = () => performance.now() } = {}) {
   const errores = validarConfig(cfg, env);
   if (errores.length) throw new Error(`Configuración no utilizable:\n- ${errores.join('\n- ')}`);
   const { concurrencia, duracion_s: dur, calentamiento_s: cal, timeout_ms: timeoutMs } = cfg.carga;
@@ -134,42 +142,46 @@ export async function ejecutar(cfg, { env = process.env } = {}) {
   const rnd = prng(cfg.carga.semilla ?? 1);
   const elegir = () => { let x = rnd() * pesoTotal; for (const o of ops) { x -= o.peso; if (x < 0) return o; } return ops[ops.length - 1]; };
 
-  const t0 = performance.now();
+  const t0 = reloj();
   const finCalentamiento = t0 + cal * 1000;
   const fin = finCalentamiento + dur * 1000;
   const muestras = []; // { op, ok, ms, causa }
 
   const trabajador = async () => {
-    while (performance.now() < fin) {
+    while (reloj() < fin) {
       const op = elegir();
-      const medida = performance.now() >= finCalentamiento; // el calentamiento se envía pero no se cuenta
+      const medida = reloj() >= finCalentamiento; // el calentamiento se envía pero no se cuenta
       const headers = { accept: 'application/json', ...(op.cuerpo !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}) };
-      const ini = performance.now();
+      const ini = reloj();
       let ok = false; let causa = null;
       try {
-        const r = await fetch(base + construirRuta(op, cfg), { method: op.metodo, headers, body: op.cuerpo !== undefined ? JSON.stringify(op.cuerpo) : undefined, signal: AbortSignal.timeout(timeoutMs), redirect: 'manual' });
+        const r = await fetchImpl(base + construirRuta(op, cfg), { method: op.metodo, headers, body: op.cuerpo !== undefined ? JSON.stringify(op.cuerpo) : undefined, signal: AbortSignal.timeout(timeoutMs), redirect: 'manual' });
         await r.arrayBuffer(); // la latencia incluye leer el cuerpo completo
         if (op.esperado.includes(r.status)) ok = true; else causa = `http_${r.status}`;
       } catch (err) { causa = clasificar(err); }
-      const ms = performance.now() - ini;
+      const ms = reloj() - ini;
       if (medida) muestras.push({ op: op.nombre, ok, ms, causa });
     }
   };
   await Promise.all(Array.from({ length: concurrencia }, trabajador));
-  const duracionMedidaS = (performance.now() - finCalentamiento) / 1000;
+  const duracionMedidaS = (reloj() - finCalentamiento) / 1000;
 
+  const exactosPorOperacion = new Map();
   const resumir = (lista, nombre, clase) => {
     const oks = lista.filter((m) => m.ok);
     const fallos = lista.filter((m) => !m.ok);
     const causas = {};
     for (const f of fallos) causas[f.causa] = (causas[f.causa] ?? 0) + 1;
     const penalizadas = lista.map((m) => (m.ok ? m.ms : timeoutMs));
+    // Valores EXACTOS (sin redondear): son los que se comparan con los objetivos. El redondeo es solo de presentación.
+    const exactos = { tasa_error: lista.length ? fallos.length / lista.length : null, p95_penalizado_ms: percentil([...penalizadas].sort((x, y) => x - y), 95) };
+    exactosPorOperacion.set(nombre, exactos);
     return {
       operacion: nombre, clase, total: lista.length, satisfactorias: oks.length, fallos: fallos.length, causas_de_fallo: causas,
-      tasa_error: lista.length ? redondeo((fallos.length / lista.length) * 10000) / 10000 : null,
+      tasa_error: exactos.tasa_error === null ? null : redondeo6(exactos.tasa_error),
       latencia_ms_satisfactorias: resumenLatencias(oks.map((m) => m.ms)),
       latencia_ms_de_los_fallos: resumenLatencias(fallos.map((m) => m.ms)),
-      p95_ms_penalizado: redondeo(percentil([...penalizadas].sort((x, y) => x - y), 95)),
+      p95_ms_penalizado: redondeo(exactos.p95_penalizado_ms),
       satisfactorias_por_s: duracionMedidaS > 0 ? redondeo(oks.length / duracionMedidaS) : null,
     };
   };
@@ -182,9 +194,10 @@ export async function ejecutar(cfg, { env = process.env } = {}) {
     if (!o) return { operacion: r.operacion, estado: 'SIN_OBJETIVO' };
     const motivos = [];
     if (r.total < o.min_muestras) return { operacion: r.operacion, estado: 'MUESTRAS_INSUFICIENTES', muestras: r.total, minimo: o.min_muestras, objetivo: o };
-    if (r.tasa_error > o.max_tasa_error) motivos.push(`tasa de error ${r.tasa_error} > ${o.max_tasa_error}`);
-    if (r.p95_ms_penalizado > o.p95_ms) motivos.push(`p95 penalizado ${r.p95_ms_penalizado} ms > ${o.p95_ms} ms`);
-    return { operacion: r.operacion, estado: motivos.length ? 'NO_CUMPLE_OBJETIVO_DE_ENTRADA' : 'CUMPLE_OBJETIVO_DE_ENTRADA', motivos, objetivo: o };
+    const ex = exactosPorOperacion.get(r.operacion); // sin redondear: una diferencia mínima por encima del objetivo sigue siendo incumplimiento
+    if (ex.tasa_error > o.max_tasa_error) motivos.push(`tasa de error ${ex.tasa_error} > ${o.max_tasa_error}`);
+    if (ex.p95_penalizado_ms > o.p95_ms) motivos.push(`p95 penalizado ${ex.p95_penalizado_ms} ms > ${o.p95_ms} ms`);
+    return { operacion: r.operacion, estado: motivos.length ? 'NO_CUMPLE_OBJETIVO_DE_ENTRADA' : 'CUMPLE_OBJETIVO_DE_ENTRADA', motivos, valores_comparados: { tasa_error: ex.tasa_error, p95_penalizado_ms: ex.p95_penalizado_ms }, objetivo: o };
   });
 
   return {
