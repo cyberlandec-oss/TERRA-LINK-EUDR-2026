@@ -2,6 +2,8 @@
 
 ## Estado vigente (2026-10-29)
 
+**Actualización (2026-10-30):** SHA validado y desplegado **`fc8afbd`** (esquema `0073`). Se añadieron el análisis satelital entre organizaciones con autorización por parcela (A-06), la entrega de los soportes de una instantánea al destinatario (A-07), las correcciones del recorrido del Productor y una matriz de **19 cuentas / 22 contextos** (22/22 PASS) con una cadena distribuida (11/11). Un despliegue anterior (`bde5934`) falló en la migración 0072 y se recuperó sin pérdida de datos. Evidencia: `qa/EVIDENCIA_QA_INTEGRAL_CUENTAS_Y_CADENA_2026-10-30.md` y `qa/EVIDENCIA_PRODUCTOR_INCIDENCIA_2026-10-30.md`. Porcentajes aceptados sin cambio (70 % y 68,2 % del MVP).
+
 Este bloque es la entrada al estado actual. Los cortes y resultados fechados que siguen se conservan como **histórico**; no sustituyen esta síntesis. No se vuelven a ejecutar pruebas para conciliar estos documentos.
 
 | Elemento | Estado acreditado o reportado en la evidencia publicada |

@@ -57,4 +57,6 @@ Gates de conformidad regulatoria, integración oficial, Android real y producci�
 
 ## Validación local (etapa vigente)
 
+**QA por cuenta y cadena (2026-10-30).** `e2e/review/qa-cuentas-matriz.mjs` (todas las cuentas del archivo de credenciales vigente × su organización activa: permisos = catálogo, menú = esperado, lectura permitida, rechazos con cuerpo válido sin efecto en los datos) y `e2e/review/qa-cadena-distribuida.mjs` (productor → técnico → acopio → calidad → lote → expediente → soportes → comprador → auditoría y la autorización satelital). Resultados y límites en `qa/EVIDENCIA_QA_INTEGRAL_CUENTAS_Y_CADENA_2026-10-30.md`. Un 400 por validación no acredita autorización: los sondeos usan cuerpos válidos y se acompañan de un control autorizado.
+
 La verificación de cierre se ejecuta en el equipo local con `npm run validate` (docs/20): servicios de desarrollo, typecheck, lint, build, OpenAPI validado, unitarias + integración contra PostgreSQL/PostGIS y Redis reales (base `terra_link_test`) y E2E en Chromium (base `terra_link_e2e`). Resultados en `validation-results/<fecha>/resumen.md`. Las mismas comprobaciones que el workflow de Actions inactivo (`infra/ci/github-actions-ci.yml`), ejecutadas localmente. DONE_LOCAL no sustituye los gates de producción, Android real ni conformidad.
