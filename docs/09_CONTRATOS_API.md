@@ -178,3 +178,9 @@ y por parcela `plots[]`: `geometry {version_number, geometry_type}`, `vigencia` 
 | `POST /api/v1/organizations/{orgId}/geolocation-config/adoptions` | `risk:approve_rules` | Adopta/retira (`ALREADY_ADOPTED`/`NOT_ADOPTED` 409). No revisa ni declara aplicable |
 
 `GEOLOCATION_PROFILE` se evalúa con la configuración adoptada; el contenido de la instantánea (`profiles.geolocation_profile`) registra configuración, revisión, aplicabilidad y las evaluaciones del perfil técnico por versión de parcela. Evidencia: `qa/EVIDENCIA_GEOLOCATION_PROFILE_CONFIG_2026-10-22.md`.
+
+### Concesión de geometrías y país de producción (2026-10-30)
+
+- `POST /organizations/{orgId}/access-grants` acepta `include_geometries` (solo `DD_SNAPSHOT` con lectura; apagado por omisión; no editable; el concedente necesita `plot:read_geometry`): 422 `GRANT_GEOMETRIES_ONLY_FOR_SNAPSHOT` / `GRANT_GEOMETRIES_REQUIRE_READ`, 403 `GRANT_BEYOND_GRANTOR`.
+- Destinatario: `GET /granted/{grantId}/geometries` (GeoJSON con tipo, versión y huella fijados en la instantánea, país de cada parcela; sin identidad del productor). Sin `include_geometries`: 403 `GRANT_GEOMETRIES_NOT_INCLUDED`; concesión inexistente, vencida, revocada o de otra cuenta: 404 opaco. Se audita (`grant.geometries_read`). La proyección de la instantánea añade `geometries` y `production` (período por origen y país por estado, con recuentos y sin códigos).
+- `GET|POST /organizations/{orgId}/plots/{plotId}/production-country`: declaración vigente e historial; `POST` con `operation_id`, `expected_declaration_number`, `country` (ISO 3166-1 alfa-2 mayúsculas o `null` = desconocido) y `note`. Alcance de editar la parcela. 409 `VERSION_CONFLICT`, `NO_CHANGE`, `OPERATION_ID_REUSED`; 404 fuera de alcance.
