@@ -5,6 +5,8 @@ import { LocalStore, type DatasetPlot } from '../store';
 import { accountKey, captureGate, CaptureBlockedError, type StoredSession } from '../session';
 import { EncryptionRequiredError, isStorageFull, storageFullMessage, StorageFullError } from '../ports';
 import { nodePlatform, syntheticJpeg } from './node-platform';
+import { syncOnce, type SyncTransport } from '../sync';
+import type { ServerOutcome } from '../store';
 
 // Evidencia en Node (motor SQLite real + archivos reales). NO es evidencia de emulador ni de dispositivo Android.
 const PLOT: DatasetPlot = { id: '00000000-0000-4000-8000-000000000001', plot_code: 'P-SINT-1', name: null, row_version: 3, status: 'ACTIVE', producer_id: '00000000-0000-4000-8000-0000000000a1', producer_code: 'PR-SINT', producer_display_name: 'Productor sintético', geometry_status: 'NONE' };
@@ -219,6 +221,48 @@ describe('P0-023 sesión: vence con el token del servidor; bloquear no borra', (
     now = new Date('2026-10-09T12:00:00Z');
     await expect(store.createDraft(PLOT.id)).rejects.toThrow(/retrocedió/);
     expect(await store.drafts()).toHaveLength(2);
+    await store.close();
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe('QA-08 / RNF-04: 7 días simulados sin conexión (tres capacidades distintas)', () => {
+  const t0 = new Date('2026-10-10T12:00:00Z');
+  const sess = (exp: string, seen: string): StoredSession => ({ user_id: 'u', email: 'tecnico@x', token_expires_at: exp, last_online_auth_at: seen, last_seen_at: seen,
+    organizations: [{ organization_id: 'o1', name: 'DEMO Org', status: 'ACTIVE', roles: ['FIELD_TECHNICIAN'], permissions: ['plot:update_assigned'] }] });
+
+  it('(1) conservar: 7 días después, y tras reiniciar, lo capturado sigue íntegro; (2) capturar de nuevo sigue BLOQUEADO (hoy no hay ventana de 7 días); (3) con sesión nueva, lo guardado se envía con las mismas operaciones', async () => {
+    let now = t0;
+    const { root, photo } = setup();
+    const s0 = sess('2026-10-10T13:00:00Z', '2026-10-10T12:00:00Z'); let sesion = s0;
+    let store = await LocalStore.open(nodePlatform(root, { clock: () => now }), 'acc1', () => captureGate(sesion, 'o1', now));
+    await store.replaceDataset([PLOT]);
+    const d = await store.createDraft(PLOT.id); await store.setLocation(d, SAMPLE); await store.addPhoto(d, photo, 'image/jpeg', null);
+    const ops = await store.enqueue(d);
+    const antes = await store.drafts();
+    await store.close();
+    now = new Date(t0.getTime() + 7 * 24 * 3600_000); // siete días después + reinicio
+    store = await LocalStore.open(nodePlatform(root, { clock: () => now }), 'acc1', () => captureGate(sesion, 'o1', now));
+    await store.recover();
+    expect(captureGate(sesion, 'o1', now)).toMatchObject({ allowed: false, reason: 'SESSION_EXPIRED' }); // (2) no se puede capturar nuevo
+    await expect(store.createDraft(PLOT.id)).rejects.toBeInstanceOf(CaptureBlockedError);
+    const despues = await store.drafts(); // (1) lo guardado, intacto: mismas operaciones, mismas huellas y la foto presente
+    expect(despues).toHaveLength(1);
+    expect(despues[0].operations.map((o) => [o.operation_id, o.content_hash, o.state])).toEqual(antes[0].operations.map((o) => [o.operation_id, o.content_hash, o.state]));
+    expect(ops).toEqual(despues[0].operations.map((o) => o.operation_id));
+    expect(despues[0].photos[0]).toMatchObject({ file_present: true });
+    // (3) volver a conectarse: sesión nueva emitida por el servidor; el servidor revalida y acepta (transporte simulado: NO es el servidor real)
+    sesion = sess('2026-10-17T13:00:00Z', now.toISOString());
+    const recibidas: string[] = [];
+    const t: SyncTransport = {
+      async push(_d, lote) { return lote.map((o): ServerOutcome => { recibidas.push(o.operation_id); return { operation_id: o.operation_id, status: 'ACCEPTED', result: {} }; }); },
+      async upload() { return { status: 'AVAILABLE', note: 'recibido' }; },
+      async pull() { return { cursor: 'c', full: true, changes: [PLOT], tombstones: [] }; },
+    };
+    const r = await syncOnce(store, t, 'dev');
+    expect(r.synced).toBe(ops.length);
+    expect(recibidas.sort()).toEqual([...ops].sort()); // las MISMAS operaciones, sin duplicar
+    expect(captureGate(sesion, 'o1', now)).toMatchObject({ allowed: true }); // y recién entonces se puede capturar de nuevo
     await store.close();
     rmSync(root, { recursive: true, force: true });
   });

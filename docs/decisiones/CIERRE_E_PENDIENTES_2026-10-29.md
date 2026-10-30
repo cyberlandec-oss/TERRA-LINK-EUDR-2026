@@ -16,6 +16,7 @@ Esta es la única lista de lo que depende de una persona fuera del desarrollo; l
 | P5 | **Objetivos de recuperación y rendimiento:** RPO/RTO (responsable de operación) y presupuestos p95/SLO (TECH-001) | Fijarlos; luego aceptar los tiempos observados (9e) y medir con el dataset del piloto (9b) | 9a, 9b, 9d, 9e |
 | P6 | **Organización piloto:** dataset y capacitación | Medición de 9b y capacitación | 9b, 9f |
 | P7 | **Navegador del propietario en `localhost`:** dirección de la barra y error de la petición `login` (Network) y de Console | Diagnóstico con el dato | 10 |
+| P9 | **D-40, offline prolongado:** decidir **A** mantener 1 h · **B** credencial local de hasta 7 días (con desbloqueo local PIN o biometría y quién fija una duración menor) · **C** otra duración. Propuesta y matriz «conservar / capturar de nuevo / sincronizar» en `docs/11` | Con A no hay trabajo; con B o C: servidor, móvil y ensayo QA-08 de 7 días con la credencial. **No** cambia los criterios para dar el offline por terminado | 1a |
 | P8 | **Teléfono físico** (al final; el almacenamiento lleno se comprueba como recuperación, sin exigir que el fallo sea determinista): instalar `ARM64-soportes-70348c7.apk` y recorrer la guía de `apps/mobile/README.md` | Registrar el ensayo; cierra el gate Android real | 1a, 1b |
 
 El soporte sobre productor desde la interfaz móvil **no** figura aquí: queda fuera del alcance exigido.

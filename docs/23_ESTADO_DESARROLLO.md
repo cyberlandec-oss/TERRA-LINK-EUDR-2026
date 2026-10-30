@@ -457,7 +457,7 @@ Validación web/API: `npm run validate` APROBADA (`validation-results/2026-10-11
 | Entidad/cola en transacción local | DEMOSTRADO EN NODE | Unitaria con SQLite real: todo o nada; operation_id estable; dependencias |
 | Borradores/fotos/GPS sobreviven cierre y reboot | PARCIAL | Reapertura simulada en Node (nueva instancia, mismos archivos) y caché borrada; **sin cierre forzado ni reinicio en Android** |
 | Dataset limitado y separación por cuenta | DEMOSTRADO EN NODE + API | Base y adjuntos por cuenta+organización; dataset según asignación del servidor; otra cuenta no ve capturas |
-| Sesión offline definida | PROPUESTA | D-40 / ADR-0006 sin aprobar; ventana de 72 h; token no se renueva; revocaciones no detectables offline |
+| Sesión offline definida | PROPUESTA | D-40 / ADR-0006 sin aprobar (propuesta de 7 días redactada en `docs/11`, 2026-10-30; la antigua de 72 h se retiró); token no se renueva; revocaciones no detectables offline. Conservar 7 días y sincronizar tras reconectar: probados; capturar de nuevo tras 1 h: no soportado |
 | Ensayo Android real (docs/11) | NO EJECUTADO | Este equipo no tiene Android SDK, JDK ni adb; instrucciones en `apps/mobile/README.md` |
 | Cifrado local probado en la plataforma | NO EJECUTADO | SQLCipher requiere build de desarrollo; Expo Go queda sin cifrar (lo muestra «Diagnóstico») |
 

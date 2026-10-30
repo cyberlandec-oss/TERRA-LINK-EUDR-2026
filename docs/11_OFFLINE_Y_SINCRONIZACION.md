@@ -69,12 +69,28 @@ Código: `apps/mobile` (ADR-0006, PROPUESTO). Estado: **ABIERTA**; falta el ensa
 - Dataset: solo las parcelas que `GET /plots` devuelve a la cuenta en la organización (el servidor aplica la asignación).
 - Separación: base y adjuntos por cuenta + organización; cerrar sesión borra token y sesión, no las capturas.
 
-### Política de sesión offline (propuesta D-40, no aprobada)
+### Offline prolongado: tres capacidades distintas y propuesta D-40 (revisada 2026-10-30; NO aprobada, NO aplicada)
 
-Login solo online; JWT de 1 h sin refresh (ADR-0005) que nunca se renueva sin red. Captura local permitida hasta
-72 h desde la última autenticación online (parámetro de propuesta). Pasada la ventana, o si el reloj retrocede, la
-captura nueva se bloquea y lo guardado se conserva. Sin red no se detectan revocaciones. Para enviar (P0-024) hará falta
-iniciar sesión con conexión y el servidor revalidará sesión, membresía y permisos.
+Fuentes: RNF-04 («ensayo de 7 días simulados y de interrupción/cierre real; **duración objetivo final por ADR**»), QA-08 («…7 días simulados, retry, adjunto interrumpido y conflicto → persistencia sin pérdida, misma operación una vez, dependencias/conflicto visibles»), S1 §90 («Offline session») y ADR-0006. **Ninguna fuente fija cuántos días debe poder capturarse sin conexión** ni obliga a una autorización local; no hay decisión posterior que apruebe D-40. La ventana de 72 h que figuraba aquí se retiró el 2026-10-11 y no está en el código.
+
+| Capacidad | Hoy | Evidencia | Lo que NO demuestra |
+| --- | --- | --- | --- |
+| **(1) Conservar** lo capturado durante 7 días (y tras reiniciar) | **Sí**: el almacén no borra por antigüedad; solo reemplaza el dataset al descargar | `store.test.ts` «7 días simulados»: reloj +7 días y reinicio, mismas operaciones (`operation_id`, huella, estado) y foto presente; antes, cierre forzado y reloj +2 h en emulador (`docs/qa/EVIDENCIA_MOVIL_ALTAS_MAPA_2026-10-28.md`) | No se avanzó 7 días el reloj de un emulador ni de un teléfono; no mide batería, ahorro de energía ni limpieza del sistema |
+| **(2) Capturar de nuevo** durante esos 7 días | **No**: la captura nueva termina al vencer el JWT (1 h, sin refresh); se bloquea sin borrar nada | Mismo test (bloqueo a +7 días con la sesión original) y `captureGate` (vencida, reloj atrasado, sin permiso, otra organización) | No prueba que se pueda capturar: es lo contrario. Solo existiría con D-40 |
+| **(3) Reconectar y sincronizar** con autorización vigente | **Sí**, tras iniciar sesión online: el servidor revalida sesión, membresía, permisos y recurso | Mismo test (sesión nueva → `syncOnce`, mismas operaciones sin duplicar; transporte **simulado**); `sync-altas.int-spec.ts` y las pruebas de dispositivo revocado con servidor y PostgreSQL reales; emulador con `relogin` y respuesta perdida | El test de 7 días usa un transporte simulado; no hay un envío real tras 7 días de reloj. Conservar (1) no prueba (3) ni al revés |
+
+Ninguna fila sustituye a otra: conservar no es poder capturar, y poder capturar no es poder enviar.
+
+#### Propuesta D-40: autorización local de captura de hasta 7 días (opción de producto)
+Es una **opción derivada del ensayo de 7 días previsto en RNF-04/QA-08**, no una obligación EUDR ni una aprobación concedida. Sin aprobación del propietario no se implementa.
+- **Emisión (solo online, por el servidor):** a un usuario con sesión vigente, desde un dispositivo registrado y activo (`POST /devices`), en una organización con membresía activa y permiso de captura. Un nuevo `POST …/devices/{id}/offline-grants` devuelve una credencial **ligada** a usuario + dispositivo + organización, con `issued_at`, `expires_at` (máximo 7 días; menor si la organización lo fija) y alcance **solo de captura local** (los permisos de captura que el rol tenía al emitirla; no concede nada nuevo). Firmada por el servidor con una clave distinta de la del JWT; la app solo verifica integridad.
+- **Vencimiento:** duro y sin renovación sin red. Al vencer: no se captura de nuevo, **no se borra nada**; renovar exige conexión.
+- **Protección local:** guardada en el almacén seguro (Keystore) ligada a la clave de la base; SQLCipher obligatorio (ya exigido en build nativo); desbloqueo local (PIN o biometría del dispositivo) para usarla —**hoy no existe en la app** y requeriría una dependencia nueva—. La credencial **no sirve para enviar**, no es un token y no sale del dispositivo.
+- **Reloj alterado:** se conserva la hora máxima observada (ya existe, `last_seen_at`) y se añade el tiempo transcurrido por el reloj monotónico del sistema. Atrasar el reloj bloquea hasta volver online; adelantarlo solo acorta la vigencia, nunca la alarga. Límite declarado: tras un reinicio el reloj monotónico se reinicia, y entonces solo protege la hora máxima observada.
+- **Revocación:** sin red no se detecta (límite inevitable). Al reconectar, el servidor rechaza el envío del dispositivo, usuario o membresía revocados y lo capturado queda en recuperación controlada, visible y sin borrarse; el borrado remoto no se incluye (exige conexión) y sería otra decisión.
+- **Recuperación de pendientes:** vencida, revocada o con el reloj alterado, todo lo guardado permanece visible. Para enviar hace falta **autenticación online** y **revalidación del servidor** (tenant, membresía, permiso, recurso); las mismas `operation_id`; los rechazos se muestran con su motivo.
+- **Qué cambia respecto de la hora actual:** hoy se captura hasta que vence el JWT (1 h); con la propuesta, hasta 7 días con credencial local. No cambian: el inicio de sesión solo online, el JWT de 1 h sin refresh, el envío con sesión y revalidación, ni los criterios para dar el offline por terminado (RNF-04, QA-08).
+- **Decisión exacta que requiere el propietario** (una de tres): **A)** mantener 1 h, como hoy; **B)** aprobar la credencial local de hasta 7 días con los parámetros anteriores (más su desbloqueo local); **C)** otra duración, indicada. Con B debe decidir además (i) si el desbloqueo local es PIN o biometría, (ii) quién fija una duración menor por organización. Recomendación: decidir según la conectividad real del piloto; si el campo se cierra con conectividad diaria, A basta. Con B o C el trabajo es servidor (emisión, firma, revocación), móvil (verificación, desbloqueo, reloj) y el ensayo QA-08 de 7 días **con** la credencial, en emulador y después en teléfono.
 
 ### Contrato de dispositivo (propuesta para P0-024)
 
