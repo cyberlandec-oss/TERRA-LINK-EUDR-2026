@@ -51,7 +51,11 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 
   await sql`ALTER TABLE satellite_jobs ADD COLUMN requesting_organization_id uuid REFERENCES organizations(id)`.execute(db);
   await sql`ALTER TABLE satellite_jobs ADD COLUMN authorization_id uuid REFERENCES satellite_plot_authorizations(id)`.execute(db);
+  // Rellenar la columna nueva en los trabajos existentes (todos propios): el disparador de transiciones prohíbe tocar un trabajo terminado, así que se
+  // suspende SOLO durante este UPDATE (dentro de la misma transacción) y se restablece de inmediato. No cambia ningún otro campo.
+  await sql`ALTER TABLE satellite_jobs DISABLE TRIGGER satellite_jobs_no_rewrite`.execute(db);
   await sql`UPDATE satellite_jobs SET requesting_organization_id = organization_id`.execute(db);
+  await sql`ALTER TABLE satellite_jobs ENABLE TRIGGER satellite_jobs_no_rewrite`.execute(db);
   await sql`ALTER TABLE satellite_jobs ALTER COLUMN requesting_organization_id SET NOT NULL`.execute(db);
   // Solicitud propia ⇔ sin autorización; solicitud de otra organización ⇔ con autorización.
   await sql`ALTER TABLE satellite_jobs ADD CONSTRAINT satellite_jobs_solicitante_autorizacion CHECK ((requesting_organization_id = organization_id) = (authorization_id IS NULL))`.execute(db);

@@ -6,6 +6,7 @@ import { FixtureSatelliteProvider } from '../src/satellite/provider';
 import { SatelliteRunner } from '../src/satellite/runner';
 import { PiiCipher } from '../src/crypto/pii';
 import { S3ObjectStore } from '../src/storage/object-store';
+import { migrateTo, migrateToLatest } from '../src/db/database';
 
 // Recorrido Productor → exportadora: autorización explícita y revocable de PARCELAS CONCRETAS para que otra organización las analice.
 // PostgreSQL REAL, datos SINTÉTICOS, proveedor = fixture sintética (no hay llamada a ningún tercero). Lo que NO acredita: ningún análisis satelital real.
@@ -340,5 +341,25 @@ describeDb('satélite entre organizaciones: autorización por parcela, credencia
     await expect(sql`UPDATE satellite_plot_authorizations SET expires_at = expires_at + interval '10 days' WHERE id = ${a.id}`.execute(h.db)).rejects.toThrow(/no se editan/);
     await expect(sql`UPDATE satellite_plot_authorizations SET grantee_organization_id = ${orgZ} WHERE id = ${a.id}`.execute(h.db)).rejects.toThrow(/no se editan/);
     await http().post(`${base(orgO)}/satellite/authorizations/${a.id}/revoke`).set(as(OWNER)).send({ reason: 'Fin de la comprobación' }).expect(201);
+  });
+
+  // Defecto hallado al desplegar sobre datos existentes: el relleno de la columna nueva tocaba trabajos TERMINADOS y su disparador de transiciones lo prohíbe.
+  // Se prueba la migración 0072 sobre una base que ya tiene un trabajo COMPLETED (bajar a 0071 y volver a subir), y que el disparador sigue activo después.
+  it('la migración 0072 se aplica sobre trabajos ya terminados, los marca como propios y deja el disparador de transiciones activo', async () => {
+    const a = (await authorize(plotP1).expect(201)).body.authorization;
+    const propio = (await http().post(`${base(orgO)}/plots/${plotP1}/satellite/analyses`).set(as(OWNER)).send({ operation_id: randomUUID(), operation: 'FOREST_COVER', fixture_scenario: 'RESULT_COVERED' }).expect(201)).body.job.id as string;
+    await runner().runOnce();
+    expect(await jobRow(propio)).toMatchObject({ status: 'COMPLETED' });
+    await http().post(`${base(orgO)}/satellite/authorizations/${a.id}/revoke`).set(as(OWNER)).send({ reason: 'Antes de bajar la migración' }).expect(201);
+    await migrateTo(h.db, '0071_sync_referencias_entregas');
+    const sin = await sql<{ c: string }>`SELECT column_name AS c FROM information_schema.columns WHERE table_name = 'satellite_jobs' AND column_name = 'requesting_organization_id'`.execute(h.db);
+    expect(sin.rows).toHaveLength(0);
+    await migrateToLatest(h.db);
+    const fila = await jobRow(propio);
+    expect(fila).toMatchObject({ status: 'COMPLETED', requesting_organization_id: orgO, authorization_id: null });
+    const todos = await sql<{ n: string }>`SELECT count(*)::text AS n FROM satellite_jobs WHERE requesting_organization_id <> organization_id`.execute(h.db);
+    expect(todos.rows[0].n).toBe('0');
+    // El disparador que impide reescribir un trabajo terminado sigue activo.
+    await expect(sql`UPDATE satellite_jobs SET status = 'REQUESTED' WHERE id = ${propio}`.execute(h.db)).rejects.toThrow(/no vuelve a cambiar de estado/);
   });
 });
