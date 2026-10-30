@@ -4,6 +4,22 @@ Base: contraste de `docs/24` con `docs/18` (backlog), `docs/07` (RBAC), `docs/UX
 
 **Código validado y desplegado: `70348c7`** (`npm run validate` APROBADA sobre ese SHA, `validation-results/2026-10-29T22-07-43-825Z`; API reconstruida una vez; la web no cambió). Prueba móvil omitida: `session.api.test.ts` (humo contra la API real, solo con `TL_API_SMOKE=1`); no afecta a esta entrega, que se cubre con `soportes.test.ts`, `sync-altas.int-spec.ts` y el recorrido en emulador.
 
+## Intervenciones del propietario: lista única vigente
+Esta es la única lista de lo que depende de una persona fuera del desarrollo; las demás secciones y documentos remiten aquí. El equipo no cambia datos ni aprueba perfiles para llegar a READY.
+
+| # | Qué hace el propietario o la parte competente | Acción de cierre al recibirlo | Filas |
+| --- | --- | --- | --- |
+| P1 | **Whisp:** poner la clave en `WHISP_API_KEY=` de `C:UsersmarioPROYECTOS DEVTERRA LINK 2025.env` (la línea existe y está **vacía**, comprobado 2026-10-29 sin mostrar valores) y confirmar la autorización de uso | Registrar `WHISP` como `SELECTED` con responsable, habilitar `SATELLITE_LIVE_CALLS` de forma temporal, credencial por organización, ejecutar el recorrido autorizado desde la plataforma y documentar el resultado. El adaptador no se rehace | 5a, 5b |
+| P2 | **Dato real de CAD-1027213440:** superficie declarada o polígono | Versión geométrica nueva con un rol con `plot:update` y reevaluación | 4 |
+| P3 | **Revisión competente** (D-05.B / D-07 / P1-005): adopción de una configuración geográfica revisada y aplicable; catálogo de riesgo, conclusión humana y `LEGAL_PROFILE` | Registrar la decisión de la persona con facultad; desbloquea expediente y despacho | 3, 6, 7 |
+| P4 | **Canales externos:** GUIA, EUDR-IS y perfil Ecuador validado | Canal/acuerdo verificado y recibos auténticos | 8 |
+| P5 | **Objetivos de recuperación y rendimiento:** RPO/RTO (responsable de operación) y presupuestos p95/SLO (TECH-001) | Fijarlos; luego aceptar los tiempos observados (9e) y medir con el dataset del piloto (9b) | 9a, 9b, 9d, 9e |
+| P6 | **Organización piloto:** dataset y capacitación | Medición de 9b y capacitación | 9b, 9f |
+| P7 | **Navegador del propietario en `localhost`:** dirección de la barra y error de la petición `login` (Network) y de Console | Diagnóstico con el dato | 10 |
+| P8 | **Teléfono físico** (al final): instalar `ARM64-soportes-70348c7.apk` y recorrer la guía de `apps/mobile/README.md` | Registrar el ensayo; cierra el gate Android real | 1a, 1b |
+
+El soporte sobre productor desde la interfaz móvil **no** figura aquí: queda fuera del alcance exigido.
+
 ## Estados obsoletos corregidos en esta revisión
 - `docs/24` (T15, traspaso entre organizaciones): resuelto por A-03/RF-50 (DONE_LOCAL, `d99f40a`); la salida real sigue bloqueada (D4).
 - `docs/18` P0-024: ya no lista recepciones/calidad/lotes/inventario como pendiente móvil (ninguna fuente lo exige).
@@ -17,7 +33,7 @@ Categorías: **I** implementación pendiente · **C** configuración o decisión
 | --- | --- | --- | --- | --- |
 | 1a | Ensayo en teléfono físico (P0-023/024; gate de `.claude/rules/40-mobile-offline.md`) | E | Instalar `ARM64-soportes-70348c7.apk` y recorrer la guía de `apps/mobile/README.md`. El APK arm64 está **preparado, no probado**: no es evidencia de teléfono | No: equipo del propietario (al final) |
 | 1b | Ubicación real, permiso denegado y almacenamiento lleno en teléfono | E | Misma guía; en emulador hay evidencia (denegada con contenido comparado; llena 1 de 2 ejecuciones, no determinista) | No: teléfono |
-| 2 | Soporte sobre **productor** desde la interfaz móvil | I (menor, no exigida por fuente) | La operación y el servidor ya lo admiten; falta la pantalla. `DELIVERY_SUPPORT` se vincula desde la entrega, `FIELD_PHOTO` conserva su flujo | Opcional |
+| 2 | Soporte sobre **productor** desde la interfaz móvil | Fuera del alcance exigido (no bloquea) | Mejora opcional: el servidor ya lo admite; solo faltaría la pantalla. `DELIVERY_SUPPORT` se vincula desde la entrega, `FIELD_PHOTO` conserva su flujo | No aplica |
 | 3 | `GEOLOCATION_PROFILE` NOT_EVALUABLE en DD-2026-00002 | C | Una persona con facultad adopta una configuración **revisada y aplicable** (mecanismo existente); no se adopta por conveniencia | No: decisión real (D-05.B) |
 | 4 | Parcela CAD-1027213440 NO EVALUABLE: punto sin superficie declarada | D | Registrar la superficie (o un polígono) en una versión nueva con un rol con `plot:update` y reevaluar. No bloquea el resto | Sí, con el dato real |
 | 5a | Whisp: clave | C | Propietario: `WHISP_API_KEY=` en `C:\Users\mario\PROYECTOS DEV\TERRA LINK 2025\.env` (una línea, sin comillas ni espacios) | No |
@@ -28,15 +44,16 @@ Categorías: **I** implementación pendiente · **C** configuración o decisión
 | 9a | RNF-05: presupuestos p95/SLO | C (decisión de TECH-001) | Acordar los objetivos; sin ellos no hay umbral que aprobar. No se inventan | No: decisión |
 | 9b | RNF-05: medición con el dataset del piloto y carga | E | Medir con el dataset del piloto contra los presupuestos de 9a | No: depende de 9a y del dataset |
 | 9c | RNF-06: restauración coherente de base y objetos | **Evidenciada** (ver abajo) | — | Hecho |
-| 9d | RNF-06: objetivos RPO/RTO y su medición | C + E | Declarar RPO (frecuencia de respaldo) y RTO objetivo; medir el RTO con el volumen que se declare. Hoy hay tiempos medidos de dos restauraciones, sin objetivo contra el cual compararlos | No: decisión; la medición es ejecutable después |
-| 9e | Capacitación (P0-031) | X | Con la organización piloto | No |
+| 9d | RNF-06: **objetivos** RPO/RTO | C | El responsable fija RPO y RTO (`docs/17`); este repositorio no los inventa | No: decisión |
+| 9e | RNF-06: **aceptación** de los tiempos observados frente a 9d | C | El responsable compara los tiempos observados (abajo) con 9d. Solo si el volumen declarado difiere de los ya medidos se mide de nuevo, una vez | No: depende de 9d |
+| 9f | Capacitación (P0-031) | X | Con la organización piloto | No |
 | 10 | Incidencia del navegador del propietario desde `localhost` | D | Dirección de la barra y error de la petición `login` (Network) y de Console | No: dato del propietario |
 | 11 | Almacenamiento lleno determinista | E (límite registrado) | Cuota por app o partición mínima; hoy: una ejecución real con contenido comparado | Parcial |
 
 ### RNF-06: qué acreditan los registros existentes
 - **QA-16 (2026-10-15)**, `docs/qa/EVIDENCIA_QA16_RESTAURACION_2026-10-15.md`: respaldo y restauración en entorno aislado de base **y** objetos; conteos idénticos en las 25 tablas y 39/39 migraciones, 12+14 campos cifrados descifrados con 0 fallos, objetos 2/2 con clave, tamaño y SHA-256 exactos, 0 huérfanos; la aplicación operó sobre la copia (9 comprobaciones correctas, 3 bloqueos esperados). **Volumen: dump de 538 KB y 2 objetos.** Tiempos: volcado 3 s, arranque 6 s, `pg_restore` 14 s (13 s en la segunda mitad), verificación < 2 min; API operativa 7 s.
 - **Restauración aislada de `_respaldos/2026-10-20-a01-mapa-fotos-0057`**: 137 tablas con conteos y restricciones idénticos, 53 productores descifrados sin fallos, **1191 objetos con la misma huella**. Ese registro no consigna tiempos.
-- **Límites**: el criterio «restauración coherente de base y objetos» está cubierto con esos dos volúmenes. Los tiempos son de volúmenes pequeños y no se extrapolan; no hay un **RPO** declarado (ninguna fuente fija la frecuencia de respaldo) ni un **RTO objetivo**. No se probó la restauración del VHDX completo. No se añade como condición un «volumen real de un cliente»: lo que falta es la declaración de los objetivos y la medición contra ellos con el volumen que se declare.
+- **Tres cosas distintas** (definiciones en `docs/17`): **objetivos** (RPO/RTO: ninguno fijado), **tiempos observados** (los de arriba, de esos dos volúmenes; no se extrapolan) y **aceptación** (no existe: requiere un objetivo). El criterio «restauración coherente de base y objetos» sí está cubierto. No se probó la restauración del VHDX completo. No se añade como condición un «volumen real de un cliente»: falta fijar objetivos y aceptarlos.
 
 ## Qué sí quedó cerrado (con su evidencia)
 - **Soportes documentales móviles (PDF o imagen)** (`70348c7`): operación `DOCUMENT_ATTACH` sobre parcela o productor (existentes o con referencia local), tipos de Documentos con titular parcela/productor (sin tipos nuevos), subida aparte con SHA-256, firma de bytes y escaneo; aportar **no** revisa ni aprueba. Emulador: PDF por el selector del sistema sobre una parcela creada sin conexión, subida interrumpida y recuperada con **un solo documento**, tipo `LAND_TENURE`, titular = parcela definitiva, SHA-256 idéntico, 1 versión, 0 revisiones humanas, estado «archivo disponible (sin revisar)». Pruebas: `soportes.test.ts` (3), `sync-altas.int-spec.ts` (9).

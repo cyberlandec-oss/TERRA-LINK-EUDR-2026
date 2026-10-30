@@ -125,8 +125,9 @@ El workflow se movió a `infra/ci/github-actions-ci.yml` y **no se ejecuta**: en
 ## Pendiente (no ejecutado / no existe aún)
 
 Móvil/Android y despliegue. Ningún comando de producción está definido. **Backup/restauración ya no está aquí**: el
-procedimiento está verificado y documentado abajo (QA-16); lo que sigue pendiente de QA-16 es ejecutar un **recorrido
-operativo sobre la copia restaurada** y medir RPO/RTO con volumen de piloto.
+procedimiento está verificado y documentado abajo (QA-16), incluido el recorrido operativo sobre la copia restaurada. Lo que sigue pendiente de RNF-06 no es
+repetir la restauración sino **fijar los objetivos RPO/RTO con su responsable** y **aceptar** los tiempos observados frente a ellos
+(definiciones en `docs/17_DEVOPS_Y_OPERACION.md`).
 
 ## Respaldo y restauración verificada (QA-16)
 
