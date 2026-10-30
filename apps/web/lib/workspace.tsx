@@ -84,6 +84,8 @@ function navFor(ws: Workspace, orgId: string | null, t: (es: string) => string):
     if (ws.can('shipment:read')) operacion.push({ href: `${base}/embarques`, label: t('Embarques'), match: (p) => p.startsWith(`${base}/embarques`) });
     // A-03: traspaso de custodia entre organizaciones. Estar en el menú no concede `transfer:*`; la API decide cada acción.
     if (ws.can('transfer:read')) operacion.push({ href: `${base}/traspasos`, label: t('Traspasos'), match: (p) => p.startsWith(`${base}/traspasos`) });
+    // Análisis satelital de parcelas que OTRA organización autorizó a la propia (exportadora). Quien captura parcelas lo ve en la ficha de la parcela.
+    if (ws.can('satellite:read') && !ws.can('plot:read_own')) operacion.push({ href: `${base}/analisis-autorizados`, label: t('Análisis autorizados'), match: (p) => p.startsWith(`${base}/analisis-autorizados`) });
     if (ws.can('lot:read')) operacion.push({ href: `${base}/procesos`, label: t('Procesos'), match: (p) => p.startsWith(`${base}/procesos`) });
     if (ws.can('product:read')) operacion.push({ href: `${base}/productos`, label: t('Productos'), match: (p) => p.startsWith(`${base}/productos`) });
     if (operacion.length) groups.push({ title: t('Operación'), items: operacion });

@@ -13,6 +13,7 @@ import { VersionDownloads } from '../../../../../lib/geometry-downloads';
 import { GisEvaluation } from '../../../../../lib/gis-evaluation';
 import { GeoProfileEvaluation } from '../../../../../lib/geo-profile';
 import { SatelliteAnalysis } from '../../../../../lib/satellite';
+import { AutorizarAnalisisPanel } from '../../../../../lib/satellite-autorizacion';
 import { EntityDocuments } from '../../../../../lib/entity-documents';
 import { FieldEvidence } from '../../../../../lib/field-evidence';
 import { EventHistory } from '../../../../../lib/event-history';
@@ -140,6 +141,7 @@ export default function PlotDetailPage() {
           <GeoProfileEvaluation orgId={orgId} plotId={plot.id} canEvaluate={!!plot.can_evaluate_gis} hasVersion={!!plot.current_version} />
 
           <SatelliteAnalysis orgId={orgId} plotId={plot.id} />
+          <AutorizarAnalisisPanel orgId={orgId} plotId={plot.id} />
 
           <FieldEvidence orgId={orgId} plotId={plot.id} canUpload={!!plot.can_update && ws.can('document:upload')} />
 

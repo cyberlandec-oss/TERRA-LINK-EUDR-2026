@@ -14,7 +14,7 @@ import { Alert, EmptyState, ErrorPanel, StatusBadge, type Tone } from './ui';
 // ENSAYO. Ningún resultado de ensayo acredita deforestación ni su ausencia, ni cambia conclusiones, READY o despacho.
 // Esta tarjeta NO interpreta: muestra el estado, la procedencia y los límites que devuelve el servidor.
 
-interface Result {
+export interface Result {
   is_synthetic: boolean;
   synthetic_warning: string | null;
   provenance: { provider_code: string; dataset: string | null; dataset_version: string | null; analysis_date: string | null; resolution_m: string | null; method: string | null };
@@ -27,9 +27,10 @@ interface Result {
   conclusion: string;
   conclusion_note: string;
 }
-interface Job {
+export interface Job {
   id: string;
   subject: { plot_version_id: string; geometry_hash: string; geometry_type: string };
+  requested_by_organization?: { id: string; name: string; authorization_id: string } | null;
   applies_to_current_version: boolean;
   is_ensayo?: boolean;
   provider: { code: string; kind: string; adapter_contract_version: string };
@@ -109,6 +110,66 @@ export const SAT_SCENARIO: Record<string, string> = {
   EGRESS_BLOCKED: 'Destino bloqueado',
 };
 
+/** Resultado de un análisis con su procedencia, límites y valores del proveedor (sin interpretar). Lo usan la tarjeta de la parcela y la vista de parcelas autorizadas. */
+export function ResultadoDelAnalisis({ j, busy, onDownload, onDownloadCsv }: { j: Job & { result: Result }; busy: boolean; onDownload: (id: string) => void; onDownloadCsv: (id: string) => void }) {
+  const { t, dt } = useI18n();
+  return (
+  <>
+        {j.result.synthetic_warning && <Alert tone="review" title={t('Resultado de ENSAYO (fixture sintética)')}>{t(j.result.synthetic_warning)}</Alert>}
+        {j.result.indicators?.findings && (
+          <Alert tone={j.result.indicators.findings.count > 0 ? 'review' : 'info'}
+            title={j.result.indicators.findings.count > 0 ? t('Hallazgos de ensayo: {n}', { n: j.result.indicators.findings.count }) : t('Sin hallazgos en el ensayo')}>
+            <p>{t(j.result.indicators.findings.note)}</p>
+          </Alert>
+        )}
+        <dl className="props">
+          <dt>{t('Fuente')}</dt><dd>{j.result.provenance.provider_code} · {t('contrato')} {j.provider.adapter_contract_version}</dd>
+          <dt>{t('Conjunto de datos')}</dt><dd>{j.result.provenance.dataset ?? t('No informado')}{j.result.provenance.dataset_version ? ` · ${t('versión')} ${j.result.provenance.dataset_version}` : ''}</dd>
+          <dt>{t('Versión geométrica analizada')}</dt><dd><code className="hash">{j.subject.plot_version_id.slice(0, 8)}…</code> · {t('huella')} <code className="hash">{j.subject.geometry_hash.slice(0, 12)}…</code></dd>
+          <dt>{t('Origen del resultado')}</dt><dd>{j.result.is_synthetic ? t('Fixture sintética (ensayo)') : t('Consulta real al proveedor, guardada en Terra Link')}</dd>
+          <dt>{t('Fecha del análisis')}</dt><dd>{j.result.provenance.analysis_date ? `${dt(j.result.provenance.analysis_date)} (${t('declarada por el proveedor')})` : t('No declarada por el proveedor')}</dd>
+          <dt>{t('Guardado en Terra Link')}</dt><dd>{j.finished_at ? dt(j.finished_at) : '—'}</dd>
+          <dt>{t('Periodo solicitado')}</dt><dd>{j.period.start || j.period.end ? `${j.period.start ?? '—'} → ${j.period.end ?? '—'}` : t('No se indicó periodo; el proveedor aplica el suyo')}</dd>
+          <dt>{t('Resolución')}</dt><dd>{j.result.provenance.resolution_m ? `${j.result.provenance.resolution_m} m` : t('No informada')}</dd>
+          <dt>{t('Método')}</dt><dd>{j.result.provenance.method ?? t('No informado')}</dd>
+          <dt>{t('Cobertura')}</dt><dd>{t(SAT_COVERAGE[j.result.coverage.status])} · {t(j.result.coverage.note)}</dd>
+          <dt>{t('Confianza')}</dt><dd>{j.result.confidence ?? t(j.result.confidence_note ?? '')}</dd>
+          <dt>{t('Conclusión')}</dt><dd><StatusBadge tone="neutral">{t('No evaluada')}</StatusBadge> <span className="muted">{t(j.result.conclusion_note)}</span></dd>
+          <dt>{t('Límites declarados')}</dt><dd>{t(j.result.limitations)}</dd>
+          {!j.result.is_synthetic && datasetsNoDisponibles(j.result.indicators).length > 0 && (<>
+            <dt>{t('Datasets no disponibles')}</dt><dd>{datasetsNoDisponibles(j.result.indicators).join(', ')}</dd>
+          </>)}
+          {j.result.raw_evidence && (<>
+            <dt>{t('Respuesta original')}</dt>
+            <dd>
+              SHA-256 <code className="hash">{j.result.raw_evidence.sha256}</code>
+              {j.result.raw_evidence.can_download && (
+                <> <button type="button" className="secondary" disabled={busy} onClick={() => onDownload(j.id)}>{t('Descargar respuesta original (JSON)')}</button></>
+              )}
+            </dd>
+          </>)}
+          {j.requested_by_organization && (<>
+            <dt>{t('Solicitado por')}</dt><dd>{j.requested_by_organization.name} <span className="muted">({t('con autorización de la organización propietaria')})</span></dd>
+          </>)}
+        </dl>
+        <p>
+          <button type="button" className="secondary" disabled={busy} onClick={() => onDownloadCsv(j.id)}>{t('Descargar indicadores (CSV)')}</button>{' '}
+          <span className="muted">{t('Sin la geometría; cada fila lleva su proveedor, dataset, versión de parcela y huella.')}</span>
+        </p>
+        {!j.result.is_synthetic && valoresDelProveedor(j.result.indicators).length > 0 && (
+          <details>
+            <summary>{t('Valores devueltos por el proveedor (sin interpretar)')}</summary>
+            <p className="muted">{t('Se muestran tal como los entregó el proveedor. Para cacao, la columna de riesgo del proveedor es risk_pcrop; «more_info_needed» significa evidencia insuficiente, no un resultado favorable. Un valor vacío es un dato no informado, no un cero.')}</p>
+            <table aria-label={t('Valores devueltos por el proveedor')}>
+              <thead><tr><th scope="col">{t('Columna')}</th><th scope="col">{t('Valor')}</th></tr></thead>
+              <tbody>{valoresDelProveedor(j.result.indicators).map(([k, v]) => <tr key={k}><td><code>{k}</code></td><td>{v === '' ? t('No informado') : v}</td></tr>)}</tbody>
+            </table>
+          </details>
+        )}
+  </>
+  );
+}
+
 export function SatelliteAnalysis({ orgId, plotId }: { orgId: string; plotId: string }) {
   const { t, dt } = useI18n();
   const [data, setData] = useState<PlotSatellite | null>(null);
@@ -170,6 +231,18 @@ export function SatelliteAnalysis({ orgId, plotId }: { orgId: string; plotId: st
     }
   };
 
+  const descargarCsv = async (id: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await apiDownload(`/api/v1/organizations/${orgId}/satellite/analyses/${id}/indicators.csv`, `indicadores-${id}.csv`);
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const cancel = async (id: string) => {
     setBusy(true);
     setError(null);
@@ -204,54 +277,7 @@ export function SatelliteAnalysis({ orgId, plotId }: { orgId: string; plotId: st
             : data?.can_request && <button type="button" className="secondary" disabled={busy} onClick={() => void cancel(j.id)}>{t('Cancelar este análisis')}</button>}
         </div>
       )}
-      {j.result && (
-        <>
-          {j.result.synthetic_warning && <Alert tone="review" title={t('Resultado de ENSAYO (fixture sintética)')}>{t(j.result.synthetic_warning)}</Alert>}
-          {j.result.indicators?.findings && (
-            <Alert tone={j.result.indicators.findings.count > 0 ? 'review' : 'info'}
-              title={j.result.indicators.findings.count > 0 ? t('Hallazgos de ensayo: {n}', { n: j.result.indicators.findings.count }) : t('Sin hallazgos en el ensayo')}>
-              <p>{t(j.result.indicators.findings.note)}</p>
-            </Alert>
-          )}
-          <dl className="props">
-            <dt>{t('Fuente')}</dt><dd>{j.result.provenance.provider_code} · {t('contrato')} {j.provider.adapter_contract_version}</dd>
-            <dt>{t('Conjunto de datos')}</dt><dd>{j.result.provenance.dataset ?? t('No informado')}{j.result.provenance.dataset_version ? ` · ${t('versión')} ${j.result.provenance.dataset_version}` : ''}</dd>
-            <dt>{t('Versión geométrica analizada')}</dt><dd><code className="hash">{j.subject.plot_version_id.slice(0, 8)}…</code> · {t('huella')} <code className="hash">{j.subject.geometry_hash.slice(0, 12)}…</code></dd>
-            <dt>{t('Origen del resultado')}</dt><dd>{j.result.is_synthetic ? t('Fixture sintética (ensayo)') : t('Consulta real al proveedor, guardada en Terra Link')}</dd>
-            <dt>{t('Fecha del análisis')}</dt><dd>{j.result.provenance.analysis_date ? `${dt(j.result.provenance.analysis_date)} (${t('declarada por el proveedor')})` : t('No declarada por el proveedor')}</dd>
-            <dt>{t('Guardado en Terra Link')}</dt><dd>{j.finished_at ? dt(j.finished_at) : '—'}</dd>
-            <dt>{t('Periodo solicitado')}</dt><dd>{j.period.start || j.period.end ? `${j.period.start ?? '—'} → ${j.period.end ?? '—'}` : t('No se indicó periodo; el proveedor aplica el suyo')}</dd>
-            <dt>{t('Resolución')}</dt><dd>{j.result.provenance.resolution_m ? `${j.result.provenance.resolution_m} m` : t('No informada')}</dd>
-            <dt>{t('Método')}</dt><dd>{j.result.provenance.method ?? t('No informado')}</dd>
-            <dt>{t('Cobertura')}</dt><dd>{t(SAT_COVERAGE[j.result.coverage.status])} · {t(j.result.coverage.note)}</dd>
-            <dt>{t('Confianza')}</dt><dd>{j.result.confidence ?? t(j.result.confidence_note ?? '')}</dd>
-            <dt>{t('Conclusión')}</dt><dd><StatusBadge tone="neutral">{t('No evaluada')}</StatusBadge> <span className="muted">{t(j.result.conclusion_note)}</span></dd>
-            <dt>{t('Límites declarados')}</dt><dd>{t(j.result.limitations)}</dd>
-            {!j.result.is_synthetic && datasetsNoDisponibles(j.result.indicators).length > 0 && (<>
-              <dt>{t('Datasets no disponibles')}</dt><dd>{datasetsNoDisponibles(j.result.indicators).join(', ')}</dd>
-            </>)}
-            {j.result.raw_evidence && (<>
-              <dt>{t('Respuesta original')}</dt>
-              <dd>
-                SHA-256 <code className="hash">{j.result.raw_evidence.sha256}</code>
-                {j.result.raw_evidence.can_download && (
-                  <> <button type="button" className="secondary" disabled={busy} onClick={() => void descargar(j.id)}>{t('Descargar respuesta original (JSON)')}</button></>
-                )}
-              </dd>
-            </>)}
-          </dl>
-          {!j.result.is_synthetic && valoresDelProveedor(j.result.indicators).length > 0 && (
-            <details>
-              <summary>{t('Valores devueltos por el proveedor (sin interpretar)')}</summary>
-              <p className="muted">{t('Se muestran tal como los entregó el proveedor. Para cacao, la columna de riesgo del proveedor es risk_pcrop; «more_info_needed» significa evidencia insuficiente, no un resultado favorable. Un valor vacío es un dato no informado, no un cero.')}</p>
-              <table aria-label={t('Valores devueltos por el proveedor')}>
-                <thead><tr><th scope="col">{t('Columna')}</th><th scope="col">{t('Valor')}</th></tr></thead>
-                <tbody>{valoresDelProveedor(j.result.indicators).map(([k, v]) => <tr key={k}><td><code>{k}</code></td><td>{v === '' ? t('No informado') : v}</td></tr>)}</tbody>
-              </table>
-            </details>
-          )}
-        </>
-      )}
+      {j.result && <ResultadoDelAnalisis j={j as Job & { result: Result }} busy={busy} onDownload={(id) => void descargar(id)} onDownloadCsv={(id) => void descargarCsv(id)} />}
       {j.status === 'FAILED' && (
         <div className="error" role="alert">
           <p className="alert-title">{t('El análisis no produjo resultado.')}</p>

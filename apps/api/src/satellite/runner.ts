@@ -62,7 +62,7 @@ export class SatelliteRunner {
   }
 
   private async claim(limit = this.opts.batchSize, exclude: string[] = []) {
-    const res = await sql<{ id: string; organization_id: string; plot_id: string; plot_version_id: string; geometry_hash: string; geometry_type: string; provider_code: string; operation: string; period_start: string | null; period_end: string | null; attempts: number; lease_token: string; provider_job_ref: string | null; provider_submit_started_at: Date | null }>`
+    const res = await sql<{ id: string; organization_id: string; requesting_organization_id: string; plot_id: string; plot_version_id: string; geometry_hash: string; geometry_type: string; provider_code: string; operation: string; period_start: string | null; period_end: string | null; attempts: number; lease_token: string; provider_job_ref: string | null; provider_submit_started_at: Date | null }>`
       UPDATE satellite_jobs j
          SET status = 'RUNNING', locked_by = ${this.runnerId}, lease_token = gen_random_uuid(),
              locked_until = now() + make_interval(secs => ${this.opts.leaseSeconds}), attempts = j.attempts + 1
@@ -74,7 +74,7 @@ export class SatelliteRunner {
           ORDER BY next_attempt_at
           LIMIT ${limit}
           FOR UPDATE SKIP LOCKED)
-      RETURNING j.id, j.organization_id, j.plot_id, j.plot_version_id, j.geometry_hash, j.geometry_type, j.provider_code,
+      RETURNING j.id, j.organization_id, j.requesting_organization_id, j.plot_id, j.plot_version_id, j.geometry_hash, j.geometry_type, j.provider_code,
                 j.operation, j.period_start::text, j.period_end::text, j.attempts, j.lease_token, j.provider_job_ref, j.provider_submit_started_at`.execute(this.db);
     return res.rows;
   }
@@ -156,8 +156,9 @@ export class SatelliteRunner {
       let credential: string | null = null;
       if (prov?.kind === 'EXTERNAL_HTTP' && this.deps.cipher) {
         const row = await this.db.selectFrom('satellite_credentials').select('secret_ciphertext')
-          .where('organization_id', '=', j.organization_id).where('provider_code', '=', j.provider_code).executeTakeFirst();
-        if (row) credential = this.deps.cipher.decrypt(row.secret_ciphertext, `satellite_credentials:${j.organization_id}:${j.provider_code}`);
+          .where('organization_id', '=', j.requesting_organization_id).where('provider_code', '=', j.provider_code).executeTakeFirst();
+        // La credencial es la de la organización que SOLICITA el servicio (puede no ser la propietaria de la parcela).
+        if (row) credential = this.deps.cipher.decrypt(row.secret_ciphertext, `satellite_credentials:${j.requesting_organization_id}:${j.provider_code}`);
       }
 
       let outcome: ProviderOutcome;

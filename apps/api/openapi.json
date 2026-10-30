@@ -12271,6 +12271,432 @@
         ]
       }
     },
+    "/api/v1/organizations/{orgId}/plots/{plotId}/satellite/authorizations": {
+      "post": {
+        "operationId": "SatelliteController_authorize",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizeAnalysisDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "satellite"
+        ]
+      },
+      "get": {
+        "operationId": "SatelliteController_authorizations",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "satellite"
+        ]
+      }
+    },
+    "/api/v1/organizations/{orgId}/satellite/authorizations/{authId}/revoke": {
+      "post": {
+        "operationId": "SatelliteController_revokeAuthorization",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeAuthorizationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "satellite"
+        ]
+      }
+    },
+    "/api/v1/organizations/{orgId}/satellite/authorized-plots": {
+      "get": {
+        "operationId": "SatelliteController_authorizedPlots",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "satellite"
+        ]
+      }
+    },
+    "/api/v1/organizations/{orgId}/satellite/authorized-plots/{authId}": {
+      "get": {
+        "operationId": "SatelliteController_authorizedPlot",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "satellite"
+        ]
+      }
+    },
+    "/api/v1/organizations/{orgId}/satellite/authorized-plots/{authId}/analyses": {
+      "post": {
+        "operationId": "SatelliteController_requestAuthorized",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestAnalysisDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "satellite"
+        ]
+      }
+    },
+    "/api/v1/organizations/{orgId}/satellite/authorized-analyses/{jobId}": {
+      "get": {
+        "operationId": "SatelliteController_authorizedJob",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "satellite"
+        ]
+      }
+    },
+    "/api/v1/organizations/{orgId}/satellite/authorized-analyses/{jobId}/cancel": {
+      "post": {
+        "operationId": "SatelliteController_cancelAuthorized",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelAnalysisDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "satellite"
+        ]
+      }
+    },
+    "/api/v1/organizations/{orgId}/satellite/authorized-analyses/{jobId}/original": {
+      "get": {
+        "operationId": "SatelliteController_originalAuthorized",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "satellite"
+        ]
+      }
+    },
+    "/api/v1/organizations/{orgId}/satellite/analyses/{jobId}/indicators.csv": {
+      "get": {
+        "operationId": "SatelliteController_indicators",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "satellite"
+        ]
+      }
+    },
+    "/api/v1/organizations/{orgId}/satellite/authorized-analyses/{jobId}/indicators.csv": {
+      "get": {
+        "operationId": "SatelliteController_indicatorsAuthorized",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "satellite"
+        ]
+      }
+    },
     "/api/v1/organizations/{orgId}/satellite/analyses/{jobId}/cancel": {
       "post": {
         "operationId": "SatelliteController_cancel",
@@ -16061,6 +16487,51 @@
         },
         "required": [
           "secret"
+        ]
+      },
+      "AuthorizeAnalysisDto": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "description": "Identificador de la operación (idempotencia)."
+          },
+          "grantee_organization_id": {
+            "type": "string",
+            "description": "Organización que podrá encargar el análisis de ESTA parcela."
+          },
+          "can_download": {
+            "type": "boolean",
+            "description": "Permite descargar la respuesta original (contiene la geometría enviada). Por omisión, no."
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "Vencimiento obligatorio (ISO 8601); máximo 180 días."
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "operation_id",
+          "grantee_organization_id",
+          "expires_at",
+          "reason"
+        ]
+      },
+      "RevokeAuthorizationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
         ]
       },
       "CancelAnalysisDto": {

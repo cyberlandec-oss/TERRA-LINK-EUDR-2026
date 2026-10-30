@@ -233,6 +233,7 @@ Aceptación: recorrido con dataset/usuarios de piloto, Android real, discrepanci
 | ID | Resultado | Dependencia | Aceptación mínima |
 | --- | --- | --- | --- |
 | A-01 | Captura de campo desde la web con alcance propio (RF-48, `docs/03`) | P0-006–010, P0-018, P0-028 | Ver «Ampliación autorizada A-01» en `docs/03`. **Estado (2026-10-20): DONE_LOCAL** sobre `4913dd3` (validación APROBADA `validation-results/2026-10-20T23-04-37-016Z`; `90bf744` y `f86340d` FALLARON, `0caed16` y `6af11a8` aprobaron sin ser el cierre; todo se conserva). Incluye mapa base local y fotografías propias, desplegado, demostrado por roles (27 + 6 + 1 comprobaciones) y con respaldo `…-a01-mapa-fotos-0057` verificado. Evidencia: `docs/qa/EVIDENCIA_A01_CAPTURA_CAMPO_2026-10-20.md`. **No acredita producción, Android real, conformidad EUDR ni satélite real.** No sustituye los criterios con teléfono de P0-023/P0-024, que siguen pendientes |
+| A-06 | Análisis satelital entre organizaciones: autorización explícita y revocable por parcela, EXPORT_MANAGER con capacidades satelitales acotadas, Productor consulta lo suyo, credencial del solicitante, CSV de indicadores y matriz de operaciones de Whisp | P0-028, A-01 | **En curso (2026-10-30)**: implementación y pruebas de integración locales listas (`satellite-autorizacion.int-spec.ts`, 12); validación del candidato, despliegue y demostración web: ver `decisiones/P0-028-SATELITE-ENTRE-ORGANIZACIONES.md`. **No acredita proveedor seleccionado, parcelas reales ni conformidad EUDR.** |
 
 ## P2 fuera del MVP
 

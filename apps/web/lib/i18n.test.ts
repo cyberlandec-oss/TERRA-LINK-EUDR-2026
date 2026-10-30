@@ -24,7 +24,7 @@ const PANTALLAS = [
   // A-01: recorrido de captura de campo
   'app/organizaciones/[id]/captura/page.tsx', 'app/organizaciones/[id]/parcelas/page.tsx', 'app/organizaciones/[id]/parcelas/[plotId]/page.tsx',
   'lib/mi-ubicacion-panel.tsx', 'app/organizaciones/[id]/legalidad/page.tsx', 'lib/entity-documents.tsx', 'lib/document-upload.tsx', 'app/organizaciones/[id]/mi-finca/page.tsx', 'lib/field-capture.tsx', 'lib/field-evidence.tsx', 'lib/manual-capture.tsx', 'lib/location-capture.tsx', 'lib/polygon-capture.tsx',
-  'lib/geometry-import.tsx', 'lib/satellite.tsx', 'lib/producer-self-link.tsx', 'lib/plots.tsx',
+  'lib/geometry-import.tsx', 'lib/satellite.tsx', 'lib/satellite-autorizacion.tsx', 'app/organizaciones/[id]/analisis-autorizados/page.tsx', 'lib/producer-self-link.tsx', 'lib/plots.tsx',
   'lib/gis-evaluation.tsx', 'lib/geo-profile.tsx', 'lib/map-capture.tsx', 'app/organizaciones/[id]/concesiones/page.tsx',
   // A-03: traspaso de custodia entre organizaciones
   'app/organizaciones/[id]/traspasos/page.tsx', 'app/organizaciones/[id]/traspasos/[transferId]/page.tsx',

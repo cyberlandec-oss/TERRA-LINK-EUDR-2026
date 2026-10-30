@@ -844,6 +844,13 @@ export interface SatelliteJobsTable {
   cancel_requested_at: Timestamp | null; cancel_requested_by: string | null; cancel_reason: string | null;
   // 0068: instante en que se empezó a enviar al proveedor (envío incierto si no hay `provider_job_ref`).
   provider_submit_started_at: Timestamp | null;
+  // 0072: organización que solicita (su credencial se usa) y autorización de la propietaria cuando es otra.
+  requesting_organization_id: ColumnType<string, string | undefined, string>; authorization_id: string | null;
+}
+export interface SatellitePlotAuthorizationsTable {
+  id: string; organization_id: string; plot_id: string; grantee_organization_id: string; can_download: boolean;
+  expires_at: Timestamp; reason: string; granted_by: string; operation_id: string; created_at: Timestamp;
+  revoked_at: Timestamp | null; revoked_by: string | null; revoke_reason: string | null;
 }
 export interface SatelliteResultsTable {
   id: string; organization_id: string; job_id: string; provider_code: string; is_synthetic: boolean;
@@ -1073,6 +1080,7 @@ export interface Database {
   platform_elevations: PlatformElevationsTable;
   satellite_providers: SatelliteProvidersTable;
   satellite_jobs: SatelliteJobsTable;
+  satellite_plot_authorizations: SatellitePlotAuthorizationsTable;
   satellite_results: SatelliteResultsTable;
   satellite_credentials: SatelliteCredentialsTable;
 }

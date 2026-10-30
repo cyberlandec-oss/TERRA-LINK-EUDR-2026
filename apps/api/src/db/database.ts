@@ -73,6 +73,7 @@ import * as m0068 from './migrations/0068_satellite_envio_incierto';
 import * as m0069 from './migrations/0069_poligono_vertices_procedencia_y_captura';
 import * as m0070 from './migrations/0070_sync_referencias_locales';
 import * as m0071 from './migrations/0071_sync_referencias_entregas';
+import * as m0072 from './migrations/0072_satellite_autorizacion_entre_organizaciones';
 
 // Las migraciones se registran explícitamente (orden por nombre). Nunca editar una ya publicada.
 const MIGRATIONS: Record<string, Migration> = {
@@ -147,6 +148,7 @@ const MIGRATIONS: Record<string, Migration> = {
   '0069_poligono_vertices_procedencia_y_captura': m0069,
   '0070_sync_referencias_locales': m0070,
   '0071_sync_referencias_entregas': m0071,
+  '0072_satellite_autorizacion_entre_organizaciones': m0072,
 };
 
 class StaticMigrationProvider implements MigrationProvider {

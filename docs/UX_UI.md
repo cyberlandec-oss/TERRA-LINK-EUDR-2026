@@ -661,6 +661,8 @@ La fuente inicial describe una regla de área para punto/polígono, pero no resu
 
 Análisis satelital: solicitado, en cola, en proceso, fallido o disponible según contrato de job. Resultado muestra fecha de análisis y del dataset, fuente y límites. Una alerta de cobertura requiere interpretación; no escribir «deforestación confirmada» por el solo resultado de un proveedor.
 
+**Análisis entre organizaciones (2026-10-30).** En la ficha de la parcela, quien tiene `satellite:authorize` ve «Autorizar el análisis a otra organización»: destinataria elegida entre las organizaciones **ya vinculadas** (no hay directorio), vigencia (30/90/180 días), motivo y, aparte, permitir descargar la respuesta original; la tabla muestra estado (Vigente/Vencida/Revocada con texto además de color) y revoca con motivo. En el menú **Operación**, «Análisis autorizados» aparece para quien tiene `satellite:read` y no captura parcelas propias: lista solo parcelas autorizadas (código, organización propietaria, vigencia; **sin coordenadas ni productor**), y por parcela permite solicitar, seguir, cancelar y descargar indicadores (CSV) u original (si se autorizó). Cuando el resultado lo pidió otra organización se rotula «Solicitado por … con autorización de la organización propietaria». Si la autorización se revoca o vence, la lista la omite y el servidor responde con el motivo. Estados separados: cargando, vacío («Ninguna parcela autorizada»), 403, error con reintento.
+
 ## 14. Entregas, recepción y calidad
 
 ### 14.1 Entrega

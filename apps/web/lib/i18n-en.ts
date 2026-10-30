@@ -3,6 +3,7 @@ import { EN_GIS } from './i18n-en-gis';
 import { EN_CONCESIONES } from './i18n-en-concesiones';
 import { EN_ACCESO, EN_OBSERVABILIDAD, EN_USUARIOS } from './i18n-en-acceso';
 import { EN_TRASPASOS } from './i18n-en-traspasos';
+import { EN_SAT_AUTORIZACION } from './i18n-en-satelite-autorizacion';
 import { EN_GEOPANEL } from './i18n-en-geopanel';
 import { EN_VINCULO } from './i18n-en-vinculo';
 import { EN_REVISION } from './i18n-en-revision';
@@ -291,6 +292,7 @@ Object.assign(EN, EN_CONCESIONES); // A-02: administración de concesiones
 Object.assign(EN, EN_ACCESO); // D-04: acceso de plataforma
 Object.assign(EN, EN_USUARIOS);
 Object.assign(EN, EN_OBSERVABILIDAD); // RNF-13: observabilidad de plataforma
+Object.assign(EN, EN_SAT_AUTORIZACION); // recorrido Productor → exportadora: autorización de análisis satelital por parcela
 Object.assign(EN, EN_TRASPASOS); // A-03: traspaso de custodia entre organizaciones
 Object.assign(EN, EN_GEOPANEL); // I1–I4: evaluación geográfica técnica actual del expediente
 Object.assign(EN, EN_VINCULO); // D-07.5(b) b-1: vinculación del catálogo de riesgo con un perfil jurídico

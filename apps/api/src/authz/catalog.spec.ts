@@ -106,7 +106,8 @@ describe('A-01: los permisos de captura propia no amplían responsabilidades aje
   });
   it('capturar coordenadas no concede evaluar GIS, encargar satélite, revisar documentos, aprobar evidencias ni ver riesgo al Productor', () => {
     const p = permissionsForRoles(['PRODUCER']);
-    for (const prohibido of ['plot:evaluate_gis', 'plot:evaluate_gis_assigned', 'satellite:request', 'document:review', 'evidence:review', 'evidence:approve', 'risk:read', 'risk:evaluate', 'dd:read', 'producer:read_identity', 'producer:read']) expect(p).not.toContain(prohibido);
+    expect(p).toContain('satellite:read'); // consulta de sus propias parcelas: el alcance lo pone la parcela
+    for (const prohibido of ['plot:evaluate_gis', 'plot:evaluate_gis_assigned', 'satellite:request', 'satellite:authorize', 'document:review', 'evidence:review', 'evidence:approve', 'risk:read', 'risk:evaluate', 'dd:read', 'producer:read_identity', 'producer:read']) expect(p).not.toContain(prohibido);
   });
   it('el Gerente conserva sus permisos de gestión de productores y parcelas (captura cuando le corresponde) sin la vinculación de cuentas', () => {
     const m = permissionsForRoles(['MANAGER']);

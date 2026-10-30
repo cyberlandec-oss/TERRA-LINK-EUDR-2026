@@ -142,8 +142,11 @@ describeDb('P0-028 satélite: contrato, desenlaces y candados', () => {
   it('ningún rol puede encargar un análisis sin el permiso que clasifica las coordenadas', () => {
     // Encargar saca la geometría exacta del equipo: el servicio exige plot:read_geometry además de
     // satellite:request. Esta comprobación fija la regla en el catálogo para que no se rompa al añadir roles.
+    // Única excepción: EXPORT_MANAGER. No lee parcelas ni geometrías: encarga SOLO sobre parcelas que otra organización le autorizó de forma explícita y
+    // revocable (la autorización es el consentimiento a que salga esa geometría), y por la ruta de la propietaria sigue sin poder (sin plot:read_geometry).
+    expect(ROLE_PERMISSIONS.EXPORT_MANAGER).not.toContain('plot:read_geometry');
     for (const [role, perms] of Object.entries(ROLE_PERMISSIONS)) {
-      if (perms.includes('satellite:request')) expect([role, perms.includes('plot:read_geometry')]).toEqual([role, true]);
+      if (perms.includes('satellite:request') && role !== 'EXPORT_MANAGER') expect([role, perms.includes('plot:read_geometry')]).toEqual([role, true]);
     }
   });
 
@@ -316,7 +319,7 @@ describeDb('P0-028 satélite: contrato, desenlaces y candados', () => {
       id: jobId, organization_id: orgA, plot_id: plotA, plot_version_id: version.id, geometry_hash: version.geometry_hash!,
       geometry_type: version.geometry_type as 'POLYGON', provider_code: 'WHISP', provider_kind: 'EXTERNAL_HTTP',
       adapter_contract_version: 'TL_SAT_ADAPTER 0.1.0', operation: 'FOREST_COVER', request_fingerprint: 'b'.repeat(64),
-      status: 'REQUESTED', requested_by: uid, operation_id: randomUUID(),
+      status: 'REQUESTED', requested_by: uid, operation_id: randomUUID(), requesting_organization_id: orgA, authorization_id: null,
     }).execute();
 
     const vistas: Array<string | null> = [];
