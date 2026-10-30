@@ -17,7 +17,7 @@ import { Alert, Breadcrumb, EmptyState, ErrorPanel, Loading, PageHeader, StatusB
 //   · Vigencia obligatoria y futura; revocar exige motivo y corta el acceso al instante.
 
 interface Concesion {
-  id: string; grantee_email: string; resource_type: Tipo; resource_id: string; resource_label: string | null; can_read: boolean; can_download: boolean; include_documents: boolean;
+  id: string; grantee_email: string; resource_type: Tipo; resource_id: string; resource_label: string | null; can_read: boolean; can_download: boolean; include_documents: boolean; include_geometries: boolean;
   expires_at: string; revoked_at: string | null; reason: string; created_at: string; granted_by_name: string | null; revoked_by_name: string | null; revoke_reason: string | null; estado: Estado;
 }
 interface Compartible { type: Tipo; available: boolean; items: Array<{ id: string; label: string; detail: string }>; note: string | null }
@@ -89,7 +89,7 @@ export default function ConcesionesPage() {
                       <tr key={r.id}>
                         <td>{t(TIPOS[r.resource_type])}<br /><strong>{r.resource_label ?? t('(recurso no disponible)')}</strong></td>
                         <td>{r.grantee_email}</td>
-                        <td>{r.can_download ? t('Lectura y descarga de la vista compartida') : t('Solo lectura')}{r.include_documents && <><br />{t('Incluye los soportes de la instantánea (sin datos personales ni geometrías)')}</>}</td>
+                        <td>{r.can_download ? t('Lectura y descarga de la vista compartida') : t('Solo lectura')}{r.include_documents && <><br />{t('Incluye los soportes de la instantánea (sin datos personales)')}</>}{r.include_geometries && <><br />{t('Incluye los polígonos de las parcelas de la instantánea')}</>}</td>
                         <td>{t('Hasta')} {dt(r.expires_at)}</td>
                         <td><StatusBadge tone={ESTADOS[r.estado].tone}>{t(ESTADOS[r.estado].label)}</StatusBadge></td>
                         <td className="muted">
@@ -147,6 +147,7 @@ function NuevaConcesion({ base, onDone }: { base: string; onDone: (mensaje: stri
   const [correo, setCorreo] = useState('');
   const [descarga, setDescarga] = useState(false);
   const [soportes, setSoportes] = useState(false);
+  const [geometrias, setGeometrias] = useState(false);
   const [vence, setVence] = useState(aFecha(diasDesdeHoy(7)));
   const [motivo, setMotivo] = useState('');
   const [revision, setRevision] = useState(false);
@@ -157,7 +158,7 @@ function NuevaConcesion({ base, onDone }: { base: string; onDone: (mensaje: stri
 
   useEffect(() => {
     let vivo = true;
-    setLista(null); setRecurso(''); setRevision(false); setErrorLista(null); setSoportes(false);
+    setLista(null); setRecurso(''); setRevision(false); setErrorLista(null); setSoportes(false); setGeometrias(false);
     api<Compartible>(`${base}/access-grants/shareable?type=${tipo}`).then((r) => { if (vivo) setLista(r); }).catch((e) => { if (vivo) setErrorLista(e as ApiError); });
     return () => { vivo = false; };
   }, [base, tipo]);
@@ -172,10 +173,10 @@ function NuevaConcesion({ base, onDone }: { base: string; onDone: (mensaje: stri
     setBusy(true); setError(null);
     try {
       await api(`${base}/access-grants`, { method: 'POST', body: {
-        operation_id: op.current, grantee_email: correo.trim(), resource_type: tipo, resource_id: recurso, can_read: true, can_download: descarga, ...(tipo === 'DD_SNAPSHOT' && soportes ? { include_documents: true } : {}),
+        operation_id: op.current, grantee_email: correo.trim(), resource_type: tipo, resource_id: recurso, can_read: true, can_download: descarga, ...(tipo === 'DD_SNAPSHOT' && soportes ? { include_documents: true } : {}), ...(tipo === 'DD_SNAPSHOT' && geometrias ? { include_geometries: true } : {}),
         expires_at: new Date(`${vence}T23:59:00`).toISOString(), reason: motivo.trim(),
       } });
-      op.current = null; setRevision(false); setRecurso(''); setCorreo(''); setMotivo(''); setDescarga(false); setSoportes(false);
+      op.current = null; setRevision(false); setRecurso(''); setCorreo(''); setMotivo(''); setDescarga(false); setSoportes(false); setGeometrias(false);
       await onDone(t('Concesión otorgada. El destinatario la ve en «Recursos compartidos contigo».'));
     } catch (e) {
       const err = e as ApiError;
@@ -221,7 +222,9 @@ function NuevaConcesion({ base, onDone }: { base: string; onDone: (mensaje: stri
           {tipo === 'DD_SNAPSHOT' && (
             <>
               <label><input type="checkbox" checked={soportes} onChange={(e) => { setSoportes(e.target.checked); cambia(); }} /> {t('Compartir soportes: los documentos que esa instantánea referencia')}</label>
-              <p className="field-help">{t('Solo las versiones exactas de ESA instantánea, con su huella; lo que se suba después no se comparte. Se excluyen los documentos de datos personales y las geometrías (de los excluidos solo se informa cuántos son). Para que además pueda descargar los archivos, activa la descarga. Es una vista limitada, no el expediente completo.')}</p>
+              <label><input type="checkbox" checked={geometrias} onChange={(e) => { setGeometrias(e.target.checked); cambia(); }} /> {t('Compartir los polígonos de las parcelas de origen de esa instantánea')}</label>
+              <p className="field-help">{t('Decisión aparte de los soportes: son las geometrías exactas fijadas en ESA instantánea (versión y huella de cada parcela), sin la identidad del productor. Una corrección posterior no cambia lo compartido. Compartir polígonos no es presentar una DDS ni acredita conformidad.')}</p>
+              <p className="field-help">{t('Solo las versiones exactas de ESA instantánea, con su huella; lo que se suba después no se comparte. Se excluyen los documentos de datos personales (de los excluidos solo se informa cuántos son). Para que además pueda descargar los archivos, activa la descarga. Es una vista limitada, no el expediente completo.')}</p>
             </>
           )}
         </fieldset>
@@ -243,13 +246,14 @@ function NuevaConcesion({ base, onDone }: { base: string; onDone: (mensaje: stri
           <dl className="props">
             <dt>{t('Recurso')}</dt><dd>{t(TIPOS[tipo])} · <strong>{elegido.label}</strong> — {elegido.detail}</dd>
             <dt>{t('Destinatario')}</dt><dd>{correo.trim()}</dd>
-            <dt>{t('Alcance')}</dt><dd>{descarga ? t('Lectura y descarga de la vista compartida') : t('Solo lectura')}{tipo === 'DD_SNAPSHOT' && soportes && <><br />{t('Incluye los soportes de la instantánea (sin datos personales ni geometrías)')}</>}</dd>
+            <dt>{t('Alcance')}</dt><dd>{descarga ? t('Lectura y descarga de la vista compartida') : t('Solo lectura')}{tipo === 'DD_SNAPSHOT' && soportes && <><br />{t('Incluye los soportes de la instantánea (sin datos personales)')}</>}{tipo === 'DD_SNAPSHOT' && geometrias && <><br />{t('Incluye los polígonos de las parcelas de la instantánea')}</>}</dd>
             <dt>{t('Vigencia')}</dt><dd>{t('Hasta')} {dt(new Date(`${vence}T23:59:00`).toISOString())}</dd>
             <dt>{t('Motivo')}</dt><dd>{motivo.trim()}</dd>
           </dl>
           <Alert tone="review" title={t('Qué verá y qué no')}>
             <p>{t('Verá códigos, estados y agregados de ESTE recurso. No verá identidad de productores, geometrías, documentos personales ni datos económicos, no podrá modificar nada y no es miembro de tu organización. Puedes revocar cuando quieras.')}</p>
-            {tipo === 'DD_SNAPSHOT' && soportes && <p>{t('Además verá la lista de los soportes que esta instantánea referencia y, si permites la descarga, podrá bajar la versión exacta de cada uno. Los documentos de datos personales y las geometrías no se comparten por esta vía; esto es una vista limitada, no el expediente completo.')}</p>}
+            {tipo === 'DD_SNAPSHOT' && geometrias && <p>{t('Además verá los polígonos de las parcelas de origen que esta instantánea fijó, con la versión y la huella de cada uno, y podrá guardarlos como GeoJSON. No verá al productor.')}</p>}
+            {tipo === 'DD_SNAPSHOT' && soportes && <p>{t('Además verá la lista de los soportes que esta instantánea referencia y, si permites la descarga, podrá bajar la versión exacta de cada uno. Los documentos de datos personales no se comparten por esta vía; esto es una vista limitada, no el expediente completo.')}</p>}
           </Alert>
           <div className="actions">
             <button type="button" onClick={otorgar} disabled={busy} aria-busy={busy}>{busy ? t('Otorgando…') : t('Confirmar y otorgar')}</button>

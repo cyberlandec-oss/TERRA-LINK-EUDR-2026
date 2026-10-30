@@ -876,6 +876,7 @@ export interface AccessGrantsTable {
   can_read: boolean; can_download: boolean; expires_at: Timestamp; reason: string;
   // 0073: la concesión de una instantánea incluye sus soportes (explícito; por omisión no).
   include_documents: ColumnType<boolean, boolean | undefined, boolean>;
+  include_geometries: ColumnType<boolean, boolean | undefined, boolean>;
   granted_by: string; operation_id: string; created_at: Generated<Timestamp>;
   revoked_at: Timestamp | null; revoked_by: string | null; revoke_reason: string | null;
 }

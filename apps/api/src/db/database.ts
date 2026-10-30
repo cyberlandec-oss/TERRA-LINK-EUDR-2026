@@ -75,6 +75,7 @@ import * as m0070 from './migrations/0070_sync_referencias_locales';
 import * as m0071 from './migrations/0071_sync_referencias_entregas';
 import * as m0072 from './migrations/0072_satellite_autorizacion_entre_organizaciones';
 import * as m0073 from './migrations/0073_concesion_soportes_instantanea';
+import * as m0074 from './migrations/0074_concesion_geometrias_instantanea';
 
 // Las migraciones se registran explícitamente (orden por nombre). Nunca editar una ya publicada.
 const MIGRATIONS: Record<string, Migration> = {
@@ -151,6 +152,7 @@ const MIGRATIONS: Record<string, Migration> = {
   '0071_sync_referencias_entregas': m0071,
   '0072_satellite_autorizacion_entre_organizaciones': m0072,
   '0073_concesion_soportes_instantanea': m0073,
+  '0074_concesion_geometrias_instantanea': m0074,
 };
 
 class StaticMigrationProvider implements MigrationProvider {

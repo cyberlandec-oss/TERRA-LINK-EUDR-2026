@@ -4103,6 +4103,31 @@
         ]
       }
     },
+    "/api/v1/granted/{grantId}/geometries": {
+      "get": {
+        "description": "GeoJSON con la versión y la huella de cada geometría fijada en la instantánea. Sin identidad del productor. Revalida cuenta, concesión, vencimiento y revocación; se audita.",
+        "operationId": "GrantedController_geometrias",
+        "parameters": [
+          {
+            "name": "grantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Polígonos de las parcelas de la instantánea concedida (solo si la concesión los incluye)",
+        "tags": [
+          "Autorización"
+        ]
+      }
+    },
     "/api/v1/granted/{grantId}/documents/{versionId}/content": {
       "get": {
         "description": "Exige descarga concedida e incluir soportes. Verifica escaneo y huella; se audita. No es una presentación oficial.",
@@ -14449,6 +14474,11 @@
             "type": "boolean",
             "default": false,
             "description": "Solo para DD_SNAPSHOT: incluye los SOPORTES que esa instantánea referencia (sin documentos de datos personales ni geometrías). Explícito: por omisión no se comparte ningún archivo."
+          },
+          "include_geometries": {
+            "type": "boolean",
+            "default": false,
+            "description": "Solo para DD_SNAPSHOT: incluye los POLÍGONOS de las parcelas de origen que esa instantánea fijó (por versión y huella), sin identidad del productor. Explícito, independiente de los soportes y no editable. Por omisión no se comparte ninguna geometría."
           },
           "expires_at": {
             "type": "string",

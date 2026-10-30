@@ -165,7 +165,7 @@ test('inglés, teclado y 390 px: el mismo recorrido, sin desborde y sin claves d
 });
 
 // Soportes de una instantánea (2026-10-30): el concedente elige «Compartir soportes», el comprador los encuentra y descarga la versión EXACTA, y la
-// revocación corta el acceso. Vista limitada: no es el expediente completo (geometrías y documentos personales quedan fuera).
+// revocación corta el acceso. Vista limitada: no es el expediente completo (los documentos personales quedan fuera; los polígonos son una decisión aparte).
 test('soportes de la instantánea: se comparten desde la pantalla, el comprador descarga la versión exacta y la revocación corta el acceso', async ({ browser }) => {
   const b = `/api/v1/organizations/${orgA}`;
   const bytes = Buffer.from(`%PDF-1.4\n% soporte sintético e2e ${crypto.randomUUID()}\n%%EOF\n`);
@@ -191,11 +191,13 @@ test('soportes de la instantánea: se comparten desde la pantalla, el comprador 
   await adm.page.getByLabel('Recurso a compartir').selectOption({ label: opciones.find((o) => o.includes(caso.case_number))! });
   await adm.page.getByLabel('Correo exacto de la cuenta destinataria').fill(EXTERNO.email);
   await adm.page.getByLabel(/Compartir soportes/).check();
+  await adm.page.getByLabel(/Compartir los polígonos/).check();
   await adm.page.getByLabel(/Permitir también descargar/).check();
   await adm.page.getByLabel(/^Motivo \(queda en la auditoría\)/).fill('Soportes para la revisión del comprador (ensayo)');
   await adm.page.getByRole('button', { name: 'Revisar antes de otorgar' }).click();
   const rev = adm.page.getByRole('region', { name: /Revisa antes de otorgar/ });
-  await expect(rev).toContainText('Incluye los soportes de la instantánea (sin datos personales ni geometrías)');
+  await expect(rev).toContainText('Incluye los soportes de la instantánea (sin datos personales)');
+  await expect(rev).toContainText('Incluye los polígonos de las parcelas de la instantánea');
   await expect(rev).toContainText('vista limitada, no el expediente completo');
   await adm.page.getByRole('button', { name: 'Confirmar y otorgar' }).click();
   await expect(adm.page.getByText(/Concesión otorgada/)).toBeVisible();
@@ -208,6 +210,8 @@ test('soportes de la instantánea: se comparten desde la pantalla, el comprador 
   await fila.getByRole('button', { name: 'Ver' }).click();
   await expect(comp.page.getByRole('heading', { name: 'Soportes de la instantánea' })).toBeVisible();
   await expect(comp.page.getByText('Vista limitada, no el expediente completo')).toBeVisible();
+  await expect(comp.page.getByRole('heading', { name: 'Polígonos de las parcelas de origen' })).toBeVisible(); // decisión aparte: la concesión también los incluyó
+  await expect(comp.page.getByText(/No incluye documentos con datos personales\s*\./)).toBeVisible(); // y ya no dice «ni geometrías»
   const tabla = comp.page.getByRole('table', { name: 'Soportes de la instantánea' });
   await expect(tabla).toContainText('Nota de entrega e2e (sintética)');
   await expect(tabla).toContainText(sha.slice(0, 16));
@@ -222,8 +226,9 @@ test('soportes de la instantánea: se comparten desde la pantalla, el comprador 
   await comp.ctx.close();
 
   // Revocar corta el acceso a la lista y a los archivos, por pantalla y por API.
-  const g = ((await api(`${b}/access-grants`, { token: tok.admin })).grants as Array<{ id: string; resource_type: string; estado: string; include_documents: boolean }>).find((x) => x.resource_type === 'DD_SNAPSHOT' && x.estado === 'ACTIVA')!;
+  const g = ((await api(`${b}/access-grants`, { token: tok.admin })).grants as Array<{ id: string; resource_type: string; estado: string; include_documents: boolean; include_geometries: boolean }>).find((x) => x.resource_type === 'DD_SNAPSHOT' && x.estado === 'ACTIVA')!;
   expect(g.include_documents).toBe(true);
+  expect(g.include_geometries).toBe(true);
   await api(`${b}/access-grants/${g.id}/revoke`, { method: 'POST', token: tok.admin, body: { operation_id: crypto.randomUUID(), reason: 'Fin de la comprobación e2e' } });
   const sin = await fetch(`${API_URL}/api/v1/granted/${g.id}/documents`, { headers: { authorization: `Bearer ${tok.externo}` } });
   expect(sin.status).toBe(404);

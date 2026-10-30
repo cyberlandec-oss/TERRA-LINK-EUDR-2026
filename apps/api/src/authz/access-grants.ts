@@ -63,6 +63,8 @@ class CrearConcesionDto {
   @ApiPropertyOptional({ default: false }) @IsOptional() @IsBoolean() can_download?: boolean;
   @ApiPropertyOptional({ default: false, description: 'Solo para DD_SNAPSHOT: incluye los SOPORTES que esa instantánea referencia (sin documentos de datos personales ni geometrías). Explícito: por omisión no se comparte ningún archivo.' })
   @IsOptional() @IsBoolean() include_documents?: boolean;
+  @ApiPropertyOptional({ default: false, description: 'Solo para DD_SNAPSHOT: incluye los POLÍGONOS de las parcelas de origen que esa instantánea fijó (por versión y huella), sin identidad del productor. Explícito, independiente de los soportes y no editable. Por omisión no se comparte ninguna geometría.' })
+  @IsOptional() @IsBoolean() include_geometries?: boolean;
   @ApiProperty({ description: 'Vencimiento obligatorio, en el futuro. No existe la concesión indefinida.' })
   @IsISO8601() expires_at!: string;
   @ApiProperty() @IsString() @Length(3, 500) reason!: string;
@@ -115,6 +117,14 @@ export class AccessGrantsService {
       if (!ctx.permissions.includes('document:read')) throw forbidden('GRANT_BEYOND_GRANTOR', 'No puedes compartir soportes: tú no tienes permiso para leer documentos.');
     }
 
+    // 1c) Geometrías de la instantánea: explícito, solo para una instantánea, con lectura, y solo quien puede leer geometrías exactas.
+    const conGeometrias = dto.include_geometries === true;
+    if (conGeometrias) {
+      if (dto.resource_type !== 'DD_SNAPSHOT') throw new AppError(422, 'GRANT_GEOMETRIES_ONLY_FOR_SNAPSHOT', 'Las geometrías solo se comparten junto con una instantánea del expediente.', [{ field: 'include_geometries', reason: 'solo DD_SNAPSHOT' }]);
+      if (!quiereLeer) throw new AppError(422, 'GRANT_GEOMETRIES_REQUIRE_READ', 'Compartir geometrías exige también la lectura de la instantánea.', [{ field: 'can_read', reason: 'requerido' }]);
+      if (!ctx.permissions.includes('plot:read_geometry')) throw forbidden('GRANT_BEYOND_GRANTOR', 'No puedes compartir geometrías: tú no tienes permiso para leerlas.');
+    }
+
     // 2) Vencimiento obligatorio y futuro.
     const vence = new Date(dto.expires_at);
     if (Number.isNaN(vence.getTime()) || vence.getTime() <= Date.now()) {
@@ -138,11 +148,11 @@ export class AccessGrantsService {
         if (previa) return; // reintento idempotente
         await trx.insertInto('access_grants').values({
           id, organization_id: orgId, grantee_user_id: granteeId, resource_type: dto.resource_type, resource_id: dto.resource_id,
-          can_read: quiereLeer, can_download: quiereDescargar, include_documents: conSoportes, expires_at: vence, reason: dto.reason.trim(),
+          can_read: quiereLeer, can_download: quiereDescargar, include_documents: conSoportes, include_geometries: conGeometrias, expires_at: vence, reason: dto.reason.trim(),
           granted_by: user.id, operation_id: dto.operation_id,
         }).execute();
         await this.audit.record(trx, { organizationId: orgId, actorUserId: user.id, action: 'grant.create', entityType: 'access_grant', entityId: id, requestId, result: 'SUCCESS',
-          after: { resource_type: dto.resource_type, resource_id: dto.resource_id, grantee_user_id: granteeId, can_read: quiereLeer, can_download: quiereDescargar, include_documents: conSoportes, expires_at: vence.toISOString(), reason: dto.reason.trim() } });
+          after: { resource_type: dto.resource_type, resource_id: dto.resource_id, grantee_user_id: granteeId, can_read: quiereLeer, can_download: quiereDescargar, include_documents: conSoportes, include_geometries: conGeometrias, expires_at: vence.toISOString(), reason: dto.reason.trim() } });
       });
     } catch (e) {
       const c = (e as { constraint?: string }).constraint;
@@ -195,10 +205,10 @@ export class AccessGrantsService {
 
   async listar(user: AuthUser, orgId: string) {
     const ctx = await this.authz.require(user, orgId, 'grant:manage', { mutation: false });
-    const filas = await sql<{ id: string; grantee_user_id: string; grantee_email: string; resource_type: Tipo; resource_id: string; resource_label: string | null; can_read: boolean; can_download: boolean; include_documents: boolean; expires_at: string; revoked_at: string | null; reason: string; created_at: string; granted_by_name: string | null; revoked_by_name: string | null; revoke_reason: string | null }>`
+    const filas = await sql<{ id: string; grantee_user_id: string; grantee_email: string; resource_type: Tipo; resource_id: string; resource_label: string | null; can_read: boolean; can_download: boolean; include_documents: boolean; include_geometries: boolean; expires_at: string; revoked_at: string | null; reason: string; created_at: string; granted_by_name: string | null; revoked_by_name: string | null; revoke_reason: string | null }>`
       SELECT g.id, g.grantee_user_id, u.email AS grantee_email, g.resource_type, g.resource_id,
              COALESCE(l.lot_code, s.shipment_code, CASE WHEN sn.id IS NOT NULL THEN c.case_number || ' · instantánea ' || sn.snapshot_number END) AS resource_label,
-             g.can_read, g.can_download, g.include_documents, g.expires_at::text, g.revoked_at::text, g.reason, g.created_at::text,
+             g.can_read, g.can_download, g.include_documents, g.include_geometries, g.expires_at::text, g.revoked_at::text, g.reason, g.created_at::text,
              NULLIF(trim(coalesce(gb.first_name, '') || ' ' || coalesce(gb.last_name, '')), '') AS granted_by_name,
              NULLIF(trim(coalesce(rb.first_name, '') || ' ' || coalesce(rb.last_name, '')), '') AS revoked_by_name,
              g.revoke_reason
@@ -234,11 +244,11 @@ export class AccessGrantsService {
 
   private async ver(orgId: string, operationId: string) {
     const g = await this.db.selectFrom('access_grants').selectAll().where('organization_id', '=', orgId).where('operation_id', '=', operationId).executeTakeFirstOrThrow();
-    return { id: g.id, resource_type: g.resource_type, resource_id: g.resource_id, grantee_user_id: g.grantee_user_id, can_read: g.can_read, can_download: g.can_download, include_documents: g.include_documents, expires_at: g.expires_at, revoked_at: g.revoked_at };
+    return { id: g.id, resource_type: g.resource_type, resource_id: g.resource_id, grantee_user_id: g.grantee_user_id, can_read: g.can_read, can_download: g.can_download, include_documents: g.include_documents, include_geometries: g.include_geometries, expires_at: g.expires_at, revoked_at: g.revoked_at };
   }
   private async verPorId(orgId: string, id: string) {
     const g = await this.db.selectFrom('access_grants').selectAll().where('organization_id', '=', orgId).where('id', '=', id).executeTakeFirstOrThrow();
-    return { id: g.id, resource_type: g.resource_type, resource_id: g.resource_id, grantee_user_id: g.grantee_user_id, can_read: g.can_read, can_download: g.can_download, include_documents: g.include_documents, expires_at: g.expires_at, revoked_at: g.revoked_at };
+    return { id: g.id, resource_type: g.resource_type, resource_id: g.resource_id, grantee_user_id: g.grantee_user_id, can_read: g.can_read, can_download: g.can_download, include_documents: g.include_documents, include_geometries: g.include_geometries, expires_at: g.expires_at, revoked_at: g.revoked_at };
   }
 
   // --------------------------------------------------------------- lado del CONCESIONARIO
@@ -261,8 +271,8 @@ export class AccessGrantsService {
 
   /** Lo que una cuenta externa tiene concedido. No revela nada de la organización más allá de su nombre. */
   async mias(user: AuthUser) {
-    const filas = await sql<{ id: string; organization: string; resource_type: Tipo; can_read: boolean; can_download: boolean; include_documents: boolean; expires_at: string }>`
-      SELECT g.id, o.name AS organization, g.resource_type, g.can_read, g.can_download, g.include_documents, g.expires_at::text
+    const filas = await sql<{ id: string; organization: string; resource_type: Tipo; can_read: boolean; can_download: boolean; include_documents: boolean; include_geometries: boolean; expires_at: string }>`
+      SELECT g.id, o.name AS organization, g.resource_type, g.can_read, g.can_download, g.include_documents, g.include_geometries, g.expires_at::text
       FROM access_grants g JOIN organizations o ON o.id = g.organization_id
       JOIN users u ON u.id = g.grantee_user_id AND u.status = 'ACTIVE'
       WHERE g.grantee_user_id = ${user.id} AND g.revoked_at IS NULL AND g.expires_at > now()
@@ -288,7 +298,7 @@ export class AccessGrantsService {
    * ni geometrías, ni documentos personales; solo códigos, estados y agregados, como el Buyer Portal de
    * S3 §22.8 («183 productores», no sus nombres).
    */
-  private async proyeccion(g: { organization_id: string; resource_type: Tipo; resource_id: string; include_documents?: boolean }) {
+  private async proyeccion(g: { organization_id: string; resource_type: Tipo; resource_id: string; include_documents?: boolean; include_geometries?: boolean }) {
     const org = g.organization_id;
     if (g.resource_type === 'LOT') {
       const l = (await sql<{ id: string; lot_code: string; status: string; origin_status: string; product: string; productores: number; parcelas: number }>`
@@ -326,7 +336,7 @@ export class AccessGrantsService {
         public_reference: await referenciaDe(this.db, org, 'SHIPMENT', s.id),
         nota: 'Destino declarado por la organización; Terra Link no lo verifica.' };
     }
-    const sn = (await sql<{ id: string; snapshot_number: number; readiness: string; content_hash: string; case_number: string; requirements: Array<{ code: string; status: string }>; content: { documents?: Array<{ version_id: string; classification: string }> } | null }>`
+    const sn = (await sql<{ id: string; snapshot_number: number; readiness: string; content_hash: string; case_number: string; requirements: Array<{ code: string; status: string }>; content: { documents?: Array<{ version_id: string; classification: string }>; plots?: Array<{ geometry?: unknown }> } | null }>`
       SELECT sn.id, sn.snapshot_number, sn.readiness, sn.content_hash, c.case_number, sn.requirements, sn.content
       FROM dd_snapshots sn JOIN dd_cases c ON c.id = sn.case_id WHERE sn.id = ${g.resource_id} AND sn.organization_id = ${org}`.execute(this.db)).rows[0];
     if (!sn) throw this.opaca;
@@ -335,6 +345,8 @@ export class AccessGrantsService {
       requirements: (sn.requirements ?? []).map((r) => ({ code: r.code, status: r.status })),
       // Soportes: solo CIFRAS (ni nombres ni tipos de lo excluido). La lista y los archivos están en sus propias rutas, y solo si la concesión los incluye.
       documents: g.include_documents ? soportesResumen(sn.content?.documents ?? []) : { shared: false },
+      // Geometrías: solo la CIFRA; los polígonos están en su propia ruta y solo si la concesión los incluye.
+      geometries: g.include_geometries ? { shared: true, count: (sn.content?.plots ?? []).filter((p) => p?.geometry).length } : { shared: false },
       public_reference: await referenciaDe(this.db, org, 'DD_SNAPSHOT', sn.id),
       nota: 'Preparación interna. NO acredita presentación de DDS ni conformidad EUDR.' };
   }
@@ -400,6 +412,38 @@ export class AccessGrantsService {
         'Vista limitada: solo los soportes que la instantánea referencia, sin documentos de datos personales ni geometrías. No es el expediente completo.',
         'Subir después otro documento o una versión nueva no amplía lo compartido: se entregan las versiones exactas de esta instantánea.',
         'Los controles son técnicos (escaneo antimalware y huella). Terra Link no certifica la autenticidad de un documento y compartirlo no es presentar una DDS.',
+      ],
+    };
+  }
+
+  /**
+   * Polígonos de las parcelas de origen que la instantánea concedida fijó, como GeoJSON. Solo si la concesión los incluye (término explícito e inmutable).
+   * Revalida cuenta, concesión, vencimiento y revocación en cada lectura. Sin identidad del productor; cada geometría lleva su versión y huella.
+   */
+  async geometrias(user: AuthUser, grantId: string) {
+    const g = await this.vigente(user, grantId, 'read');
+    if (g.resource_type !== 'DD_SNAPSHOT' || !g.include_geometries) {
+      throw forbidden('GRANT_GEOMETRIES_NOT_INCLUDED', 'Esta concesión no incluye las geometrías de las parcelas. Pide a la organización que te conceda una que las incluya.');
+    }
+    const sn = (await sql<{ snapshot_number: number; content_hash: string; case_number: string; content: { plots?: Array<{ plot_code: string; version_number: number | null; geometry_type: string | null; geometry_hash: string | null; validation_status: string | null; geometry: unknown | null }> } | null }>`
+      SELECT sn.snapshot_number, sn.content_hash, c.case_number, sn.content
+      FROM dd_snapshots sn JOIN dd_cases c ON c.id = sn.case_id WHERE sn.id = ${g.resource_id} AND sn.organization_id = ${g.organization_id}`.execute(this.db)).rows[0];
+    if (!sn) throw this.opaca;
+    const plots = sn.content?.plots ?? [];
+    const features = plots.filter((p) => p?.geometry).map((p) => ({
+      type: 'Feature' as const, geometry: p.geometry,
+      properties: { plot_code: p.plot_code, version_number: p.version_number, geometry_type: p.geometry_type, geometry_hash: p.geometry_hash, validation_status: p.validation_status },
+    }));
+    await this.audit.record(this.db, { organizationId: g.organization_id, actorUserId: user.id, action: 'grant.geometries_read', entityType: 'access_grant', entityId: g.id, result: 'SUCCESS',
+      after: { snapshot_number: sn.snapshot_number, plots: features.length, without_geometry: plots.length - features.length } });
+    return {
+      case_number: sn.case_number, snapshot_number: sn.snapshot_number, snapshot_content_hash: sn.content_hash,
+      without_geometry_count: plots.length - features.length,
+      geojson: { type: 'FeatureCollection' as const, features },
+      limits: [
+        'Son las geometrías fijadas en esta instantánea (versión y huella de cada parcela), no la geometría vigente de hoy: una corrección posterior no cambia lo compartido.',
+        'No incluye identidad del productor ni sus documentos. La validez técnica de una geometría no es una conclusión de cumplimiento ni de legalidad.',
+        'Terra Link no presenta la DDS: compartir polígonos no es una presentación oficial.',
       ],
     };
   }
@@ -506,6 +550,13 @@ export class GrantedController {
     description: 'Solo las versiones que esa instantánea referencia, con su huella. Excluye datos personales (solo cifra). Revalida cuenta, concesión, vencimiento, revocación y clasificación.' })
   documentos(@CurrentUser() u: AuthUser, @Param('grantId', ParseUUIDPipe) id: string) {
     return this.service.documentos(u, id);
+  }
+
+  @Get(':grantId/geometries')
+  @ApiOperation({ summary: 'Polígonos de las parcelas de la instantánea concedida (solo si la concesión los incluye)',
+    description: 'GeoJSON con la versión y la huella de cada geometría fijada en la instantánea. Sin identidad del productor. Revalida cuenta, concesión, vencimiento y revocación; se audita.' })
+  geometrias(@CurrentUser() u: AuthUser, @Param('grantId', ParseUUIDPipe) id: string) {
+    return this.service.geometrias(u, id);
   }
 
   @Get(':grantId/documents/:versionId/content')
