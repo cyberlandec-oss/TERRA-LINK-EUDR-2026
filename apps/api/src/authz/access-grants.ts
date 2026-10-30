@@ -15,6 +15,7 @@ import { referenciaDe } from '../traceability/public-references';
 import { DdService } from '../dd/dd';
 import { evaluateRequirements } from '../dd/requirements';
 import { indicadoresDe, periodoDeProduccion } from '../sharing/indicadores';
+import { OBJECT_STORE, sha256 as sha256Bytes, type ObjectStore } from '../storage/object-store';
 
 // P0-003 / D-P0003.1 opción A — Concesiones externas de LECTURA y DESCARGA, sin portal comprador.
 //
@@ -35,6 +36,17 @@ import { indicadoresDe, periodoDeProduccion } from '../sharing/indicadores';
 
 type Tipo = 'LOT' | 'SHIPMENT' | 'DD_SNAPSHOT';
 
+/** Un soporte tal como lo registró la instantánea (inmutable). */
+interface SoporteInstantanea { document_id: string; version_id: string; title: string; document_type: string; classification: string; version_number: number; sha256: string; file_name: string; expires_at: string | null; expired: boolean; used_by: string; reference: string }
+
+/** Resumen de soportes para la proyección: solo cifras. Lo de datos personales NO revela nada más que cuántos son. */
+function soportesResumen(docs: Array<{ version_id: string; classification: string }>) {
+  const unicas = new Map(docs.map((d) => [d.version_id, d.classification]));
+  const total = unicas.size;
+  const restringidos = [...unicas.values()].filter((c) => c === 'PERSONAL_DATA').length;
+  return { shared: true, shareable_count: total - restringidos, restricted_count: restringidos };
+}
+
 /** Permiso que el CONCEDENTE debe tener para poder conceder lectura de cada tipo: no se concede lo que no se tiene. */
 const LECTURA: Record<Tipo, Permission> = { LOT: 'lot:read', SHIPMENT: 'shipment:read', DD_SNAPSHOT: 'dd:read' };
 
@@ -49,6 +61,8 @@ class CrearConcesionDto {
   @IsUUID() resource_id!: string;
   @ApiPropertyOptional({ default: true }) @IsOptional() @IsBoolean() can_read?: boolean;
   @ApiPropertyOptional({ default: false }) @IsOptional() @IsBoolean() can_download?: boolean;
+  @ApiPropertyOptional({ default: false, description: 'Solo para DD_SNAPSHOT: incluye los SOPORTES que esa instantánea referencia (sin documentos de datos personales ni geometrías). Explícito: por omisión no se comparte ningún archivo.' })
+  @IsOptional() @IsBoolean() include_documents?: boolean;
   @ApiProperty({ description: 'Vencimiento obligatorio, en el futuro. No existe la concesión indefinida.' })
   @IsISO8601() expires_at!: string;
   @ApiProperty() @IsString() @Length(3, 500) reason!: string;
@@ -67,6 +81,7 @@ export class AccessGrantsService {
     private readonly audit: AuditService,
     /** RF-32: los indicadores salen de la MISMA evaluación del expediente, no de un motor paralelo. */
     private readonly dd: DdService,
+    @Inject(OBJECT_STORE) private readonly store: ObjectStore,
   ) {}
 
   /** Lo mismo para «no existe» y «no te corresponde»: una concesión no es un oráculo de existencia. */
@@ -92,6 +107,14 @@ export class AccessGrantsService {
       throw forbidden('GRANT_BEYOND_GRANTOR', 'No puedes conceder una descarga de algo que tú no puedes leer.');
     }
 
+    // 1b) Soportes de la instantánea: explícito, solo para una instantánea, con lectura, y solo quien puede leer el expediente Y sus documentos.
+    const conSoportes = dto.include_documents === true;
+    if (conSoportes) {
+      if (dto.resource_type !== 'DD_SNAPSHOT') throw new AppError(422, 'GRANT_DOCUMENTS_ONLY_FOR_SNAPSHOT', 'Los soportes solo se comparten junto con una instantánea del expediente.', [{ field: 'include_documents', reason: 'solo DD_SNAPSHOT' }]);
+      if (!quiereLeer) throw new AppError(422, 'GRANT_DOCUMENTS_REQUIRE_READ', 'Compartir soportes exige también la lectura de la instantánea.', [{ field: 'can_read', reason: 'requerido' }]);
+      if (!ctx.permissions.includes('document:read')) throw forbidden('GRANT_BEYOND_GRANTOR', 'No puedes compartir soportes: tú no tienes permiso para leer documentos.');
+    }
+
     // 2) Vencimiento obligatorio y futuro.
     const vence = new Date(dto.expires_at);
     if (Number.isNaN(vence.getTime()) || vence.getTime() <= Date.now()) {
@@ -115,11 +138,11 @@ export class AccessGrantsService {
         if (previa) return; // reintento idempotente
         await trx.insertInto('access_grants').values({
           id, organization_id: orgId, grantee_user_id: granteeId, resource_type: dto.resource_type, resource_id: dto.resource_id,
-          can_read: quiereLeer, can_download: quiereDescargar, expires_at: vence, reason: dto.reason.trim(),
+          can_read: quiereLeer, can_download: quiereDescargar, include_documents: conSoportes, expires_at: vence, reason: dto.reason.trim(),
           granted_by: user.id, operation_id: dto.operation_id,
         }).execute();
         await this.audit.record(trx, { organizationId: orgId, actorUserId: user.id, action: 'grant.create', entityType: 'access_grant', entityId: id, requestId, result: 'SUCCESS',
-          after: { resource_type: dto.resource_type, resource_id: dto.resource_id, grantee_user_id: granteeId, can_read: quiereLeer, can_download: quiereDescargar, expires_at: vence.toISOString(), reason: dto.reason.trim() } });
+          after: { resource_type: dto.resource_type, resource_id: dto.resource_id, grantee_user_id: granteeId, can_read: quiereLeer, can_download: quiereDescargar, include_documents: conSoportes, expires_at: vence.toISOString(), reason: dto.reason.trim() } });
       });
     } catch (e) {
       const c = (e as { constraint?: string }).constraint;
@@ -172,10 +195,10 @@ export class AccessGrantsService {
 
   async listar(user: AuthUser, orgId: string) {
     const ctx = await this.authz.require(user, orgId, 'grant:manage', { mutation: false });
-    const filas = await sql<{ id: string; grantee_user_id: string; grantee_email: string; resource_type: Tipo; resource_id: string; resource_label: string | null; can_read: boolean; can_download: boolean; expires_at: string; revoked_at: string | null; reason: string; created_at: string; granted_by_name: string | null; revoked_by_name: string | null; revoke_reason: string | null }>`
+    const filas = await sql<{ id: string; grantee_user_id: string; grantee_email: string; resource_type: Tipo; resource_id: string; resource_label: string | null; can_read: boolean; can_download: boolean; include_documents: boolean; expires_at: string; revoked_at: string | null; reason: string; created_at: string; granted_by_name: string | null; revoked_by_name: string | null; revoke_reason: string | null }>`
       SELECT g.id, g.grantee_user_id, u.email AS grantee_email, g.resource_type, g.resource_id,
              COALESCE(l.lot_code, s.shipment_code, CASE WHEN sn.id IS NOT NULL THEN c.case_number || ' · instantánea ' || sn.snapshot_number END) AS resource_label,
-             g.can_read, g.can_download, g.expires_at::text, g.revoked_at::text, g.reason, g.created_at::text,
+             g.can_read, g.can_download, g.include_documents, g.expires_at::text, g.revoked_at::text, g.reason, g.created_at::text,
              NULLIF(trim(coalesce(gb.first_name, '') || ' ' || coalesce(gb.last_name, '')), '') AS granted_by_name,
              NULLIF(trim(coalesce(rb.first_name, '') || ' ' || coalesce(rb.last_name, '')), '') AS revoked_by_name,
              g.revoke_reason
@@ -200,7 +223,7 @@ export class AccessGrantsService {
       ? (await sql<{ id: string; label: string; detail: string }>`SELECT l.id, l.lot_code AS label, p.name || ' · ' || l.status AS detail FROM lots l JOIN products p ON p.id = l.product_id WHERE l.organization_id = ${org} ORDER BY l.created_at DESC LIMIT 200`.execute(this.db)).rows
       : t === 'SHIPMENT'
         ? (await sql<{ id: string; label: string; detail: string }>`SELECT s.id, s.shipment_code AS label, s.destination_country || ' · ' || s.status AS detail FROM shipments s WHERE s.organization_id = ${org} ORDER BY s.created_at DESC LIMIT 200`.execute(this.db)).rows
-        : (await sql<{ id: string; label: string; detail: string }>`SELECT sn.id, c.case_number || ' · instantánea ' || sn.snapshot_number AS label, sn.readiness AS detail FROM dd_snapshots sn JOIN dd_cases c ON c.id = sn.case_id WHERE sn.organization_id = ${org} ORDER BY sn.created_at DESC LIMIT 200`.execute(this.db)).rows;
+        : (await sql<{ id: string; label: string; detail: string }>`SELECT sn.id, c.case_number || ' · instantánea ' || sn.snapshot_number AS label, sn.readiness AS detail FROM dd_snapshots sn JOIN dd_cases c ON c.id = sn.case_id WHERE sn.organization_id = ${org} ORDER BY sn.captured_at DESC LIMIT 200`.execute(this.db)).rows;
     return { type: t, available: true, items, note: items.length === 200 ? 'Se muestran los 200 más recientes.' : null };
   }
 
@@ -211,11 +234,11 @@ export class AccessGrantsService {
 
   private async ver(orgId: string, operationId: string) {
     const g = await this.db.selectFrom('access_grants').selectAll().where('organization_id', '=', orgId).where('operation_id', '=', operationId).executeTakeFirstOrThrow();
-    return { id: g.id, resource_type: g.resource_type, resource_id: g.resource_id, grantee_user_id: g.grantee_user_id, can_read: g.can_read, can_download: g.can_download, expires_at: g.expires_at, revoked_at: g.revoked_at };
+    return { id: g.id, resource_type: g.resource_type, resource_id: g.resource_id, grantee_user_id: g.grantee_user_id, can_read: g.can_read, can_download: g.can_download, include_documents: g.include_documents, expires_at: g.expires_at, revoked_at: g.revoked_at };
   }
   private async verPorId(orgId: string, id: string) {
     const g = await this.db.selectFrom('access_grants').selectAll().where('organization_id', '=', orgId).where('id', '=', id).executeTakeFirstOrThrow();
-    return { id: g.id, resource_type: g.resource_type, resource_id: g.resource_id, grantee_user_id: g.grantee_user_id, can_read: g.can_read, can_download: g.can_download, expires_at: g.expires_at, revoked_at: g.revoked_at };
+    return { id: g.id, resource_type: g.resource_type, resource_id: g.resource_id, grantee_user_id: g.grantee_user_id, can_read: g.can_read, can_download: g.can_download, include_documents: g.include_documents, expires_at: g.expires_at, revoked_at: g.revoked_at };
   }
 
   // --------------------------------------------------------------- lado del CONCESIONARIO
@@ -238,8 +261,8 @@ export class AccessGrantsService {
 
   /** Lo que una cuenta externa tiene concedido. No revela nada de la organización más allá de su nombre. */
   async mias(user: AuthUser) {
-    const filas = await sql<{ id: string; organization: string; resource_type: Tipo; can_read: boolean; can_download: boolean; expires_at: string }>`
-      SELECT g.id, o.name AS organization, g.resource_type, g.can_read, g.can_download, g.expires_at::text
+    const filas = await sql<{ id: string; organization: string; resource_type: Tipo; can_read: boolean; can_download: boolean; include_documents: boolean; expires_at: string }>`
+      SELECT g.id, o.name AS organization, g.resource_type, g.can_read, g.can_download, g.include_documents, g.expires_at::text
       FROM access_grants g JOIN organizations o ON o.id = g.organization_id
       JOIN users u ON u.id = g.grantee_user_id AND u.status = 'ACTIVE'
       WHERE g.grantee_user_id = ${user.id} AND g.revoked_at IS NULL AND g.expires_at > now()
@@ -265,7 +288,7 @@ export class AccessGrantsService {
    * ni geometrías, ni documentos personales; solo códigos, estados y agregados, como el Buyer Portal de
    * S3 §22.8 («183 productores», no sus nombres).
    */
-  private async proyeccion(g: { organization_id: string; resource_type: Tipo; resource_id: string }) {
+  private async proyeccion(g: { organization_id: string; resource_type: Tipo; resource_id: string; include_documents?: boolean }) {
     const org = g.organization_id;
     if (g.resource_type === 'LOT') {
       const l = (await sql<{ id: string; lot_code: string; status: string; origin_status: string; product: string; productores: number; parcelas: number }>`
@@ -303,15 +326,103 @@ export class AccessGrantsService {
         public_reference: await referenciaDe(this.db, org, 'SHIPMENT', s.id),
         nota: 'Destino declarado por la organización; Terra Link no lo verifica.' };
     }
-    const sn = (await sql<{ id: string; snapshot_number: number; readiness: string; content_hash: string; case_number: string; requirements: Array<{ code: string; status: string }> }>`
-      SELECT sn.id, sn.snapshot_number, sn.readiness, sn.content_hash, c.case_number, sn.requirements
+    const sn = (await sql<{ id: string; snapshot_number: number; readiness: string; content_hash: string; case_number: string; requirements: Array<{ code: string; status: string }>; content: { documents?: Array<{ version_id: string; classification: string }> } | null }>`
+      SELECT sn.id, sn.snapshot_number, sn.readiness, sn.content_hash, c.case_number, sn.requirements, sn.content
       FROM dd_snapshots sn JOIN dd_cases c ON c.id = sn.case_id WHERE sn.id = ${g.resource_id} AND sn.organization_id = ${org}`.execute(this.db)).rows[0];
     if (!sn) throw this.opaca;
     return { resource_type: 'DD_SNAPSHOT', case_number: sn.case_number, snapshot_number: sn.snapshot_number,
       readiness: sn.readiness, content_hash: sn.content_hash,
       requirements: (sn.requirements ?? []).map((r) => ({ code: r.code, status: r.status })),
+      // Soportes: solo CIFRAS (ni nombres ni tipos de lo excluido). La lista y los archivos están en sus propias rutas, y solo si la concesión los incluye.
+      documents: g.include_documents ? soportesResumen(sn.content?.documents ?? []) : { shared: false },
       public_reference: await referenciaDe(this.db, org, 'DD_SNAPSHOT', sn.id),
       nota: 'Preparación interna. NO acredita presentación de DDS ni conformidad EUDR.' };
+  }
+
+  /** Instantánea y soportes que la concesión incluye. Sin `include_documents` no hay nada que listar ni descargar (403 claro: es SU concesión). */
+  private async soportesDe(g: { organization_id: string; resource_type: Tipo; resource_id: string; include_documents: boolean }) {
+    if (g.resource_type !== 'DD_SNAPSHOT' || !g.include_documents) {
+      throw forbidden('GRANT_DOCUMENTS_NOT_INCLUDED', 'Esta concesión no incluye los soportes del expediente. Pide a la organización que te conceda una que los incluya.');
+    }
+    const sn = (await sql<{ snapshot_number: number; content_hash: string; case_number: string; content: { documents?: Array<SoporteInstantanea> } | null }>`
+      SELECT sn.snapshot_number, sn.content_hash, c.case_number, sn.content
+      FROM dd_snapshots sn JOIN dd_cases c ON c.id = sn.case_id WHERE sn.id = ${g.resource_id} AND sn.organization_id = ${g.organization_id}`.execute(this.db)).rows[0];
+    if (!sn) throw this.opaca;
+    // EXACTAMENTE las versiones que la instantánea referencia (una por versión), nunca «los documentos de la organización» ni versiones posteriores.
+    const unicas = new Map<string, SoporteInstantanea & { usos: string[] }>();
+    for (const d of sn.content?.documents ?? []) {
+      if (!d?.version_id) continue;
+      const previo = unicas.get(d.version_id);
+      if (previo) previo.usos.push(`${d.used_by}:${d.reference}`);
+      else unicas.set(d.version_id, { ...d, usos: [`${d.used_by}:${d.reference}`] });
+    }
+    return { sn, versiones: [...unicas.values()] };
+  }
+
+  /** Estado ACTUAL de cada versión referenciada: clasificación vigente del tipo, escaneo y metadatos del archivo guardado. */
+  private async estadoDeSoportes(orgId: string, versiones: Array<SoporteInstantanea & { usos: string[] }>) {
+    if (!versiones.length) return new Map<string, { classification: string; size_bytes: number; mime_type: string; sha256: string; object_key: string; scan: string | null }>();
+    const rows = (await sql<{ version_id: string; classification: string; size_bytes: number; mime_type: string; sha256: string; object_key: string; scan: string | null }>`
+      SELECT v.id AS version_id, t.classification, v.size_bytes, v.mime_type, v.sha256, v.object_key,
+             (SELECT sc.result FROM document_version_scans sc WHERE sc.version_id = v.id ORDER BY sc.scanned_at DESC, sc.id DESC LIMIT 1) AS scan
+      FROM document_versions v JOIN documents d ON d.id = v.document_id AND d.organization_id = v.organization_id JOIN document_types t ON t.code = d.document_type
+      WHERE v.organization_id = ${orgId} AND v.id = ANY(${versiones.map((v) => v.version_id)}::uuid[])`.execute(this.db)).rows;
+    return new Map(rows.map((r) => [r.version_id, r]));
+  }
+
+  /**
+   * Lista de soportes de la instantánea concedida. Revalida cuenta, concesión, vencimiento, revocación y lectura; la clasificación se lee de nuevo AHORA.
+   * Lo excluido (datos personales) solo aparece como CIFRA: ni título, ni nombre de archivo, ni tipo, ni huella.
+   */
+  async documentos(user: AuthUser, grantId: string) {
+    const g = await this.vigente(user, grantId, 'read');
+    const { sn, versiones } = await this.soportesDe(g);
+    const estado = await this.estadoDeSoportes(g.organization_id, versiones);
+    const items: unknown[] = [];
+    let restringidos = 0;
+    for (const v of versiones) {
+      const e = estado.get(v.version_id);
+      if (!e || e.classification === 'PERSONAL_DATA' || v.classification === 'PERSONAL_DATA') { restringidos++; continue; }
+      const disponible = e.scan === 'CLEAN';
+      items.push({
+        version_id: v.version_id, title: v.title, document_type: v.document_type, version_number: v.version_number, file_name: v.file_name,
+        mime_type: e.mime_type, size_bytes: e.size_bytes, sha256: v.sha256, matches_stored_sha256: e.sha256 === v.sha256,
+        used_by: v.usos, expires_at: v.expires_at, expired: v.expired,
+        availability: disponible ? 'AVAILABLE' : e.scan === 'INFECTED' ? 'REJECTED' : e.scan === 'FAILED' ? 'SCAN_FAILED' : 'PENDING',
+        downloadable: g.can_download && disponible && e.sha256 === v.sha256,
+      });
+    }
+    await this.registrarUso(user, g.organization_id, g.id, 'grant.documents_list');
+    return {
+      case_number: sn.case_number, snapshot_number: sn.snapshot_number, snapshot_content_hash: sn.content_hash,
+      documents: items, restricted_count: restringidos, can_download: g.can_download,
+      limits: [
+        'Vista limitada: solo los soportes que la instantánea referencia, sin documentos de datos personales ni geometrías. No es el expediente completo.',
+        'Subir después otro documento o una versión nueva no amplía lo compartido: se entregan las versiones exactas de esta instantánea.',
+        'Los controles son técnicos (escaneo antimalware y huella). Terra Link no certifica la autenticidad de un documento y compartirlo no es presentar una DDS.',
+      ],
+    };
+  }
+
+  /** Bytes de UNA versión referenciada por la instantánea. Revalida todo y verifica escaneo y huella antes de entregar; la descarga se audita. */
+  async contenido(user: AuthUser, grantId: string, versionId: string) {
+    const g = await this.vigente(user, grantId, 'download');
+    const { sn, versiones } = await this.soportesDe(g);
+    const v = versiones.find((x) => x.version_id === versionId);
+    if (!v) throw this.opaca; // una versión que la instantánea no referencia no existe para este destinatario
+    const e = (await this.estadoDeSoportes(g.organization_id, [v])).get(versionId);
+    if (!e || e.classification === 'PERSONAL_DATA' || v.classification === 'PERSONAL_DATA') throw this.opaca;
+    if (e.scan !== 'CLEAN') throw conflict('VERSION_NOT_AVAILABLE', e.scan === 'INFECTED' ? 'La versión fue rechazada por el análisis antimalware.' : 'La versión aún no está disponible: su análisis está pendiente o falló.');
+    if (e.sha256 !== v.sha256) throw new AppError(500, 'INTEGRITY_FAILED', 'La huella de la versión guardada no coincide con la de la instantánea; no se entrega.');
+    let bytes: Buffer;
+    try { bytes = await this.store.get(e.object_key); } catch { throw new AppError(503, 'STORAGE_UNAVAILABLE', 'El archivo no está accesible en este momento.'); }
+    if (sha256Bytes(bytes) !== v.sha256) {
+      await this.audit.record(this.db, { organizationId: g.organization_id, actorUserId: user.id, action: 'grant.document_download', entityType: 'access_grant', entityId: g.id, result: 'FAILED', reason: 'INTEGRITY_FAILED', after: { version_id: versionId } });
+      throw new AppError(500, 'INTEGRITY_FAILED', 'El archivo almacenado no coincide con su huella registrada; no se entrega.');
+    }
+    await this.audit.record(this.db, { organizationId: g.organization_id, actorUserId: user.id, action: 'grant.document_download', entityType: 'access_grant', entityId: g.id, result: 'SUCCESS',
+      after: { version_id: versionId, sha256: v.sha256, snapshot_number: sn.snapshot_number } });
+    return { bytes, mime: e.mime_type, name: v.file_name, sha256: v.sha256 };
   }
 
   /**
@@ -388,6 +499,26 @@ export class GrantedController {
   @ApiOperation({ summary: 'Lo que otras organizaciones han concedido a mi cuenta (P0-003)' })
   mias(@CurrentUser() u: AuthUser) {
     return this.service.mias(u);
+  }
+
+  @Get(':grantId/documents')
+  @ApiOperation({ summary: 'Soportes de la instantánea concedida (solo si la concesión los incluye)',
+    description: 'Solo las versiones que esa instantánea referencia, con su huella. Excluye datos personales (solo cifra). Revalida cuenta, concesión, vencimiento, revocación y clasificación.' })
+  documentos(@CurrentUser() u: AuthUser, @Param('grantId', ParseUUIDPipe) id: string) {
+    return this.service.documentos(u, id);
+  }
+
+  @Get(':grantId/documents/:versionId/content')
+  @ApiOperation({ summary: 'Descargar la versión exacta de un soporte de la instantánea concedida',
+    description: 'Exige descarga concedida e incluir soportes. Verifica escaneo y huella; se audita. No es una presentación oficial.' })
+  async contenido(@CurrentUser() u: AuthUser, @Param('grantId', ParseUUIDPipe) id: string, @Param('versionId', ParseUUIDPipe) versionId: string, @Res() res: Response) {
+    const c = await this.service.contenido(u, id, versionId);
+    res.setHeader('Content-Type', c.mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${c.name.replace(/[^A-Za-z0-9_.-]/g, '_')}"`);
+    res.setHeader('X-Content-SHA256', c.sha256);
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.send(c.bytes);
   }
 
   @Get(':grantId/download')

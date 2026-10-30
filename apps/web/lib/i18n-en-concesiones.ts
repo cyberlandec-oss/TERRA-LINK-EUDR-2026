@@ -63,6 +63,12 @@ export const EN_CONCESIONES: Record<string, string> = {
   'Revisa antes de otorgar (todavía no se concedió nada)': 'Review before granting (nothing has been granted yet)',
   'Qué verá y qué no': 'What they will see and what they will not',
   'Verá códigos, estados y agregados de ESTE recurso. No verá identidad de productores, geometrías, documentos personales ni datos económicos, no podrá modificar nada y no es miembro de tu organización. Puedes revocar cuando quieras.': 'They will see codes, statuses and aggregates of THIS resource. They will not see producer identity, geometries, personal documents or economic data, they cannot modify anything and they are not a member of your organization. You can revoke at any time.',
+  'Incluye los soportes de la instantánea (sin datos personales ni geometrías)': 'Includes the snapshot’s supporting documents (no personal data or geometries)',
+  'Compartir soportes: los documentos que esa instantánea referencia': 'Share supporting documents: the documents that snapshot references',
+  'Solo las versiones exactas de ESA instantánea, con su huella; lo que se suba después no se comparte. Se excluyen los documentos de datos personales y las geometrías (de los excluidos solo se informa cuántos son). Para que además pueda descargar los archivos, activa la descarga. Es una vista limitada, no el expediente completo.':
+    'Only the exact versions of THAT snapshot, with their fingerprint; anything uploaded later is not shared. Personal-data documents and geometries are excluded (for the excluded ones only their number is reported). To let the recipient also download the files, enable downloading. This is a limited view, not the complete file.',
+  'Además verá la lista de los soportes que esta instantánea referencia y, si permites la descarga, podrá bajar la versión exacta de cada uno. Los documentos de datos personales y las geometrías no se comparten por esta vía; esto es una vista limitada, no el expediente completo.':
+    'They will also see the list of supporting documents this snapshot references and, if you allow downloading, will be able to download the exact version of each. Personal-data documents and geometries are not shared this way; this is a limited view, not the complete file.',
   'Otorgando…': 'Granting…',
   'Confirmar y otorgar': 'Confirm and grant',
   'Concesión otorgada. El destinatario la ve en «Recursos compartidos contigo».': 'Grant created. The recipient sees it under “Resources shared with you”.',

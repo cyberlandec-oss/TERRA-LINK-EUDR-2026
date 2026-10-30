@@ -163,3 +163,67 @@ test('inglés, teclado y 390 px: el mismo recorrido, sin desborde y sin claves d
   await page.getByRole('button', { name: 'Keep editing' }).click().catch(() => undefined);
   await ctx.close();
 });
+
+// Soportes de una instantánea (2026-10-30): el concedente elige «Compartir soportes», el comprador los encuentra y descarga la versión EXACTA, y la
+// revocación corta el acceso. Vista limitada: no es el expediente completo (geometrías y documentos personales quedan fuera).
+test('soportes de la instantánea: se comparten desde la pantalla, el comprador descarga la versión exacta y la revocación corta el acceso', async ({ browser }) => {
+  const b = `/api/v1/organizations/${orgA}`;
+  const bytes = Buffer.from(`%PDF-1.4\n% soporte sintético e2e ${crypto.randomUUID()}\n%%EOF\n`);
+  const sha = (await import('crypto')).createHash('sha256').update(bytes).digest('hex');
+  const lista = (r: unknown) => (Array.isArray(r) ? r : ((r as { items?: unknown[] }).items ?? [])) as Array<Record<string, string>>;
+  const productor = lista(await api(`${b}/producers?limit=100`, { token: tok.admin })).find((p) => p.producer_code === 'P-CA')!.id;
+  const entrega = lista(await api(`${b}/deliveries`, { token: tok.admin }))[0].id;
+  const f = new FormData();
+  f.append('operation_id', crypto.randomUUID()); f.append('document_type', 'DELIVERY_SUPPORT'); f.append('owner_type', 'producer'); f.append('owner_id', productor);
+  f.append('title', 'Nota de entrega e2e (sintética)'); f.append('file', new Blob([bytes], { type: 'application/pdf' }), 'nota-e2e.pdf');
+  const up = await fetch(`${API_URL}${b}/documents`, { method: 'POST', headers: { authorization: `Bearer ${tok.admin}` }, body: f });
+  expect(up.status).toBe(201);
+  const version = (await up.json()).document.versions[0].id as string;
+  await api(`${b}/deliveries/${entrega}/supports`, { method: 'POST', token: tok.admin, body: { operation_id: crypto.randomUUID(), document_version_id: version, support_kind: 'DELIVERY_NOTE' } });
+  const caso = (await api(`${b}/dd-cases`, { method: 'POST', token: tok.admin, body: { operation_id: crypto.randomUUID(), lot_id: loteA, scope_note: 'Expediente e2e con soportes' } })).case;
+  await api(`${b}/dd-cases/${caso.id}/snapshots`, { method: 'POST', token: tok.admin, body: { operation_id: crypto.randomUUID() } });
+
+  // Concedente: elige «Compartir soportes» y revisa el alcance antes de otorgar.
+  const adm = await abrir(browser, 'admin', `/organizaciones/${orgA}/concesiones`);
+  await adm.page.getByLabel('Tipo de recurso').selectOption({ label: 'Instantánea de diligencia' });
+  await expect(adm.page.getByLabel('Recurso a compartir').locator('option', { hasText: caso.case_number })).toHaveCount(1); // la lista se carga tras elegir el tipo
+  const opciones = await adm.page.getByLabel('Recurso a compartir').locator('option').allInnerTexts();
+  await adm.page.getByLabel('Recurso a compartir').selectOption({ label: opciones.find((o) => o.includes(caso.case_number))! });
+  await adm.page.getByLabel('Correo exacto de la cuenta destinataria').fill(EXTERNO.email);
+  await adm.page.getByLabel(/Compartir soportes/).check();
+  await adm.page.getByLabel(/Permitir también descargar/).check();
+  await adm.page.getByLabel(/^Motivo \(queda en la auditoría\)/).fill('Soportes para la revisión del comprador (ensayo)');
+  await adm.page.getByRole('button', { name: 'Revisar antes de otorgar' }).click();
+  const rev = adm.page.getByRole('region', { name: /Revisa antes de otorgar/ });
+  await expect(rev).toContainText('Incluye los soportes de la instantánea (sin datos personales ni geometrías)');
+  await expect(rev).toContainText('vista limitada, no el expediente completo');
+  await adm.page.getByRole('button', { name: 'Confirmar y otorgar' }).click();
+  await expect(adm.page.getByText(/Concesión otorgada/)).toBeVisible();
+  await expect(adm.page.getByRole('table', { name: 'Concesiones' })).toContainText('Incluye los soportes de la instantánea');
+  await adm.ctx.close();
+
+  // Comprador: encuentra los soportes permitidos, ve la advertencia de vista limitada y descarga la versión exacta.
+  const comp = await abrir(browser, 'externo', '/compartido');
+  const fila = comp.page.getByRole('row', { name: /Instantánea de diligencia/ });
+  await fila.getByRole('button', { name: 'Ver' }).click();
+  await expect(comp.page.getByRole('heading', { name: 'Soportes de la instantánea' })).toBeVisible();
+  await expect(comp.page.getByText('Vista limitada, no el expediente completo')).toBeVisible();
+  const tabla = comp.page.getByRole('table', { name: 'Soportes de la instantánea' });
+  await expect(tabla).toContainText('Nota de entrega e2e (sintética)');
+  await expect(tabla).toContainText(sha.slice(0, 16));
+  const [descarga] = await Promise.all([comp.page.waitForEvent('download'), tabla.getByRole('button', { name: 'Descargar esta versión' }).click()]);
+  const ruta = await descarga.path();
+  const contenido = (await import('fs')).readFileSync(ruta!);
+  expect(Buffer.compare(contenido, bytes)).toBe(0);
+  await expect(comp.page.getByText(new RegExp('Huella SHA-256 ' + sha))).toBeVisible(); // el aviso de descarga declara la huella de la versión entregada
+  await comp.ctx.close();
+
+  // Revocar corta el acceso a la lista y a los archivos, por pantalla y por API.
+  const g = ((await api(`${b}/access-grants`, { token: tok.admin })).grants as Array<{ id: string; resource_type: string; estado: string; include_documents: boolean }>).find((x) => x.resource_type === 'DD_SNAPSHOT' && x.estado === 'ACTIVA')!;
+  expect(g.include_documents).toBe(true);
+  await api(`${b}/access-grants/${g.id}/revoke`, { method: 'POST', token: tok.admin, body: { operation_id: crypto.randomUUID(), reason: 'Fin de la comprobación e2e' } });
+  const sin = await fetch(`${API_URL}/api/v1/granted/${g.id}/documents`, { headers: { authorization: `Bearer ${tok.externo}` } });
+  expect(sin.status).toBe(404);
+  const sinArchivo = await fetch(`${API_URL}/api/v1/granted/${g.id}/documents/${version}/content`, { headers: { authorization: `Bearer ${tok.externo}` } });
+  expect(sinArchivo.status).toBe(404);
+});

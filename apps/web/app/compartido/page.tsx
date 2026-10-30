@@ -21,7 +21,13 @@ import { Alert, EmptyState, ErrorPanel, Loading, PageHeader, StatusBadge, type T
 // productores, sin geometrías y sin documentos personales** — la concesión no levanta la clasificación. Y la
 // descarga es una **vista compartida interna**: **no** es un paquete DD ni una declaración oficial.
 
-interface Concesion { id: string; organization: string; resource_type: string; can_read: boolean; can_download: boolean; expires_at: string }
+interface Concesion { id: string; organization: string; resource_type: string; can_read: boolean; can_download: boolean; include_documents?: boolean; expires_at: string }
+interface Soporte { version_id: string; title: string; document_type: string; version_number: number; file_name: string; mime_type: string; size_bytes: number; sha256: string; matches_stored_sha256: boolean; used_by: string[]; expires_at: string | null; expired: boolean; availability: 'AVAILABLE' | 'PENDING' | 'REJECTED' | 'SCAN_FAILED'; downloadable: boolean }
+interface Soportes { case_number: string; snapshot_number: number; snapshot_content_hash: string; documents: Soporte[]; restricted_count: number; can_download: boolean; limits: string[] }
+const DISPONIBILIDAD: Record<Soporte['availability'], { tono: Tone; texto: string }> = {
+  AVAILABLE: { tono: 'valid', texto: 'Disponible' }, PENDING: { tono: 'review', texto: 'Análisis pendiente' },
+  REJECTED: { tono: 'blocked', texto: 'Rechazado por el análisis antimalware' }, SCAN_FAILED: { tono: 'review', texto: 'El análisis falló' },
+};
 interface Indicador { code: string; label: string; state: string; note: string; basis?: { version?: string | null; evaluated_at?: string | null } }
 interface Periodo { precision: string; start: string | null; end: string | null; note: string; inherited_range?: { start: string; end: string; note: string } | null }
 
@@ -32,6 +38,7 @@ interface Proyeccion {
   shipment_code?: string; destination_country?: string; dispatch_at?: string | null; items?: number;
   case_number?: string; snapshot_number?: number; readiness?: string; content_hash?: string;
   requirements?: Array<{ code: string; status: string }>;
+  documents?: { shared: boolean; shareable_count?: number; restricted_count?: number };
 }
 
 const TIPO: Record<string, string> = { LOT: 'Lote', SHIPMENT: 'Embarque', DD_SNAPSHOT: 'Instantánea de diligencia' };
@@ -56,6 +63,7 @@ export default function CompartidoPage() {
   const [grants, setGrants] = useState<Concesion[] | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [abierta, setAbierta] = useState<{ id: string; datos: Proyeccion } | null>(null);
+  const [soportes, setSoportes] = useState<Soportes | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [haySesion, setHaySesion] = useState<boolean | null>(null);
 
@@ -69,15 +77,26 @@ export default function CompartidoPage() {
 
   const abrir = async (g: Concesion) => {
     try {
+      setSoportes(null);
       setAbierta({ id: g.id, datos: await api<Proyeccion>(`/api/v1/granted/${g.id}`) });
+      // Los soportes tienen su propia ruta y solo existen si la concesión los incluye; la API revalida cada acceso.
+      if (g.include_documents) setSoportes(await api<Soportes>(`/api/v1/granted/${g.id}/documents`));
       setError(null);
-    } catch (e) { setError(e as ApiError); setAbierta(null); }
+    } catch (e) { setError(e as ApiError); setAbierta(null); setSoportes(null); }
   };
 
   const descargar = async (g: Concesion) => {
     try {
       const r = await apiDownload(`/api/v1/granted/${g.id}/download`, `vista-compartida-${g.id}.json`);
       setAviso(`Descargado ${r.filename} (${r.bytes} bytes). Es una vista compartida interna, no un paquete DD.`);
+      setError(null);
+    } catch (e) { setError(e as ApiError); }
+  };
+
+  const descargarSoporte = async (grantId: string, s: Soporte) => {
+    try {
+      const r = await apiDownload(`/api/v1/granted/${grantId}/documents/${s.version_id}/content`, s.file_name);
+      setAviso(`Descargado ${r.filename} (${r.bytes} bytes), versión ${s.version_number}. Huella SHA-256 ${s.sha256}. Un documento aportado no queda certificado por Terra Link.`);
       setError(null);
     } catch (e) { setError(e as ApiError); }
   };
@@ -104,7 +123,7 @@ export default function CompartidoPage() {
         <p>
           Ves una <strong>proyección autorizada</strong>: códigos, estados y agregados.
           <strong> No incluye identidad de productores, ni geometrías, ni documentos personales</strong>, porque
-          una concesión no levanta la clasificación de los datos. Lo que descargues es una
+          una concesión no levanta la clasificación de los datos. Solo una concesión de instantánea que lo indique expresamente añade los <strong>soportes</strong> que esa instantánea referencia. Lo que descargues es una
           <strong> vista compartida interna</strong>: <strong>no es un paquete DD ni una declaración oficial</strong>.
         </p>
       </Alert>
@@ -208,6 +227,38 @@ export default function CompartidoPage() {
                 <tr key={r.code}><td>{r.code}</td><td>{r.status}</td></tr>
               ))}</tbody>
             </table></div>
+          )}
+          {soportes && (
+            <section aria-labelledby="soportes-titulo">
+              <h3 id="soportes-titulo">Soportes de la instantánea</h3>
+              <Alert tone="review" title="Vista limitada, no el expediente completo">
+                <p>
+                  Recibes <strong>solo los soportes que esta instantánea referencia</strong>, en su versión exacta y con su huella; lo que la organización suba
+                  después no se añade. <strong>No incluye geometrías ni documentos con datos personales</strong>
+                  {soportes.restricted_count > 0 ? <> ({soportes.restricted_count} excluido{soportes.restricted_count === 1 ? '' : 's'}; su contenido y sus datos no se muestran)</> : null}.
+                  Si te faltan documentos o geometrías para tu debida diligencia, pídelos a la organización por un canal que ella autorice. Terra Link conserva y
+                  permite consultar estos archivos; <strong>no certifica su autenticidad</strong>, y compartirlos no es presentar una DDS.
+                </p>
+              </Alert>
+              {soportes.documents.length === 0 ? (
+                <EmptyState title="Esta instantánea no tiene soportes compartibles."><p className="muted">No hay documentos referenciados que esta concesión pueda mostrarte.</p></EmptyState>
+              ) : (
+                <div className="table-wrap"><table aria-label="Soportes de la instantánea">
+                  <thead><tr><th scope="col">Documento</th><th scope="col">Versión y archivo</th><th scope="col">Huella SHA-256</th><th scope="col">Estado</th><th scope="col">Acción</th></tr></thead>
+                  <tbody>{soportes.documents.map((s) => (
+                    <tr key={s.version_id}>
+                      <td>{s.title}<div className="muted">{s.document_type}{s.expired ? ' · vencido' : ''}</div></td>
+                      <td>v{s.version_number} · {s.file_name}<div className="muted">{s.mime_type} · {s.size_bytes} bytes</div></td>
+                      <td><code title={s.sha256}>{s.sha256.slice(0, 16)}…</code>{!s.matches_stored_sha256 && <div className="muted">La huella guardada no coincide: no se puede entregar.</div>}</td>
+                      <td><StatusBadge tone={DISPONIBILIDAD[s.availability].tono}>{DISPONIBILIDAD[s.availability].texto}</StatusBadge></td>
+                      <td>{s.downloadable
+                        ? <button type="button" onClick={() => void descargarSoporte(abierta.id, s)}>Descargar esta versión</button>
+                        : <span className="muted">{soportes.can_download ? 'No disponible para descargar' : 'Tu concesión no incluye descargar'}</span>}</td>
+                    </tr>
+                  ))}</tbody>
+                </table></div>
+              )}
+            </section>
           )}
           <Alert tone="review" title="Límite de esta vista">{abierta.datos.nota}</Alert>
         </section>

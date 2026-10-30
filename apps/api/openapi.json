@@ -4078,6 +4078,64 @@
         ]
       }
     },
+    "/api/v1/granted/{grantId}/documents": {
+      "get": {
+        "description": "Solo las versiones que esa instantánea referencia, con su huella. Excluye datos personales (solo cifra). Revalida cuenta, concesión, vencimiento, revocación y clasificación.",
+        "operationId": "GrantedController_documentos",
+        "parameters": [
+          {
+            "name": "grantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Soportes de la instantánea concedida (solo si la concesión los incluye)",
+        "tags": [
+          "Autorización"
+        ]
+      }
+    },
+    "/api/v1/granted/{grantId}/documents/{versionId}/content": {
+      "get": {
+        "description": "Exige descarga concedida e incluir soportes. Verifica escaneo y huella; se audita. No es una presentación oficial.",
+        "operationId": "GrantedController_contenido",
+        "parameters": [
+          {
+            "name": "grantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "versionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Descargar la versión exacta de un soporte de la instantánea concedida",
+        "tags": [
+          "Autorización"
+        ]
+      }
+    },
     "/api/v1/granted/{grantId}/download": {
       "get": {
         "description": "Archivo interno con la MISMA proyección que la lectura. No es DD_PACKAGE, DDS ni prueba de conformidad. Revalida cuenta, concesión, vencimiento, revocación y acción.",
@@ -14386,6 +14444,11 @@
           "can_download": {
             "type": "boolean",
             "default": false
+          },
+          "include_documents": {
+            "type": "boolean",
+            "default": false,
+            "description": "Solo para DD_SNAPSHOT: incluye los SOPORTES que esa instantánea referencia (sin documentos de datos personales ni geometrías). Explícito: por omisión no se comparte ningún archivo."
           },
           "expires_at": {
             "type": "string",
