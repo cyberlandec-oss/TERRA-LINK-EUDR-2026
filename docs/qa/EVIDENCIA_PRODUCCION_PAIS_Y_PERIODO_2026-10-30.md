@@ -25,3 +25,6 @@ Parcela y expediente sintéticos QA-1030. (1) sin país al inicio, sin asumir Ec
 - **Instantáneas existentes:** 4 de las 10 del DEMO tienen entregas con cosecha declarada; al incluirla en el contenido, su hash ya no coincide y se muestran **desactualizadas** (no se modificaron). Capturar una nueva las actualiza. Las otras 6 no cambian.
 - **Registros del DEMO añadidos por la demostración:** declaraciones 1 (EC) y 2 (desconocido) de la parcela QA-1030-PAR, dos instantáneas más del expediente QA-1030 y dos concesiones, ya revocadas.
 - Terra Link no verifica el país ni la cosecha; son declaraciones de la organización. No es una presentación de DDS ni acredita conformidad EUDR.
+
+## Instantáneas nuevas en los expedientes afectados (decisión del propietario)
+Se capturó una instantánea nueva en DD-2026-00001 (n.º 2), DD-2026-00002 (n.º 3) y DD-2026-00003 (n.º 2) con la cuenta EUDR vigente; ahora incluyen la cosecha efectiva y el país donde exista declaración. Las anteriores (4 desactualizadas) se conservan sin modificar. La preparación de las tres nuevas es BLOCKED, como antes: capturar no cambia lo pendiente. El DEMO pasa de 10 a 13 instantáneas.
