@@ -71,7 +71,7 @@ Código: `apps/mobile` (ADR-0006, PROPUESTO). Estado: **ABIERTA**; falta el ensa
 
 ### Offline prolongado: tres capacidades distintas y propuesta D-40 (revisada 2026-10-30; **el propietario decidió A, mantener 1 h**; la propuesta de 7 días queda como alternativa no adoptada)
 
-Fuentes: RNF-04 («ensayo de 7 días simulados y de interrupción/cierre real; **duración objetivo final por ADR**»), QA-08 («…7 días simulados, retry, adjunto interrumpido y conflicto → persistencia sin pérdida, misma operación una vez, dependencias/conflicto visibles»), S1 §90 («Offline session») y ADR-0006. **Ninguna fuente fija cuántos días debe poder capturarse sin conexión** ni obliga a una autorización local; no hay decisión posterior que apruebe D-40. La ventana de 72 h que figuraba aquí se retiró el 2026-10-11 y no está en el código.
+Fuentes: RNF-04 («ensayo de 7 días simulados y de interrupción/cierre real; **duración objetivo final por ADR**»), QA-08 («…7 días simulados, retry, adjunto interrumpido y conflicto → persistencia sin pérdida, misma operación una vez, dependencias/conflicto visibles»), S1 §90 («Offline session») y ADR-0006. **Ninguna fuente fija cuántos días debe poder capturarse sin conexión** ni obliga a una autorización local. D-40 la resolvió el propietario el 2026-10-30 con la **opción A** (mantener 1 h). La ventana de 72 h que figuraba aquí se retiró el 2026-10-11 y no está en el código.
 
 | Capacidad | Hoy | Evidencia | Lo que NO demuestra |
 | --- | --- | --- | --- |

@@ -33,7 +33,7 @@ Resumen ordenado por lo que bloquea criterios originales, con qué historia desb
 | D-12 | EUDR-IS/rol legal/representación | Regulatorio/integraciones | Documentación vigente, acceso ACCEPTANCE y autorización |
 | D-13 | Persistencia y sesión offline | Mobile/seguridad | Arquitectura real, política, QA Android |
 | D-14 | Retención y base del tratamiento | Privacidad/Data Owner | Política aplicable por clase de dato |
-| D-15 | SLO/RPO/RTO y costes | Operaciones/comercial | Medición del piloto/restore y compromiso acordado |
+| D-15 | SLO/RPO/RTO y costes. **Propuesta y datos a aportar redactados 2026-10-30 en `docs/17` («TECH-001 y piloto»); sin objetivos fijados ni aceptación** | Operaciones/comercial | Medición del piloto/restore y compromiso acordado |
 | D-16 | Tarifas/planes y titularidad de datos | Comercial/legal | Hipótesis validadas/contrato, no precios de benchmark |
 | D-17 | OpenAPI y enlaces tipados | Backend | Schema executable validado + integridad DB |
 | D-18 | Catálogo de `organization_type` (hoy código libre `^[A-Z_]{2,40}$`) | Producto | Catálogo aprobado y migración con CHECK/FK |

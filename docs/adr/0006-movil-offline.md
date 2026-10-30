@@ -36,5 +36,5 @@ definida sin renovar credenciales sin red. La API emite JWT de 1 h sin refresh t
 
 ## Pendiente para aceptar
 
-Ensayo Android real reproducible; build de desarrollo con SQLCipher probado; aprobación de D-40; contrato de dispositivo
+Ensayo Android real reproducible; build de desarrollo con SQLCipher probado; D-40 ya decidida (opción A, 2026-10-30); contrato de dispositivo
 y sincronización (P0-024).

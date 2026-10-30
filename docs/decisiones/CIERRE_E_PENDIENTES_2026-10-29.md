@@ -13,8 +13,8 @@ Esta es la única lista de lo que depende de una persona fuera del desarrollo; l
 | P2 | **Dato real de CAD-1027213440:** superficie declarada o polígono | Versión geométrica nueva con un rol con `plot:update` y reevaluación | 4 |
 | P3 | **Revisión competente** (D-05.B / D-07 / P1-005): adopción de una configuración geográfica revisada y aplicable; catálogo de riesgo, conclusión humana y `LEGAL_PROFILE` | Registrar la decisión de la persona con facultad; desbloquea expediente y despacho | 3, 6, 7 |
 | P4 | **Canales externos:** GUIA, EUDR-IS y perfil Ecuador validado | Canal/acuerdo verificado y recibos auténticos | 8 |
-| P5 | **Objetivos de recuperación y rendimiento:** RPO/RTO (responsable de operación) y presupuestos p95/SLO (TECH-001) | Fijarlos; luego aceptar los tiempos observados (9e) y medir con el dataset del piloto (9b) | 9a, 9b, 9d, 9e |
-| P6 | **Organización piloto:** dataset y capacitación | Medición de 9b y capacitación | 9b, 9f |
+| P5 | **Objetivos de recuperación y rendimiento:** RPO/RTO (responsable de operación) y presupuestos p95/SLO (TECH-001) | Fijarlos (propuesta de método y clases en `docs/17`, D-15); luego aceptar los tiempos observados (9e) y medir con el dataset del piloto (9b) | 9a, 9b, 9d, 9e |
+| P6 | **Organización piloto:** aportar los datos del cuadro «Lo que debe aportar la organización piloto» de `docs/17` (volumen, usuarios simultáneos, conectividad, tolerancia, responsable, entorno) y capacitación | Medición de 9b y capacitación | 9b, 9f |
 | P7 | **Navegador del propietario en `localhost`:** dirección de la barra y error de la petición `login` (Network) y de Console | Diagnóstico con el dato | 10 |
 | P8 | **Teléfono físico** (al final; el almacenamiento lleno se comprueba como recuperación, sin exigir que el fallo sea determinista): instalar `ARM64-soportes-70348c7.apk` y recorrer la guía de `apps/mobile/README.md` | Registrar el ensayo; cierra el gate Android real | 1a, 1b |
 
