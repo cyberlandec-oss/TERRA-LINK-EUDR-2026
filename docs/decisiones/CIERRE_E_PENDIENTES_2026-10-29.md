@@ -16,7 +16,7 @@ Esta es la única lista de lo que depende de una persona fuera del desarrollo; l
 | P5 | **Objetivos de recuperación y rendimiento:** RPO/RTO (responsable de operación) y presupuestos p95/SLO (TECH-001) | Fijarlos; luego aceptar los tiempos observados (9e) y medir con el dataset del piloto (9b) | 9a, 9b, 9d, 9e |
 | P6 | **Organización piloto:** dataset y capacitación | Medición de 9b y capacitación | 9b, 9f |
 | P7 | **Navegador del propietario en `localhost`:** dirección de la barra y error de la petición `login` (Network) y de Console | Diagnóstico con el dato | 10 |
-| P8 | **Teléfono físico** (al final): instalar `ARM64-soportes-70348c7.apk` y recorrer la guía de `apps/mobile/README.md` | Registrar el ensayo; cierra el gate Android real | 1a, 1b |
+| P8 | **Teléfono físico** (al final; el almacenamiento lleno se comprueba como recuperación, sin exigir que el fallo sea determinista): instalar `ARM64-soportes-70348c7.apk` y recorrer la guía de `apps/mobile/README.md` | Registrar el ensayo; cierra el gate Android real | 1a, 1b |
 
 El soporte sobre productor desde la interfaz móvil **no** figura aquí: queda fuera del alcance exigido.
 
@@ -32,7 +32,7 @@ Categorías: **I** implementación pendiente · **C** configuración o decisión
 | # | Pendiente | Cat. | Acción de cierre | ¿Ahora? |
 | --- | --- | --- | --- | --- |
 | 1a | Ensayo en teléfono físico (P0-023/024; gate de `.claude/rules/40-mobile-offline.md`) | E | Instalar `ARM64-soportes-70348c7.apk` y recorrer la guía de `apps/mobile/README.md`. El APK arm64 está **preparado, no probado**: no es evidencia de teléfono | No: equipo del propietario (al final) |
-| 1b | Ubicación real, permiso denegado y almacenamiento lleno en teléfono | E | Misma guía; en emulador hay evidencia (denegada con contenido comparado; llena 1 de 2 ejecuciones, no determinista) | No: teléfono |
+| 1b | Ubicación real, permiso denegado y recuperación ante almacenamiento lleno en teléfono | E | Misma guía; en emulador hay evidencia (denegada con contenido comparado; llena 1 de 2 ejecuciones, no determinista) | No: teléfono |
 | 2 | Soporte sobre **productor** desde la interfaz móvil | Fuera del alcance exigido (no bloquea) | Mejora opcional: el servidor ya lo admite; solo faltaría la pantalla. `DELIVERY_SUPPORT` se vincula desde la entrega, `FIELD_PHOTO` conserva su flujo | No aplica |
 | 3 | `GEOLOCATION_PROFILE` NOT_EVALUABLE en DD-2026-00002 | C | Una persona con facultad adopta una configuración **revisada y aplicable** (mecanismo existente); no se adopta por conveniencia | No: decisión real (D-05.B) |
 | 4 | Parcela CAD-1027213440 NO EVALUABLE: punto sin superficie declarada | D | Registrar la superficie (o un polígono) en una versión nueva con un rol con `plot:update` y reevaluar. No bloquea el resto | Sí, con el dato real |
@@ -48,7 +48,7 @@ Categorías: **I** implementación pendiente · **C** configuración o decisión
 | 9e | RNF-06: **aceptación** de los tiempos observados frente a 9d | C | El responsable compara los tiempos observados (abajo) con 9d. Solo si el volumen declarado difiere de los ya medidos se mide de nuevo, una vez | No: depende de 9d |
 | 9f | Capacitación (P0-031) | X | Con la organización piloto | No |
 | 10 | Incidencia del navegador del propietario desde `localhost` | D | Dirección de la barra y error de la petición `login` (Network) y de Console | No: dato del propietario |
-| 11 | Almacenamiento lleno determinista | E (límite registrado) | Cuota por app o partición mínima; hoy: una ejecución real con contenido comparado | Parcial |
+| 11 | Almacenamiento lleno: **no es un requisito adicional**. Se comprueba la recuperación prevista (aviso, sin pérdida, reintento) y se declara el límite del ensayo: el fallo de escritura real se produjo 1 de 2 veces a 0 KB libres. Provocarlo de forma repetida es asunto del arnés, no una función del producto | E (límite declarado) | Repetirlo en el teléfono físico solo como parte de la guía; sin construir nada nuevo | Con el teléfono (P8)
 
 ### RNF-06: qué acreditan los registros existentes
 - **QA-16 (2026-10-15)**, `docs/qa/EVIDENCIA_QA16_RESTAURACION_2026-10-15.md`: respaldo y restauración en entorno aislado de base **y** objetos; conteos idénticos en las 25 tablas y 39/39 migraciones, 12+14 campos cifrados descifrados con 0 fallos, objetos 2/2 con clave, tamaño y SHA-256 exactos, 0 huérfanos; la aplicación operó sobre la copia (9 comprobaciones correctas, 3 bloqueos esperados). **Volumen: dump de 538 KB y 2 objetos.** Tiempos: volcado 3 s, arranque 6 s, `pg_restore` 14 s (13 s en la segunda mitad), verificación < 2 min; API operativa 7 s.
@@ -66,4 +66,4 @@ Categorías: **I** implementación pendiente · **C** configuración o decisión
 - **Recorridos por rol** (web, 22 combinaciones, 19 cuentas) y **cadena** parcela→entrega→lote→satélite→riesgo→expediente.
 
 ## Separación obligada
-Implementación (código y pruebas) ≠ demostración local (emulador/despliegue local) ≠ aceptación externa (propietario, jurídico, proveedor) ≠ preparación para producción. Ninguno de los pendientes anteriores se cierra con el siguiente nivel sin la evidencia de su propio nivel.
+Implementación (código y pruebas) ≠ demostración local (emulador/despliegue local) ≠ aceptación externa (propietario, jurídico, proveedor) ≠ preparación para producción. El 70 % y el 68,2 % miden requisitos **aceptados**, no lo construido: no existe todavía un cálculo acreditado del porcentaje técnico total y no se improvisa uno. Ninguno de los pendientes anteriores se cierra con el siguiente nivel sin la evidencia de su propio nivel.
