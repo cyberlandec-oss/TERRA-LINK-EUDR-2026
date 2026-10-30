@@ -203,6 +203,51 @@ test('aislamiento: el documento de una parcela ajena no se ve ni se puede aporta
   expect(items(await api(`${base}/documents?owner_type=plot&owner_id=${plotOtro}`, { token: adminTok }))).toHaveLength(0); // y no se escribió nada
 });
 
+test('incidencia del Productor: vinculado y SIN parcelas, Mi finca ofrece registrar la primera; el recorrido llega a la lista, y los encabezados orientan al agricultor', async ({ browser }) => {
+  const base = `/api/v1/organizations/${orgId}`;
+  const PROD_C = { email: 'productor-c-mifinca@e2e.local', password: randomBytes(12).toString('base64url') };
+  const inv = await api(`${base}/invitations`, { method: 'POST', token: adminTok, body: { email: PROD_C.email, role_code: 'PRODUCER' } });
+  await api('/api/v1/invitations/accept', { method: 'POST', body: { token: inv.token, first_name: 'Mi', last_name: 'Finca C', password: PROD_C.password } });
+  const tokC = (await api('/api/v1/auth/login', { method: 'POST', body: { email: PROD_C.email, password: PROD_C.password } })).access_token as string;
+  const members = await api(`${base}/members`, { token: adminTok });
+  const memC = ((Array.isArray(members) ? members : members.members) as Array<{ email: string; membership_id: string }>).find((m) => m.email === PROD_C.email)!.membership_id;
+  const prodC = (await api(`${base}/producers`, { method: 'POST', token: adminTok, body: { producer_code: 'MF-C', legal_name: 'Finca C (sintética)' } })).id as string;
+  // Antes del vínculo: la cuenta no ve nada (configuración pendiente) — control del estado inicial.
+  expect(items(await api(`${base}/producers`, { token: tokC }))).toHaveLength(0);
+  const det = await api(`${base}/producers/${prodC}`, { token: adminTok });
+  await api(`${base}/producers/${prodC}/self-membership`, { method: 'PUT', token: adminTok, body: { expected_version: det.row_version, membership_id: memC, reason: 'Vínculo de la incidencia del Productor (prueba)' } });
+  expect(items(await api(`${base}/producers`, { token: tokC })).map((p) => p.producer_code)).toEqual(['MF-C']);
+  expect(items(await api(`${base}/plots`, { token: tokC }))).toHaveLength(0);
+
+  const ctx = await contexto(browser, tokC);
+  const page = await abrirDesdeMenu(ctx);
+  await expect(page.getByText('Tu cuenta está vinculada, pero todavía no hay parcelas registradas.')).toBeVisible();
+  await page.getByRole('link', { name: 'Registrar una parcela nueva' }).click();
+  await page.getByLabel('Código de parcela').fill('MF-C1');
+  await page.getByLabel('Cultivo').fill('Cacao');
+  await page.getByRole('button', { name: 'Registrar parcela' }).click();
+  await expect(page.getByText('MF-C1').first()).toBeVisible();
+  // Persistencia: la API y Mi finca (tras recargar) la muestran; la lista de productores le habla de SU productor.
+  expect(items(await api(`${base}/plots`, { token: tokC })).map((p) => p.plot_code)).toEqual(['MF-C1']);
+  await page.goto(`/organizaciones/${orgId}/mi-finca`);
+  await expect(page.getByRole('table', { name: 'Mis parcelas' })).toContainText('MF-C1');
+  await page.goto(`/organizaciones/${orgId}/productores`);
+  await expect(page.getByText('Ves solo tu productor.')).toBeVisible();
+  await expect(page.getByText('Ves solo los productores asignados a ti.')).toHaveCount(0);
+  // Captura de campo: el encabezado orienta; la explicación de responsabilidades es ayuda secundaria (plegada por omisión).
+  await page.goto(`/organizaciones/${orgId}/captura`);
+  await expect(page.getByText('Ubica tu parcela, registra su polígono y adjunta fotos o documentos. Revisa los datos antes de guardarlos.')).toBeVisible();
+  const ayuda = page.locator('details', { hasText: 'Qué hace esta pantalla y qué no' });
+  await expect(ayuda).not.toHaveAttribute('open', '');
+  await ayuda.locator('summary').click();
+  await expect(ayuda).toContainText('No valida la parcela, no aprueba evidencias ni concluye riesgo');
+  // Capturar no es decidir: la cuenta sigue sin poder revisar documentos.
+  const perms = await api('/api/v1/me/permissions', { token: tokC });
+  const mias = (perms.organizations as Array<{ organization_id: string; permissions: string[] }>).find((o) => o.organization_id === orgId)!.permissions;
+  for (const p of ['document:review', 'plot:evaluate_gis', 'risk:conclude', 'satellite:request']) expect(mias).not.toContain(p);
+  await ctx.close();
+});
+
 test('cuenta sin vínculo: «configuración pendiente», distinta de «sin datos» y de «sin permiso», sin acceso a lo de otros', async ({ browser }) => {
   const ctx = await contexto(browser, prodBTok);
   const page = await abrirDesdeMenu(ctx);

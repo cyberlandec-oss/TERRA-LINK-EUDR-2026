@@ -343,6 +343,116 @@ describeDb('satélite entre organizaciones: autorización por parcela, credencia
     await http().post(`${base(orgO)}/satellite/authorizations/${a.id}/revoke`).set(as(OWNER)).send({ reason: 'Fin de la comprobación' }).expect(201);
   });
 
+  // ---------------------------------------------------------------- límites del recorrido (revalidación del worker y alcance de CSV y descargas)
+
+  /** Proveedor espía: cuenta cuántas veces se le habría entregado una geometría. */
+  const espia = () => {
+    const p = new FixtureSatelliteProvider();
+    const real = p.analyze.bind(p);
+    const o = { llamadas: 0, provider: p };
+    p.analyze = (async (...a: Parameters<typeof real>) => { o.llamadas++; return real(...a); }) as typeof p.analyze;
+    return o;
+  };
+  const correrCon = async (sp: ReturnType<typeof espia>) => new SatelliteRunner(h.db, [sp.provider], {}, { maxAttempts: 1, backoffBaseMs: 1 }).runOnce();
+  const caducar = async (authId: string) => {
+    await sql`ALTER TABLE satellite_plot_authorizations DISABLE TRIGGER satellite_plot_authz_inmutable`.execute(h.db);
+    try { await sql`UPDATE satellite_plot_authorizations SET created_at = now() - interval '3 days', expires_at = now() - interval '1 day' WHERE id = ${authId}`.execute(h.db); }
+    finally { await sql`ALTER TABLE satellite_plot_authorizations ENABLE TRIGGER satellite_plot_authz_inmutable`.execute(h.db); }
+  };
+  const cerrar = (authId: string) => http().post(`${base(orgO)}/satellite/authorizations/${authId}/revoke`).set(as(OWNER)).send({ reason: 'Fin de la comprobación' });
+  const conOriginal = async (jobId: string, owner: string) => {
+    const store = new S3ObjectStore(h.config.objectStore);
+    const bytes = Buffer.from(JSON.stringify({ sintetico: true, job: jobId }));
+    const key = `satellite/${owner}/${jobId}-limites.json`;
+    await store.put(key, bytes, 'application/json');
+    await sql`
+      INSERT INTO satellite_results (id, organization_id, job_id, provider_code, is_synthetic, coverage_status, coverage_note, limitations, indicators, raw_object_key, raw_sha256)
+      VALUES (${randomUUID()}, ${owner}, ${jobId}, 'FIXTURE_SYNTHETIC', true, 'UNKNOWN', 'Prueba de límites', 'Prueba sintética', '{"a":1}'::jsonb, ${key}, ${createHash('sha256').update(bytes).digest('hex')})`.execute(h.db);
+  };
+
+  it('el worker revalida antes de enviar la geometría: vencida, revocada (carrera) o con una organización suspendida NO sale nada; vigente sí (control)', async () => {
+    // Control: vigente → la geometría se entrega una vez.
+    const a0 = (await authorize(plotP1).expect(201)).body.authorization;
+    await ask(a0.id).expect(201);
+    const ok = espia();
+    await correrCon(ok);
+    expect(ok.llamadas).toBe(1);
+    await cerrar(a0.id).expect(201);
+
+    // Vencida entre el encargo y el envío.
+    const a1 = (await authorize(plotP1).expect(201)).body.authorization;
+    const j1 = (await ask(a1.id).expect(201)).body.job.id as string;
+    await caducar(a1.id);
+    const s1 = espia(); await correrCon(s1);
+    expect(s1.llamadas).toBe(0);
+    expect(await jobRow(j1)).toMatchObject({ status: 'CANCELLED', outcome: 'CANCELLED', last_error_code: 'AUTHORIZATION_EXPIRED' });
+
+    // Revocada: carrera simulada (la revocación quedó confirmada pero el trabajo aún no se había cancelado).
+    const a2 = (await authorize(plotP1).expect(201)).body.authorization;
+    const j2 = (await ask(a2.id).expect(201)).body.job.id as string;
+    await sql`UPDATE satellite_plot_authorizations SET revoked_at = now(), revoked_by = granted_by, revoke_reason = 'Carrera simulada' WHERE id = ${a2.id}`.execute(h.db);
+    const s2 = espia(); await correrCon(s2);
+    expect(s2.llamadas).toBe(0);
+    expect(await jobRow(j2)).toMatchObject({ status: 'CANCELLED', last_error_code: 'AUTHORIZATION_REVOKED' });
+
+    // Organización solicitante suspendida entre el encargo y el envío.
+    const a3 = (await authorize(plotP1).expect(201)).body.authorization;
+    const j3 = (await ask(a3.id).expect(201)).body.job.id as string;
+    await sql`UPDATE organizations SET status = 'SUSPENDED', status_reason = 'Prueba de límites' WHERE id = ${orgX}`.execute(h.db);
+    try {
+      const s3 = espia(); await correrCon(s3);
+      expect(s3.llamadas).toBe(0);
+      expect(await jobRow(j3)).toMatchObject({ status: 'CANCELLED', last_error_code: 'ORGANIZATION_NOT_ACTIVE' });
+    } finally { await sql`UPDATE organizations SET status = 'ACTIVE', status_reason = NULL WHERE id = ${orgX}`.execute(h.db); }
+    await cerrar(a3.id).expect(201);
+  });
+
+  it('el worker no envía una versión que ya no es la vigente aunque la autorización siga en vigor', async () => {
+    const a = (await authorize(plotP2).expect(201)).body.authorization;
+    const j = (await ask(a.id).expect(201)).body.job.id as string;
+    const det = (await http().get(`${base(orgO)}/plots/${plotP2}`).set(as(OWNER)).expect(200)).body;
+    await http().post(`${base(orgO)}/plots/${plotP2}/geometry-versions`).set(as(OWNER)).send({ expected_version: det.row_version, survey_method: 'MANUAL_COORDINATES', geometry: { ...square, coordinates: [square.coordinates[0].map(([x, y]) => [x + 0.01, y])] }, reason: 'Corrección posterior al encargo' }).expect(201);
+    const sp = espia(); await correrCon(sp);
+    expect(sp.llamadas).toBe(0);
+    expect(await jobRow(j)).toMatchObject({ outcome: 'SUPERSEDED_GEOMETRY' });
+    await cerrar(a.id).expect(201);
+  });
+
+  it('alcance de CSV y descargas en la API: el Productor no alcanza trabajos de otra persona, la exportadora solo los suyos de parcelas autorizadas, y el auditor de la exportadora no descarga el original', async () => {
+    // Trabajo de la propietaria sobre la parcela del OTRO productor (PL-2), con respuesta original guardada.
+    const jP2 = (await http().post(`${base(orgO)}/plots/${plotP2}/satellite/analyses`).set(as(OWNER)).send({ operation_id: randomUUID(), operation: 'FOREST_COVER', fixture_scenario: 'RESULT_COVERED' }).expect(201)).body.job.id as string;
+    await conOriginal(jP2, orgO); // el resultado (con su original) se inserta ya completo: satellite_results es append-only
+    // Control autorizado: la propietaria lo consulta, exporta y descarga.
+    await http().get(`${base(orgO)}/satellite/analyses/${jP2}`).set(as(OWNER)).expect(200);
+    await http().get(`${base(orgO)}/satellite/analyses/${jP2}/indicators.csv`).set(as(OWNER)).expect(200);
+    await http().get(`${base(orgO)}/satellite/analyses/${jP2}/original`).set(as(OWNER)).expect(200);
+    // El Productor vinculado a PL-1 no alcanza el trabajo de PL-2 por ninguna vía (la existencia no se revela: 404).
+    for (const ruta of ['', '/indicators.csv', '/original']) await http().get(`${base(orgO)}/satellite/analyses/${jP2}${ruta}`).set(as('productor@test.local')).expect(404);
+    // La exportadora, con PL-1 autorizada, no alcanza el trabajo de PL-2 ni por sus rutas ni por las de la propietaria.
+    const a = (await authorize(plotP1, { can_download: true }).expect(201)).body.authorization;
+    for (const ruta of ['', '/indicators.csv', '/original']) {
+      await http().get(`${base(orgX)}/satellite/authorized-analyses/${jP2}${ruta}`).set(as('export@test.local')).expect(404);
+      await http().get(`${base(orgO)}/satellite/analyses/${jP2}${ruta}`).set(as('export@test.local')).expect(404);
+    }
+    // Tampoco el trabajo que la PROPIETARIA encargó sobre la parcela autorizada (no lo solicitó la exportadora).
+    const propio = (await http().post(`${base(orgO)}/plots/${plotP1}/satellite/analyses`).set(as(OWNER)).send({ operation_id: randomUUID(), operation: 'FOREST_COVER', fixture_scenario: 'RESULT_COVERED' }).expect(201)).body.job.id as string;
+    await http().get(`${base(orgX)}/satellite/authorized-analyses/${propio}`).set(as('export@test.local')).expect(404);
+    await http().get(`${base(orgX)}/satellite/authorized-analyses/${propio}/indicators.csv`).set(as('export@test.local')).expect(404);
+    // Control: su propio trabajo, con descarga autorizada, la exportadora sí lo descarga; el auditor de su organización (solo lee) no descarga el original, pero sí el CSV sin geometría.
+    const suyo = (await ask(a.id).expect(201)).body.job.id as string;
+    await conOriginal(suyo, orgO);
+    await http().get(`${base(orgX)}/satellite/authorized-analyses/${suyo}/original`).set(as('export@test.local')).expect(200);
+    await http().get(`${base(orgX)}/satellite/authorized-analyses/${suyo}/original`).set(as('auditor-x@test.local')).expect(403);
+    await http().get(`${base(orgX)}/satellite/authorized-analyses/${suyo}/indicators.csv`).set(as('auditor-x@test.local')).expect(200);
+    // Revocada: ni el CSV ni el original; la propietaria conserva el acceso.
+    await cerrar(a.id).expect(201);
+    for (const ruta of ['/indicators.csv', '/original']) {
+      const r = await http().get(`${base(orgX)}/satellite/authorized-analyses/${suyo}${ruta}`).set(as('export@test.local')).expect(403);
+      expect(r.body.error.code).toBe('SATELLITE_AUTHORIZATION_REVOKED');
+    }
+    await http().get(`${base(orgO)}/satellite/analyses/${suyo}/original`).set(as(OWNER)).expect(200);
+  });
+
   // Defecto hallado al desplegar sobre datos existentes: el relleno de la columna nueva tocaba trabajos TERMINADOS y su disparador de transiciones lo prohíbe.
   // Se prueba la migración 0072 sobre una base que ya tiene un trabajo COMPLETED (bajar a 0071 y volver a subir), y que el disparador sigue activo después.
   it('la migración 0072 se aplica sobre trabajos ya terminados, los marca como propios y deja el disparador de transiciones activo', async () => {

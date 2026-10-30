@@ -7,6 +7,7 @@ export const EN_CAMPO: Record<string, string> = {
   'Ubicación y revisión': 'Location and review',
   'Captura de campo': 'Field capture',
   'Registra la ubicación de una parcela y adjunta sus evidencias': 'Record the location of a plot and attach its evidence',
+  'Ubica tu parcela, registra su polígono y adjunta fotos o documentos. Revisa los datos antes de guardarlos.': 'Locate your plot, record its polygon and attach photos or documents. Check the data before saving it.',
   'Qué hace esta pantalla y qué no': 'What this screen does and does not do',
   'Registra coordenadas en la parcela agrícola, siempre con su procedencia, y las revisa en el servidor antes de guardarlas. No valida la parcela, no aprueba evidencias ni concluye riesgo: eso son pasos aparte de otras personas autorizadas.': 'It records coordinates on the agricultural plot, always with their provenance, and reviews them on the server before saving. It does not validate the plot, approve evidence or conclude risk: those are separate steps for other authorized people.',
   'Pasos': 'Steps',

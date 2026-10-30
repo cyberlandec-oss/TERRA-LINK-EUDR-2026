@@ -62,7 +62,7 @@ export class SatelliteRunner {
   }
 
   private async claim(limit = this.opts.batchSize, exclude: string[] = []) {
-    const res = await sql<{ id: string; organization_id: string; requesting_organization_id: string; plot_id: string; plot_version_id: string; geometry_hash: string; geometry_type: string; provider_code: string; operation: string; period_start: string | null; period_end: string | null; attempts: number; lease_token: string; provider_job_ref: string | null; provider_submit_started_at: Date | null }>`
+    const res = await sql<{ id: string; organization_id: string; requesting_organization_id: string; authorization_id: string | null; plot_id: string; plot_version_id: string; geometry_hash: string; geometry_type: string; provider_code: string; operation: string; period_start: string | null; period_end: string | null; attempts: number; lease_token: string; provider_job_ref: string | null; provider_submit_started_at: Date | null }>`
       UPDATE satellite_jobs j
          SET status = 'RUNNING', locked_by = ${this.runnerId}, lease_token = gen_random_uuid(),
              locked_until = now() + make_interval(secs => ${this.opts.leaseSeconds}), attempts = j.attempts + 1
@@ -74,7 +74,7 @@ export class SatelliteRunner {
           ORDER BY next_attempt_at
           LIMIT ${limit}
           FOR UPDATE SKIP LOCKED)
-      RETURNING j.id, j.organization_id, j.requesting_organization_id, j.plot_id, j.plot_version_id, j.geometry_hash, j.geometry_type, j.provider_code,
+      RETURNING j.id, j.organization_id, j.requesting_organization_id, j.authorization_id, j.plot_id, j.plot_version_id, j.geometry_hash, j.geometry_type, j.provider_code,
                 j.operation, j.period_start::text, j.period_end::text, j.attempts, j.lease_token, j.provider_job_ref, j.provider_submit_started_at`.execute(this.db);
     return res.rows;
   }
@@ -119,6 +119,16 @@ export class SatelliteRunner {
     return (r.rows[0]?.payload?.fixture_scenario ?? null) as AnalysisRequest['fixtureScenario'];
   }
 
+  /** Por qué una autorización entre organizaciones ya no permite enviar la geometría (null = sigue vigente). */
+  private async authorizationProblem(authId: string, ownerOrgId: string, requesterOrgId: string): Promise<string | null> {
+    const a = await this.db.selectFrom('satellite_plot_authorizations').select(['revoked_at', 'expires_at']).where('id', '=', authId).executeTakeFirst();
+    if (!a || a.revoked_at) return 'AUTHORIZATION_REVOKED';
+    if (a.expires_at.getTime() <= Date.now()) return 'AUTHORIZATION_EXPIRED';
+    const orgs = await this.db.selectFrom('organizations').select(['id', 'status']).where('id', 'in', [ownerOrgId, requesterOrgId]).execute();
+    if (orgs.length < 1 || orgs.some((o) => o.status !== 'ACTIVE')) return 'ORGANIZATION_NOT_ACTIVE';
+    return null;
+  }
+
   async runOnce(): Promise<RunnerResult> {
     const out: RunnerResult = { claimed: 0, completed: 0, failed: 0, retried: 0, superseded: 0 };
     // Se reclama de a UNO: un trabajo reclamado que espera detrás de otro dejaría vencer su reserva y otro corredor lo tomaría mientras aún está en cola aquí.
@@ -134,6 +144,15 @@ export class SatelliteRunner {
       if (cur.rows[0]?.current_version_id !== j.plot_version_id) {
         if (await this.finish(j, 'SUPERSEDED_GEOMETRY', 'SUPERSEDED_GEOMETRY', null)) out.superseded++;
         continue;
+      }
+      // Encargo de otra organización: ANTES de enviar la geometría se revalida la autorización (no revocada, no vencida) y que ambas organizaciones sigan activas.
+      // Un trabajo que ya salió hacia el proveedor (tiene identificador) no se corta aquí: la revocación lo cancela por la vía de cancelación.
+      if (j.authorization_id && !j.provider_job_ref) {
+        const motivo = await this.authorizationProblem(j.authorization_id, j.organization_id, j.requesting_organization_id);
+        if (motivo) {
+          if (await this.finish(j, 'CANCELLED', motivo, null)) out.failed++;
+          continue;
+        }
       }
       const provider = this.byCode.get(j.provider_code);
       if (!provider) {

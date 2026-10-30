@@ -120,6 +120,7 @@ export default function MiFincaPage() {
           {parcelas.length === 0 ? (
             <EmptyState title={t('Tu cuenta está vinculada, pero todavía no hay parcelas registradas.')}>
               <p>{t('Puedes registrar una desde la ficha de tu productor si tu rol lo permite.')}</p>
+              {productores.length === 1 && <p><Link className="button" href={`${base}/productores/${productores[0].id}`}>{t('Registrar una parcela nueva')}</Link></p>}
             </EmptyState>
           ) : (
             <div className="table-wrap">

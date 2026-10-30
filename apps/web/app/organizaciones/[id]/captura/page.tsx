@@ -71,10 +71,11 @@ export default function CapturaPage() {
   return (
     <>
       <Breadcrumb items={[{ label: ws.activeOrg.name, href: `/organizaciones/${orgId}` }, { label: t('Captura de campo') }]} />
-      <PageHeader title={t('Captura de campo')} meta={<span>{t('Registra la ubicación de una parcela y adjunta sus evidencias')}</span>} />
-      <Alert tone="info" title={t('Qué hace esta pantalla y qué no')}>
+      <PageHeader title={t('Captura de campo')} meta={<span>{t('Ubica tu parcela, registra su polígono y adjunta fotos o documentos. Revisa los datos antes de guardarlos.')}</span>} />
+      <details className="card">
+        <summary>{t('Qué hace esta pantalla y qué no')}</summary>
         <p>{t('Registra coordenadas en la parcela agrícola, siempre con su procedencia, y las revisa en el servidor antes de guardarlas. No valida la parcela, no aprueba evidencias ni concluye riesgo: eso son pasos aparte de otras personas autorizadas.')}</p>
-      </Alert>
+      </details>
       <ol className="steps" aria-label={t('Pasos')}>
         {steps.map((s, i) => <li key={s} aria-current={Math.min(step, 3) === i + 1 || (i === 3 && step === 3 && !!plot) ? 'step' : undefined}><strong>{i + 1}.</strong> {s}</li>)}
       </ol>

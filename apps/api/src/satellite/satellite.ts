@@ -614,7 +614,8 @@ export class SatelliteService {
   }
 
   async originalAuthorized(user: AuthUser, orgId: string, jobId: string, requestId?: string) {
-    await this.ctxFor(user, orgId, SATELLITE_READ);
+    // La respuesta original contiene la geometría enviada: además de la autorización de descarga de la propietaria, la pide un rol que puede encargar (no basta leer).
+    await this.ctxFor(user, orgId, SATELLITE_REQUEST);
     const j = await this.authorizedJobRow(orgId, jobId);
     if (!j.can_download) throw forbidden('PERMISSION_DENIED', 'La organización propietaria no autorizó la descarga de la respuesta original (contiene la geometría enviada).');
     return this.rawBytes(user, j.organization_id, orgId, jobId, requestId);

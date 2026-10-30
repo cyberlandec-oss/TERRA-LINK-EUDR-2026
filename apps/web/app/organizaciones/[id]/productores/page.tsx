@@ -84,13 +84,14 @@ export default function ProducersPage() {
   }
   const filtered = applied.q !== '' || applied.status !== '';
   const onlyAssigned = !ws.can('producer:read');
+  const soloPropio = onlyAssigned && !ws.can('producer:read_assigned') && ws.can('producer:read_own');
 
   return (
     <>
       <Breadcrumb items={[{ label: ws.activeOrg.name, href: `/organizaciones/${orgId}` }, { label: 'Productores' }]} />
       <PageHeader
         title="Productores"
-        meta={onlyAssigned ? 'Ves solo los productores asignados a ti.' : 'Productores de la organización.'}
+        meta={soloPropio ? 'Ves solo tu productor.' : onlyAssigned ? 'Ves solo los productores asignados a ti.' : 'Productores de la organización.'}
         actions={ws.can('producer:review_duplicates') ? <Link className="button secondary" href={`/organizaciones/${orgId}/productores/coincidencias`}>Revisar posibles duplicados</Link> : undefined}
       />
       <form className="card" onSubmit={(e) => { e.preventDefault(); void load(); }} role="search" aria-label="Buscar productores">
