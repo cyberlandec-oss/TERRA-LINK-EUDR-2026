@@ -1,6 +1,31 @@
 # Estado compartido de desarrollo
 
-Última actualización: **2026-10-20** (continuidad; ver «Próxima acción (2026-10-20)»). Repositorio de referencia `cyberlandec-oss/TERRA-LINK-EUDR-2026` (`TERRA-LINK-2025` queda como histórico), rama de trabajo `fix/next-seguridad-16-4-2` (`main` en `03bb2f6`, atrasada). Estado más reciente: sección «AJ-07b y AJ-08» al final.
+## Estado vigente (2026-10-29)
+
+Este bloque es la entrada al estado actual. Los cortes y resultados fechados que siguen se conservan como **histórico**; no sustituyen esta síntesis. No se vuelven a ejecutar pruebas para conciliar estos documentos.
+
+| Elemento | Estado acreditado o reportado en la evidencia publicada |
+| --- | --- |
+| Repositorio y rama | `cyberlandec-oss/TERRA-LINK-EUDR-2026` · `fix/next-seguridad-16-4-2`. `main` no contiene esta línea de trabajo. |
+| API | Código `70348c7`, validación completa APROBADA (`validation-results/2026-10-29T22-07-43-825Z`), desplegado; esquema `0071`. |
+| Web | Código `ac1fdec`, validación completa APROBADA (`validation-results/2026-10-30T02-20-42-906Z`), reconstruida; el panel satelital separa el resultado guardado de la autorización de nuevos encargos. |
+| Móvil | Código `70348c7`: altas de productor/parcela, entrega declarada, ubicación, vértices, fotos y soportes PDF/imagen con persistencia, dependencias y sincronización. Pruebas móviles separadas: 63 aprobadas, 1 omitida (`session.api.test.ts`, habilitada con `TL_API_SMOKE=1`). La validación raíz no incluye `apps/mobile`. |
+| APK de emulador | `EMULADOR-soportes-70348c7.apk` (x86_64), SHA-256 `e576a82e7b07862cfd4b8b93ca0434a934440f5f21f35b16e28b83126ac27e4e`. Recorridos en emulador y límites en `qa/EVIDENCIA_MOVIL_ALTAS_MAPA_2026-10-28.md`. |
+| APK de teléfono | `ARM64-soportes-70348c7.apk` (arm64-v8a), SHA-256 `6be2a0fddea778d6b8f94b052f94788f3db2448647a9b39bf2dfbc2e6d3dcd81`. Compilado y preparado; **no probado en teléfono físico**, que queda al final. |
+| Whisp | Ensayo real con **geometría artificial** demostrado una vez: resultado guardado y descargado con huella coincidente. Cobertura `UNKNOWN`, conclusión `NOT_EVALUATED`; se restauraron las llamadas a `disabled` y la selección a desarrollo. No autoriza parcelas reales ni activación permanente. |
+| Roles y acceso | Se conservan los 12 roles, las cuentas y las claves vigentes; menú y operaciones según permisos y alcance propio/asignado/organización/concesión. No se ejecuta seed ni se restablecen claves para revisar el entorno. |
+| Aceptación | 42/60 requisitos (70 %) y MVP 30/44 (68,2 %), sin nueva aceptación acreditada. Son medidas de requisitos aceptados, **no** de código construido; no hay porcentaje técnico global acreditado. |
+| Continuidad y pendientes | `sesiones/REANUDAR_2026-10-20.md` y la lista única `decisiones/CIERRE_E_PENDIENTES_2026-10-29.md`. |
+
+Referencias del cierre: `6c9e2be` (soportes y APK), `063d5e3` (recuperación), `f176e00` (Whisp real artificial), `45e38e1` (consulta web sin nuevos encargos) y `db462c2` (límites y métricas). Los SHA del código desplegado y los de documentación son distintos y no se intercambian. El resultado local de validación se acredita por su registro; GitHub no lo ejecutó.
+
+El panel geográfico actual usa el mecanismo de configuración; las instantáneas históricas no se reescriben. CAD-1027213440 sigue sin superficie declarada o polígono suficiente. No se inventan datos, revisiones ni aprobaciones para obtener `READY`.
+
+La demostración de almacenamiento lleno acredita una ejecución real con conservación y recuperación; que no se produzca de forma determinista es un límite del ensayo, no una función adicional pendiente. La revisión en teléfono, el piloto y las aceptaciones externas siguen separados.
+
+## Cortes históricos conservados
+
+Corte histórico del **2026-10-20** (continuidad de esa fecha; ver «Próxima acción (2026-10-20)»). Repositorio de referencia `cyberlandec-oss/TERRA-LINK-EUDR-2026` (`TERRA-LINK-2025` queda como histórico), rama de trabajo `fix/next-seguridad-16-4-2` (`main` en `03bb2f6`, atrasada). Esta indicación pertenece al corte histórico; el estado vigente está al inicio de este documento.
 
 **Seguimiento por historias (cifras al 2026-10-19, ver `sesiones/REANUDAR_2026-10-19.md`)** (cuenta **historias del MVP**, no esfuerzo):
 

@@ -4,6 +4,12 @@
 Terra Link, iniciativa AG TECH EC, conecta cacao de Ecuador con trazabilidad, evidencia, riesgo y debida diligencia. El producto es B2B/B2B2B, web y móvil offline.
 Este paquete define el producto objetivo; no acredita implementación, conformidad EUDR ni preparación para producción.
 
+## Continuidad y límites vigentes (2026-10-29)
+- Repositorio: `cyberlandec-oss/TERRA-LINK-EUDR-2026`; misma rama `fix/next-seguridad-16-4-2`. Leer el bloque vigente de `docs/23_ESTADO_DESARROLLO.md` y `docs/sesiones/REANUDAR_2026-10-20.md`; no usar un corte histórico como estado actual.
+- Publicación autorizada por el propietario: commits propios revisados y push a esa rama, después de comprobar el remoto y excluir secretos, credenciales, APK, respaldos, resultados ignorados y cambios ajenos. Sin force-push ni cambios en main; no crear ramas nuevas por rutina.
+- Conservar usuarios, claves y datos actuales. Sin seed, resets, nuevas cuentas DEMO/ENSAYO, limpieza de volúmenes ni respaldos/restauraciones rutinarios. La mera actualización documental o una migración aditiva no obliga a repetir respaldos. Si una intervención concreta arriesga datos existentes, delimitar su protección antes de ejecutarla.
+- Reutilizar validaciones y evidencia aplicables. Un cambio solo documental no requiere `npm run validate`, compilación de APK, reconstrucción ni despliegue. El teléfono físico permanece al final; las autorizaciones externas tienen su alcance propio y no se amplían por esta orden.
+
 ## Antes de cambiar código
 1. Lee `docs/00_INDICE.md` y `docs/01_ESTADO_Y_FUENTES.md`.
 2. Si hay repositorio, verifica rama, cambios locales, manifiestos, migraciones, pruebas y documentación vigente. Conserva el trabajo existente.
@@ -52,9 +58,9 @@ natural: mismo caso de uso, contrato y dependencias.
    vez sobre ese SHA**, con el código congelado. Si falla, conserva registros, diagnostica y corrige: la
    corrección es un candidato nuevo. No repitas hasta obtener verde ni subas timeouts.
 4. Tras aprobar: reconstruye **una vez** los servicios afectados, comprueba el comportamiento cambiado (un 200
-   no sustituye esa comprobación), aplica el respaldo cuando haya migración, cambio criptográfico o
-   intervención sobre datos, y consolida evidencia, trazabilidad, estado y continuidad en **un commit de
-   resultados**.
+   no sustituye esa comprobación), aplica únicamente la protección de datos necesaria y autorizada según los
+   límites vigentes —sin respaldos rutinarios— y consolida evidencia, trazabilidad, estado y continuidad en
+   **un commit de resultados**.
 5. El cierre indica qué cambió, SHA validado y resultado, comportamiento comprobado en despliegue, criterios
    demostrados y pendientes, y la siguiente entrega recomendada. Los cambios solo documentales posteriores no
    repiten la validación funcional.
@@ -81,10 +87,10 @@ Monorepo npm (`apps/api` NestJS + Kysely, `apps/web` Next.js). Comandos verifica
 - Worker del outbox: `npm run worker -w apps/api` (o servicio `worker` del perfil `app`)
 - `npm run test:e2e` (Playwright; requiere `npm run build -w apps/api` e `infra:up`; usa base `terra_link_e2e` y puertos 4100/3100)
 No ejecutes migraciones sobre producción, reinicios destructivos, borrado de volúmenes ni envíos regulatorios como parte de una tarea local.
-Trabaja en una rama de tarea; conserva cambios ajenos y solicita el dato o autorización faltante solo si bloquea una acción concreta.
+Continúa en `fix/next-seguridad-16-4-2`; conserva cambios ajenos y solicita un dato o autorización solo si bloquea una acción concreta. No crees otra rama por rutina.
 
 ## Protocolo de trabajo continuo (adoptado 2026-10-22)
-Completa entregas enteras sin esperar «continúa» entre etapas (implementar → comprobar → validar una vez → desplegar en local → demostrar → respaldar si hay migración → documentar → siguiente tarea). Detalle, autorizaciones permanentes, límites, ciclo de diagnóstico y cuándo preguntar: **`docs/operacion/PROTOCOLO_TRABAJO_CONTINUO.md`**. Complementa —no sustituye— las reglas de este archivo; ante conflicto prevalecen CLAUDE.md y `.claude/rules/`. Las tareas bloqueadas por terceros se registran con su bloqueo concreto en `docs/sesiones/REANUDAR_2026-10-20.md` y se avanza con otra independiente.
+Completa entregas enteras sin esperar «continúa» entre etapas (implementar → comprobar → validar una vez → desplegar en local → demostrar → proteger datos cuando corresponda a una intervención concreta autorizada → documentar → siguiente tarea). Detalle, autorizaciones permanentes, límites, ciclo de diagnóstico y cuándo preguntar: **`docs/operacion/PROTOCOLO_TRABAJO_CONTINUO.md`**. Complementa —no sustituye— las reglas de este archivo; ante conflicto prevalecen CLAUDE.md y `.claude/rules/`. Las tareas bloqueadas por terceros se registran con su bloqueo concreto en `docs/sesiones/REANUDAR_2026-10-20.md` y se avanza con otra independiente.
 
 ## Documentación por tarea
 Dominio/datos: documentos 04–06. Autorización: 07. Eventos/API: 08–09.

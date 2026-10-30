@@ -1,6 +1,8 @@
 # Terra Link — Protocolo de trabajo continuo con Claude Code
 Versión 1.0 · 22 de octubre de 2026
 
+**Conciliación de autorizaciones (2026-10-29):** mantener el repositorio y la rama vigentes; push autorizado a esa rama con revisión del diff y sin secretos; preservar usuarios y claves; no ejecutar seed ni respaldos/restauraciones rutinarios. Estas precisiones reflejan las instrucciones posteriores del propietario y no cambian criterios funcionales o regulatorios.
+
 ## Cómo usar estas instrucciones
 
 Entrega este archivo completo a Claude Code dentro del repositorio real. Es una instrucción de trabajo propuesta para que el propietario la adopte al enviarla. No acredita que se hayan configurado hooks, permisos o procesos en su equipo.
@@ -16,10 +18,10 @@ Trabaja hasta completar unidades de entrega del backlog original y las ampliacio
 Dentro de ese alcance quedan autorizados:
 - Leer el repositorio y las fuentes necesarias, implementar, corregir defectos y mantener la documentación responsable.
 - Añadir las pruebas necesarias y ejecutar comprobaciones dirigidas y la validación completa cuando corresponda.
-- Crear commits locales y ramas de trabajo sin perder los cambios existentes.
+- Crear commits locales sin perder cambios existentes; continuar en `fix/next-seguridad-16-4-2`, sin nuevas ramas por rutina.
 - Corregir el arnés cuando exista un defecto demostrado, conservando la fuerza de las comprobaciones.
 - Aplicar parches de seguridad compatibles de dependencias necesarias, con lockfile y comprobación de compatibilidad.
-- Desplegar en el entorno LOCAL del proyecto conforme al procedimiento vigente, incluyendo las migraciones autorizadas y sus respaldos.
+- Desplegar en el entorno LOCAL conforme al procedimiento vigente, con migraciones autorizadas y protección de datos proporcionada a una intervención concreta; sin respaldos/restauraciones rutinarios.
 - Crear datos sintéticos claramente identificados para pruebas; preferir bases desechables y reutilizar fixtures.
 - Crear y eliminar únicamente recursos temporales nuevos del propio ensayo, identificados inequívocamente.
 
@@ -38,7 +40,7 @@ Detente solo para la acción dependiente de una decisión que aún no esté auto
 - Android físico sigue pospuesto hasta el final. Completar el desarrollo y los ensayos locales posibles sin exigir el teléfono.
 - AGENTS.md sigue fuera de los commits. No versionar credenciales, .env, respaldos ni artefactos que deban permanecer locales.
 - No borrar los volúmenes existentes, ejecutar prune, down -v, resets de datos operativos ni limpiar datos append-only.
-- No publicar, hacer push, fusionar ramas remotas, desplegar en producción, contratar servicios, aceptar términos ni enviar mensajes sin autorización específica.
+- El propietario autoriza hacer push del trabajo propio revisado a `fix/next-seguridad-16-4-2` del remoto comprobado de TERRA-LINK-EUDR-2026. No hacer force-push, fusionar main, desplegar en producción, contratar servicios, aceptar términos ni enviar mensajes sin su autorización específica. Las autorizaciones externas ya otorgadas conservan únicamente su alcance.
 - No alterar trabajo ajeno, stashes ni procesos ajenos. No usar reset --hard, clean -fd o equivalentes para obtener un árbol limpio.
 - El entorno local debe quedar operativo salvo instrucción explícita distinta.
 
@@ -138,8 +140,8 @@ Ningún fixture acredita una transición real que no se ejecutó.
 
 Si un guion falla, comprueba si es el guion o el producto. Una corrección exclusiva del guion permite repetir la demostración sobre el mismo despliegue; no exige por sí sola otra validación funcional.
 
-### F. Respaldar
-Cuando haya migraciones o estado persistente relevante nuevo, sigue el procedimiento vigente de respaldo y restauración aislada.
+### F. Protección de datos y reutilización de evidencia
+No ejecutar respaldos ni restauraciones por rutina para cambios documentales, despliegues o migraciones aditivas. Reutilizar las evidencias existentes. Si una intervención concreta autorizada puede perder o transformar datos existentes, identificar su alcance y la protección necesaria antes de ejecutarla; seguir entonces el procedimiento vigente que corresponda.
 
 Captura la comparación del origen en un punto coherente. Verifica únicamente los elementos realmente contrastados: conteos, restricciones, objetos, descifrado sin valores, invariantes y recuperación según corresponda.
 

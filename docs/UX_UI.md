@@ -2,7 +2,8 @@
 
 **Versión:** 1.0 de trabajo  
 **Fecha:** 9 de octubre de 2026, Ecuador  
-**Proyecto:** TERRA-LINK-2025  
+**Proyecto vigente:** TERRA-LINK-EUDR-2026
+
 **Mercado inicial:** cadena de cacao de Ecuador  
 **Audiencia:** Producto, Diseño, Frontend, Backend, Mobile, GIS y QA  
 **Estado:** especificación para implementación y revisión; no constituye una auditoría del código ni una aprobación regulatoria.
@@ -51,7 +52,7 @@ El objetivo es convertir la identidad de Terra Link en una experiencia operativa
 | F1 | `DOCUMENTACIÓN TÉCNICA MAESTRA.md`, v0.1, 05/10/2026 | Dominios, 12 roles, datos, relaciones, offline, riesgo y backlog P0/P1/P2. |
 | F2 | `workflows reales de la cadena de cacao.md` | Objetivos por rol, workspaces, Lot Hub, evidencia, trazabilidad y tareas. |
 | F3 | `Mapa competitivo EUDR.md` | Orientación estratégica: español primero, simplicidad, primera milla y explicación de riesgos. No se revalidaron sus precios o afirmaciones sobre competidores. |
-| C1 | Instrucciones y reportes compartidos en esta conversación | Repositorio exclusivo TERRA-LINK-2025; desarrollo y pruebas locales; límites de SUPER_ADMIN y decisiones pendientes. Los reportes no sustituyen una inspección del código. |
+| C1 | Instrucciones y reportes compartidos en esta conversación | Repositorio vigente TERRA-LINK-EUDR-2026 (TERRA-LINK-2025 es histórico); desarrollo y pruebas locales; límites de SUPER_ADMIN y decisiones pendientes. Los reportes no sustituyen una inspección del código. |
 | A1 | [W3C: referencia WCAG 2.2](https://www.w3.org/WAI/WCAG22/quickref/) | Objetivo de accesibilidad y criterios de comprobación. |
 
 M1 define identidad, F1/F2 orientan el dominio y C1 determina el alcance de esta etapa. El contrato vigente del repositorio debe confirmarse antes de implementar cada pantalla. Si una fuente contiene un ejemplo y el backend contiene otra regla aceptada, registrar la diferencia; no cambiar permisos o reglas de negocio desde la UI para hacer coincidir el ejemplo.
@@ -71,7 +72,7 @@ Los valores nuevos de espaciado, breakpoints, colores auxiliares y distribución
 
 Esta especificación cubre backoffice web y diseño móvil de campo. El portal comprador es una extensión P1 según F1. Sirve para implementar historias progresivamente, no para habilitar todo el menú antes de disponer de datos y operaciones reales.
 
-Se trabaja exclusivamente sobre `D:\PROYECTOS CYBER LAND\TERRA LINK EUDR 2026\TERRA LINK 2025` (antes en `C:\Users\mario\TERRA LINK 2025`) y `cyberlandec-oss/TERRA-LINK-2025`. La base técnica reportada es NestJS/Next.js/React y aplicación móvil Expo planificada; las versiones y rutas concretas se consultan en el repositorio. No importar decisiones, roles, resultados de pruebas o componentes del proyecto `cacao`.
+El repositorio vigente es `cyberlandec-oss/TERRA-LINK-EUDR-2026`, rama `fix/next-seguridad-16-4-2`; la carpeta local reportada por el propietario es `C:\Users\mario\PROYECTOS DEV\TERRA LINK 2025`. Las ubicaciones anteriores y TERRA-LINK-2025 son antecedentes históricos. La base existente es NestJS/Kysely, Next.js y aplicación móvil Expo/React Native; conservarla. No importar decisiones, roles ni resultados del proyecto `cacao`. Para capacidades, APK y despliegues actuales consultar `23_ESTADO_DESARROLLO.md`, bloque «Estado vigente».
 
 La plataforma se ejecuta y verifica localmente con los servicios del proyecto. GitHub puede conservar el código; GitHub Actions no es una dependencia UX ni una condición de esta especificación. Este documento no modifica por sí solo la definición global de DONE: la decisión de validar esta etapa en local debe reflejarse también en las instrucciones y el backlog del repositorio.
 
@@ -291,7 +292,7 @@ Los códigos de F1 y F2 son exactamente los siguientes 12. Estas fichas definen 
 | SUPER_ADMIN | ¿Qué necesita atención en la plataforma? | Administración de plataforma | Web. |
 | ORG_ADMIN | ¿Puede operar mi organización? | Configuración y pendientes de organización | Web. |
 | MANAGER | ¿Qué está pasando hoy? | Centro de operaciones | Web/tablet. |
-| FIELD_TECHNICIAN | ¿Qué debo registrar o revisar en campo? | Mi jornada | Móvil/offline futuro. |
+| FIELD_TECHNICIAN | ¿Qué debo registrar o revisar en campo? | Mi jornada | Móvil/offline implementado y demostrado en emulador dentro de su alcance asignado; teléfono físico pendiente. Ver `11_OFFLINE_Y_SINCRONIZACION.md`. |
 | RECEPTION_OPERATOR | ¿Qué recepción debo registrar? | Recepción | Web/tablet. |
 | QUALITY_OPERATOR | ¿Qué muestra o lote debo analizar? | Cola de calidad | Web/tablet. |
 | TRACEABILITY_MANAGER | ¿Puedo reconstruir origen y destino? | Explorador de trazabilidad | Web. |
@@ -854,6 +855,8 @@ Datos faltantes permanecen como desconocidos/faltantes/no validados según model
 
 ## 21. Móvil, trabajo offline y sincronización
 
+**Implementación vigente (2026-10-29):** altas de productor/parcela, entrega declarada, ubicación, vértices, fotografías y soportes PDF/imagen mediante cola persistente, referencias locales, dependencias y revalidación del servidor; mapa con cartografía preparada. Las capacidades se muestran según permisos efectivos, sin ampliar roles. Las comprobaciones en emulador y el APK arm64 de teléfono constan en `23_ESTADO_DESARROLLO.md` y `apps/mobile/README.md` (desde este archivo: `../apps/mobile/README.md`). El teléfono físico sigue pendiente. La vista previa web 3001 usa un servidor simulado y no acredita Android, SQLCipher ni datos operativos.
+
 Offline es una capacidad de P0-023/P0-024, no una propiedad automática del responsive web. La UI web no anuncia «guardado local» sin almacenamiento y protección implementados.
 
 ### 21.1 Navegación móvil UX-V1
@@ -1102,6 +1105,7 @@ Actualizar versión, fecha, fuente afectada, motivo y responsable cuando cambien
 | Versión | Fecha | Cambio |
 |---|---|---|
 | 1.0 de trabajo | 09/10/2026 | Especificación inicial basada en M1/F1/F2/F3 y alcance local de TERRA-LINK-2025. |
+| Conciliación documental | 29/10/2026 | Referencia operativa a TERRA-LINK-EUDR-2026 y móvil ya implementado; conserva los criterios, roles, identidad visual y fuentes históricas. |
 
 **Regla de entrega:** la pantalla debe permitir completar una tarea real con datos, autorización, feedback y evidencia coherentes. Una maqueta o un componente visual no acredita el flujo de negocio completo.
 

@@ -1,6 +1,6 @@
 # Estado, fuentes y nivel de certeza
 
-> **Nota (2026-10-20):** este documento describe la **línea base de la primera entrega** y se conserva como referencia histórica. El estado actual del repositorio, las historias y la cobertura están en `23_ESTADO_DESARROLLO.md` y `sesiones/REANUDAR_2026-10-19.md`.
+> **Nota (2026-10-20):** este documento describe la **línea base de la primera entrega** y se conserva como referencia histórica. El estado actual del repositorio, las historias y la cobertura están en `23_ESTADO_DESARROLLO.md` (bloque «Estado vigente») y `sesiones/REANUDAR_2026-10-20.md`. Las intervenciones externas se mantienen en `decisiones/CIERRE_E_PENDIENTES_2026-10-29.md`. El resto de este documento sigue siendo la línea base histórica, no una declaración actual de capacidades ausentes.
 
 ## Lo que se ha revisado
 

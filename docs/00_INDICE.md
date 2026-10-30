@@ -1,5 +1,7 @@
 # Índice y ruta de lectura
 
+**Entrada vigente (2026-10-29):** [estado actual y versiones por componente](23_ESTADO_DESARROLLO.md#estado-vigente-2026-10-29) → [continuidad](sesiones/REANUDAR_2026-10-20.md) → [intervenciones y pendientes únicos](decisiones/CIERRE_E_PENDIENTES_2026-10-29.md). La fecha en el nombre de la continuidad no sustituye su bloque vigente. Los cortes anteriores se conservan como histórico.
+
 ## Especificaciones
 
 | Archivo | Contenido | Cuándo consultarlo |
