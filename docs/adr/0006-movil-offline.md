@@ -1,6 +1,6 @@
 # ADR-0006 — Móvil de campo y captura offline (P0-023)
 
-Estado: **PROPUESTO** · 2026-10-10. No aceptado: falta el ensayo en Android real y la aprobación de la política de sesión (D-40).
+Estado: **PROPUESTO** · 2026-10-10. No aceptado: falta el ensayo en Android real y la aprobación de la política de sesión (D-40: **decidida 2026-10-30, opción A**, la captura nueva dura lo que la sesión del servidor, 1 h; falta el ensayo Android real). Duración objetivo de RNF-04: **1 h de captura nueva**; conservar lo capturado y sincronizar al reconectar no dependen de ella.
 
 ## Contexto
 
@@ -22,7 +22,7 @@ definida sin renovar credenciales sin red. La API emite JWT de 1 h sin refresh t
   detalle del proveedor y marca de simulación. Nunca se etiqueta como GPS.
 - **Cifrado**: clave aleatoria por base en almacenamiento seguro; `PRAGMA key` con SQLCipher en build de desarrollo; el
   estado real se mide (`PRAGMA cipher_version`) y se muestra. En Expo Go la base queda sin cifrar (declarado).
-- **Sesión**: la captura termina al vencer la sesión del servidor; D-40 (ventana más larga) es una propuesta no aplicada; su redacción concreta y la matriz «conservar / capturar de nuevo / sincronizar» están en `docs/11` (2026-10-30).
+- **Sesión**: la captura termina al vencer la sesión del servidor; D-40 (ventana más larga) fue decidida como NO adoptada (opción A, 2026-10-30); su redacción concreta y la matriz «conservar / capturar de nuevo / sincronizar» están en `docs/11` (2026-10-30).
 - **Entornos**: Expo Go = prueba sin cifrado, solo datos sintéticos (DEMO); build nativo = exige SQLCipher o no abre el almacén.
 - **Fotos**: BLOB dentro de la base (mismo cifrado); copia de la cámara borrada tras importar.
 - **Sincronización (P0-024)**: dispositivo registrado en servidor, push idempotente por hash, pull con cursor de servidor, adjuntos por Documentos (docs/11).

@@ -69,7 +69,7 @@ Código: `apps/mobile` (ADR-0006, PROPUESTO). Estado: **ABIERTA**; falta el ensa
 - Dataset: solo las parcelas que `GET /plots` devuelve a la cuenta en la organización (el servidor aplica la asignación).
 - Separación: base y adjuntos por cuenta + organización; cerrar sesión borra token y sesión, no las capturas.
 
-### Offline prolongado: tres capacidades distintas y propuesta D-40 (revisada 2026-10-30; NO aprobada, NO aplicada)
+### Offline prolongado: tres capacidades distintas y propuesta D-40 (revisada 2026-10-30; **el propietario decidió A, mantener 1 h**; la propuesta de 7 días queda como alternativa no adoptada)
 
 Fuentes: RNF-04 («ensayo de 7 días simulados y de interrupción/cierre real; **duración objetivo final por ADR**»), QA-08 («…7 días simulados, retry, adjunto interrumpido y conflicto → persistencia sin pérdida, misma operación una vez, dependencias/conflicto visibles»), S1 §90 («Offline session») y ADR-0006. **Ninguna fuente fija cuántos días debe poder capturarse sin conexión** ni obliga a una autorización local; no hay decisión posterior que apruebe D-40. La ventana de 72 h que figuraba aquí se retiró el 2026-10-11 y no está en el código.
 
@@ -82,7 +82,7 @@ Fuentes: RNF-04 («ensayo de 7 días simulados y de interrupción/cierre real; *
 Ninguna fila sustituye a otra: conservar no es poder capturar, y poder capturar no es poder enviar.
 
 #### Propuesta D-40: autorización local de captura de hasta 7 días (opción de producto)
-Es una **opción derivada del ensayo de 7 días previsto en RNF-04/QA-08**, no una obligación EUDR ni una aprobación concedida. Sin aprobación del propietario no se implementa.
+Es una **opción derivada del ensayo de 7 días previsto en RNF-04/QA-08**, no una obligación EUDR. **No fue adoptada** (decisión A del 2026-10-30): se conserva solo como referencia si se reabre.
 - **Emisión (solo online, por el servidor):** a un usuario con sesión vigente, desde un dispositivo registrado y activo (`POST /devices`), en una organización con membresía activa y permiso de captura. Un nuevo `POST …/devices/{id}/offline-grants` devuelve una credencial **ligada** a usuario + dispositivo + organización, con `issued_at`, `expires_at` (máximo 7 días; menor si la organización lo fija) y alcance **solo de captura local** (los permisos de captura que el rol tenía al emitirla; no concede nada nuevo). Firmada por el servidor con una clave distinta de la del JWT; la app solo verifica integridad.
 - **Vencimiento:** duro y sin renovación sin red. Al vencer: no se captura de nuevo, **no se borra nada**; renovar exige conexión.
 - **Protección local:** guardada en el almacén seguro (Keystore) ligada a la clave de la base; SQLCipher obligatorio (ya exigido en build nativo); desbloqueo local (PIN o biometría del dispositivo) para usarla —**hoy no existe en la app** y requeriría una dependencia nueva—. La credencial **no sirve para enviar**, no es un token y no sale del dispositivo.
