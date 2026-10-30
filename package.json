@@ -15,7 +15,9 @@
     "test": "npm run test -w apps/api -w apps/web",
     "build": "npm run build -w apps/api -w apps/web",
     "test:e2e": "npm run test -w e2e",
-    "validate": "node scripts/validate-local.mjs"
+    "validate": "node scripts/validate-local.mjs",
+    "carga": "node scripts/carga-piloto.mjs",
+    "carga:prueba": "node --test scripts/carga-piloto.test.mjs"
   },
   "overrides": { "@nestjs/swagger": { "js-yaml": "5.5.0" } }
 }

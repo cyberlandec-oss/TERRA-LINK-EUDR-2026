@@ -42,7 +42,7 @@ Categorías: **I** implementación pendiente · **C** configuración o decisión
 | 7 | Despacho de embarque (P0-029) | C + D | Condición de `dd_package_id`/`dispatch_at` (D-34), instantánea DD READY y calidad decidida | No: depende de 3 y 6 |
 | 8 | GUIA (P1-006), EUDR-IS (P1-007), perfil Ecuador validado (P1-005) | X | Canal/acuerdo verificado y recibos auténticos | No |
 | 9a | RNF-05: presupuestos p95/SLO | C (decisión de TECH-001) | Acordar los objetivos; sin ellos no hay umbral que aprobar. No se inventan | No: decisión |
-| 9b | RNF-05: medición con el dataset del piloto y carga | E | Medir con el dataset del piloto contra los presupuestos de 9a | No: depende de 9a y del dataset |
+| 9b | RNF-05: medición con el dataset del piloto y carga | E | **Herramienta de carga lista y comprobada** (`docs/17`); falta medir con el dataset y la concurrencia del piloto, en un entorno representativo, contra los objetivos de 9a | No: depende de 9a, del dataset y del entorno |
 | 9c | RNF-06: restauración coherente de base y objetos | **Evidenciada** (ver abajo) | — | Hecho |
 | 9d | RNF-06: **objetivos** RPO/RTO | C | El responsable fija RPO y RTO (`docs/17`); este repositorio no los inventa | No: decisión |
 | 9e | RNF-06: **aceptación** de los tiempos observados frente a 9d | C | El responsable compara los tiempos observados (abajo) con 9d. Solo si el volumen declarado difiere de los ya medidos se mide de nuevo, una vez | No: depende de 9d |
