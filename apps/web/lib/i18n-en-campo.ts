@@ -439,6 +439,8 @@ export const EN_CAMPO: Record<string, string> = {
   'MODO ENSAYO: proveedor sintético local': 'TEST MODE: local synthetic provider',
   'Los resultados de este modo son inventados por una fixture para probar el recorrido. No observan la parcela, no acreditan deforestación ni su ausencia, y no cambian conclusiones, READY ni el despacho. Las llamadas reales al proveedor siguen deshabilitadas.': 'Results in this mode are made up by a fixture to test the flow. They do not observe the plot, they prove neither deforestation nor its absence, and they change no conclusions, READY or dispatch. Real provider calls remain disabled.',
   'El adaptador existe, pero su uso real no está autorizado.': 'The adapter exists, but its real use is not authorized.',
+  'Nuevos análisis deshabilitados: el servicio real no está autorizado ahora.': 'New analyses disabled: the real service is not authorized right now.',
+  'Los resultados ya guardados siguen disponibles abajo para consultarlos y descargarlos; que se pueda consultar un resultado no habilita nuevos análisis.': 'Results already stored remain available below to view and download; being able to view a result does not enable new analyses.',
   'No hay proveedor satelital seleccionado.': 'No satellite provider is selected.',
   'Escenario de ensayo': 'Test scenario',
   'Solicitar': 'Request',
