@@ -216,6 +216,9 @@ test('soportes de la instantánea: se comparten desde la pantalla, el comprador 
   const contenido = (await import('fs')).readFileSync(ruta!);
   expect(Buffer.compare(contenido, bytes)).toBe(0);
   await expect(comp.page.getByText(new RegExp('Huella SHA-256 ' + sha))).toBeVisible(); // el aviso de descarga declara la huella de la versión entregada
+  // A 390 px el aviso (con la huella de 64 caracteres seguidos) no debe ensanchar la página: defecto hallado en el QA integral.
+  await comp.page.setViewportSize({ width: 390, height: 900 });
+  expect(await comp.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   await comp.ctx.close();
 
   // Revocar corta el acceso a la lista y a los archivos, por pantalla y por API.

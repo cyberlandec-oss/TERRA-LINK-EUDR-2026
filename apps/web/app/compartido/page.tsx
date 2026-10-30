@@ -129,7 +129,7 @@ export default function CompartidoPage() {
       </Alert>
 
       {error && <ErrorPanel error={error} onRetry={cargar} />}
-      {aviso && <Alert tone="valid" title="Descarga completada">{aviso}</Alert>}
+      {aviso && <Alert tone="valid" title="Descarga completada"><span style={{ overflowWrap: 'anywhere' }}>{aviso}</span></Alert>}
       {!grants && !error && <Loading label="Cargando lo compartido contigo…" />}
       {grants && grants.length === 0 && (
         <EmptyState title="Todavía no hay nada compartido contigo.">
