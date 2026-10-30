@@ -2511,6 +2511,90 @@
         ]
       }
     },
+    "/api/v1/organizations/{orgId}/plots/{plotId}/production-country": {
+      "get": {
+        "description": "Mismo alcance que leer la parcela. «Sin declarar» y «declarado como desconocido» son estados distintos.",
+        "operationId": "PlotProductionCountryController_ver",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "País de producción declarado de la parcela, con su historial",
+        "tags": [
+          "Parcelas"
+        ]
+      },
+      "post": {
+        "description": "Solo se añade: una corrección es una declaración nueva y la anterior se conserva. Mismo alcance que editar la parcela. No se rellena automáticamente.",
+        "operationId": "PlotProductionCountryController_declarar",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plotId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclareProductionCountryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Declarar (o corregir) el país de producción de la parcela",
+        "tags": [
+          "Parcelas"
+        ]
+      }
+    },
     "/api/v1/organizations/{orgId}/plots/{plotId}/polygon-drafts": {
       "post": {
         "operationId": "PolygonDraftsController_start",
@@ -14234,6 +14318,32 @@
           "latitude",
           "accuracy_m",
           "captured_at"
+        ]
+      },
+      "DeclareProductionCountryDto": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string"
+          },
+          "expected_declaration_number": {
+            "type": "number",
+            "description": "Número de la declaración vigente que esta reemplaza (0 si aún no hay ninguna). Evita pisar la declaración de otra persona."
+          },
+          "country": {
+            "type": "object",
+            "nullable": true,
+            "description": "Código ISO 3166-1 alfa-2 en mayúsculas (p. ej. EC) o null para «declarado como desconocido»."
+          },
+          "note": {
+            "type": "string",
+            "description": "Fundamento o aclaración de la declaración (no es un documento)."
+          }
+        },
+        "required": [
+          "operation_id",
+          "expected_declaration_number",
+          "country"
         ]
       },
       "AddVertexDto": {

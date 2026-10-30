@@ -14,6 +14,7 @@ import { GisEvaluation } from '../../../../../lib/gis-evaluation';
 import { GeoProfileEvaluation } from '../../../../../lib/geo-profile';
 import { SatelliteAnalysis } from '../../../../../lib/satellite';
 import { AutorizarAnalisisPanel } from '../../../../../lib/satellite-autorizacion';
+import { PaisDeProduccionPanel } from '../../../../../lib/pais-produccion';
 import { EntityDocuments } from '../../../../../lib/entity-documents';
 import { FieldEvidence } from '../../../../../lib/field-evidence';
 import { EventHistory } from '../../../../../lib/event-history';
@@ -135,6 +136,8 @@ export default function PlotDetailPage() {
             {plot.can_capture_location && <FieldCapture orgId={orgId} plot={plot} onChanged={load} />}
             {plot.can_update && <DeclaredAreaForm orgId={orgId} plot={plot} onSaved={load} />}
           </section>
+
+          <PaisDeProduccionPanel orgId={orgId} plotId={plot.id} canUpdate={!!plot.can_update} />
 
           <GisEvaluation orgId={orgId} plotId={plot.id} canEvaluate={!!plot.can_evaluate_gis} hasVersion={!!plot.current_version} />
           {/* Dos dictámenes, a la vista y por separado: el técnico de arriba y el de perfil de destino. Pueden discrepar. */}

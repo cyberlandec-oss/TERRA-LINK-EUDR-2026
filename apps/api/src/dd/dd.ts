@@ -94,13 +94,37 @@ export class DdService {
       SELECT coalesce(sum(signed_quantity) FILTER (WHERE bucket = 'PHYSICAL'), 0)::text AS physical, coalesce(sum(signed_quantity) FILTER (WHERE bucket = 'RESERVED'), 0)::text AS reserved,
              (coalesce(sum(signed_quantity) FILTER (WHERE bucket = 'PHYSICAL'), 0) - coalesce(sum(signed_quantity) FILTER (WHERE bucket = 'RESERVED'), 0))::text AS available
       FROM stock_entries WHERE organization_id = ${orgId} AND lot_id = ${lotId}`.execute(db)).rows[0];
-    const deliveries = [...new Map(origin.receptions.map((r) => [r.delivery_id, { id: r.delivery_id, code: r.delivery_code, row_version: r.delivery_version }])).values()]
+    const deliveriesBase = [...new Map(origin.receptions.map((r) => [r.delivery_id, { id: r.delivery_id, code: r.delivery_code, row_version: r.delivery_version }])).values()]
       .map((d) => ({ ...d, origin_plots: origin.origins.filter((o) => o.delivery_id === d.id).map((o) => o.plot_code) }));
+    // Período de producción: la cosecha EFECTIVA que la entrega declaró —la de su última corrección si la hay; la entrega conserva la original— y su número de corrección, por entrega. Nunca la fecha de entrega, de recepción ni de un análisis.
+    // Una entrega sin declaración no lleva la clave: queda «sin declarar» y no se funde en un intervalo general.
+    const cosechas = deliveriesBase.length ? (await sql<{ id: string; harvest_precision: string | null; harvest_start: string | null; harvest_end: string | null; correction_number: number }>`
+      SELECT d.id,
+             CASE WHEN c.id IS NULL THEN d.harvest_precision ELSE c.harvest_precision END AS harvest_precision,
+             CASE WHEN c.id IS NULL THEN d.harvest_start ELSE c.harvest_start END::text AS harvest_start,
+             CASE WHEN c.id IS NULL THEN d.harvest_end ELSE c.harvest_end END::text AS harvest_end,
+             coalesce(c.correction_number, 0)::int AS correction_number
+      FROM deliveries d
+      LEFT JOIN LATERAL (SELECT k.id, k.correction_number, k.harvest_precision, k.harvest_start, k.harvest_end FROM delivery_corrections k
+                         WHERE k.delivery_id = d.id AND k.organization_id = d.organization_id ORDER BY k.correction_number DESC LIMIT 1) c ON true
+      WHERE d.organization_id = ${orgId} AND d.id = ANY(${deliveriesBase.map((d) => d.id)}::uuid[])`.execute(db)).rows : [];
+    const deliveries = deliveriesBase.map((d) => {
+      const c = cosechas.find((x) => x.id === d.id);
+      return c?.harvest_precision ? { ...d, harvest: { precision: c.harvest_precision, start: c.harvest_start, end: c.harvest_end, correction_number: c.correction_number } } : d;
+    });
     const plotIds = [...new Set(origin.origins.map((o) => o.plot_id))];
-    const plots = plotIds.length ? (await sql<{ plot_id: string; plot_code: string; version_id: string | null; version_number: number | null; geometry_type: string | null; geometry_hash: string | null; validation_status: string | null; geometry: unknown }>`
+    const plotsBase = plotIds.length ? (await sql<{ plot_id: string; plot_code: string; version_id: string | null; version_number: number | null; geometry_type: string | null; geometry_hash: string | null; validation_status: string | null; geometry: unknown }>`
       SELECT p.id AS plot_id, p.plot_code, v.id AS version_id, v.version_number, v.geometry_type, v.geometry_hash, v.validation_status, ST_AsGeoJSON(v.geometry)::jsonb AS geometry
       FROM plots p LEFT JOIN plot_versions v ON v.id = p.current_version_id WHERE p.organization_id = ${orgId} AND p.id = ANY(${plotIds}::uuid[]) ORDER BY p.plot_code`.execute(db)).rows
       .map((p) => ({ ...p, gis_status: origin.origins.find((o) => o.plot_id === p.plot_id)?.gis_status ?? null })) : [];
+    // País de producción: la declaración VIGENTE de cada parcela de origen (versión y fecha). Sin declaración no hay clave; no se deduce de ninguna otra fuente.
+    const paises = plotIds.length ? (await sql<{ plot_id: string; declaration_number: number; country: string | null; declared_at: string }>`
+      SELECT DISTINCT ON (plot_id) plot_id, declaration_number, country, declared_at::text
+      FROM plot_production_declarations WHERE organization_id = ${orgId} AND plot_id = ANY(${plotIds}::uuid[]) ORDER BY plot_id, declaration_number DESC`.execute(db)).rows : [];
+    const plots = plotsBase.map((p) => {
+      const d = paises.find((x) => x.plot_id === p.plot_id);
+      return d ? { ...p, production_country: { declaration_number: d.declaration_number, country: d.country, declared_at: d.declared_at } } : p;
+    });
     const quality = [];
     for (const r of [...new Map(origin.receptions.map((x) => [x.reception_id, x])).values()]) {
       const d = (await sql<{ decision: string }>`SELECT qr.decision FROM quality_samples s JOIN quality_results qr ON qr.sample_id = s.id WHERE s.reception_id = ${r.reception_id} ORDER BY qr.recorded_at DESC, qr.id DESC LIMIT 1`.execute(db)).rows[0];

@@ -17,8 +17,10 @@ export interface DdContent {
   subject: { type: 'LOT'; id: string; code: string; product: string; unit: string; origin_status: string };
   quantities: { physical: string; reserved: string; available: string; unit: string; source: string };
   origin: { lots: Array<{ id: string; lot_code: string; origin_status: string }>; ledger_differences: Array<{ kind: string; id: string }> };
-  deliveries: Array<{ id: string; code: string; row_version: string; origin_plots: string[] }>;
-  plots: Array<{ plot_id: string; plot_code: string; version_id: string | null; version_number: number | null; geometry_type: string | null; geometry_hash: string | null; validation_status: string | null; gis_status: string | null; geometry: unknown | null }>;
+  deliveries: Array<{ id: string; code: string; row_version: string; origin_plots: string[];
+    /** Cosecha EFECTIVA declarada en la entrega (precisión, límites y número de corrección; 0 = declaración original). La clave no existe si la entrega no declaró nada: eso es «sin declarar», no un intervalo. */
+    harvest?: { precision: string; start: string | null; end: string | null; correction_number: number } }>;
+  plots: Array<{ production_country?: { declaration_number: number; country: string | null; declared_at: string }; plot_id: string; plot_code: string; version_id: string | null; version_number: number | null; geometry_type: string | null; geometry_hash: string | null; validation_status: string | null; gis_status: string | null; geometry: unknown | null }>;
   quality: Array<{ reception_id: string; delivery_code: string; decision: string }>;
   documents: Array<{ document_id: string; version_id: string; title: string; document_type: string; classification: string; version_number: number; sha256: string; file_name: string; expires_at: string | null; expired: boolean; scan: string | null; used_by: string; reference: string }>;
   evidence: Array<{ id: string; claim_type: string; entity_type: string; entity_id: string; status: string; row_version: string }>;

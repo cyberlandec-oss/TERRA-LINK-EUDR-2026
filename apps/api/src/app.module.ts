@@ -61,6 +61,7 @@ import { EVENT_STORE, EventStore } from './events/events';
 import { ProducersController, ProducersService } from './producers/producers';
 import { ProducerMatchingController, ProducerMatchingService } from './producers/matching';
 import { PlotsController, PlotsService } from './plots/plots';
+import { PlotProductionCountryController, PlotProductionCountryService } from './plots/production-country';
 import { PolygonDraftsController, PolygonDraftsService } from './plots/polygon-drafts';
 import { PII_CIPHER, PiiCipher } from './crypto/pii';
 import { OBJECT_STORE, S3ObjectStore, type ObjectStore } from './storage/object-store';
@@ -209,7 +210,7 @@ export class AppModule implements NestModule {
       controllers: [
         HealthController, VersionController, ObservabilityController, OperationsAlertsController, OperationsOrgAlertsController,
         RiskConclusionController, GeoConfigPlatformController, GeoConfigOrgController, RiskProfileLinkController, LegalProfileReviewController, LegalProfileController, LegalAssessmentsController, AuthController, MeController, OrganizationsController, CatalogController, RbacController,
-        MembersController, InvitationsController, UsersController, ProducersController, ProducerMatchingController, PlotsController, PolygonDraftsController, GeometryImportsController, GisEvaluationController, GeoProfileController, ProductsController, CteController, KdeController, PublicReferencesController, AccessGrantsController, GrantedController, PlatformElevationController, EventHistoryController, DocumentsController, EvidenceController, AuditController, DeliveriesController, LotsController, InventoryController, RiskController, MitigationsController, DdController, SyncController, ImportsController, MyWorkController, OnboardingController, ExchangeController, SimulationController, CostController, HistoryController, EconomicsController, AnalyticsController, ExtractionController, LimitsController, PlatformCostController, SsoController, WebhookController, ShipmentsController, CustodyTransfersController, SatelliteController, ReportsController, EntityReportsController,
+        MembersController, InvitationsController, UsersController, ProducersController, ProducerMatchingController, PlotsController, PlotProductionCountryController, PolygonDraftsController, GeometryImportsController, GisEvaluationController, GeoProfileController, ProductsController, CteController, KdeController, PublicReferencesController, AccessGrantsController, GrantedController, PlatformElevationController, EventHistoryController, DocumentsController, EvidenceController, AuditController, DeliveriesController, LotsController, InventoryController, RiskController, MitigationsController, DdController, SyncController, ImportsController, MyWorkController, OnboardingController, ExchangeController, SimulationController, CostController, HistoryController, EconomicsController, AnalyticsController, ExtractionController, LimitsController, PlatformCostController, SsoController, WebhookController, ShipmentsController, CustodyTransfersController, SatelliteController, ReportsController, EntityReportsController,
       ],
       providers: [
         { provide: APP_CONFIG, useValue: config },
@@ -235,6 +236,7 @@ export class AppModule implements NestModule {
         ProducersService,
         ProducerMatchingService,
         PlotsService,
+        PlotProductionCountryService,
         PolygonDraftsService,
         { provide: PII_CIPHER, useValue: new PiiCipher(config.pii) },
         { provide: OBJECT_STORE, useValue: new S3ObjectStore(config.objectStore) },

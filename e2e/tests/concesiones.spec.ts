@@ -210,6 +210,8 @@ test('soportes de la instantánea: se comparten desde la pantalla, el comprador 
   await fila.getByRole('button', { name: 'Ver' }).click();
   await expect(comp.page.getByRole('heading', { name: 'Soportes de la instantánea' })).toBeVisible();
   await expect(comp.page.getByText('Vista limitada, no el expediente completo')).toBeVisible();
+  await expect(comp.page.getByRole('heading', { name: 'Período y país de producción' })).toBeVisible(); // declarado / desconocido / sin declarar, sin códigos
+  await expect(comp.page.getByRole('table', { name: 'Período de producción por origen' })).toContainText('Sin declarar'); // la entrega de la prueba no declaró cosecha
   await expect(comp.page.getByRole('heading', { name: 'Polígonos de las parcelas de origen' })).toBeVisible(); // decisión aparte: la concesión también los incluyó
   await expect(comp.page.getByText(/No incluye documentos con datos personales\s*\./)).toBeVisible(); // y ya no dice «ni geometrías»
   const tabla = comp.page.getByRole('table', { name: 'Soportes de la instantánea' });
@@ -234,4 +236,28 @@ test('soportes de la instantánea: se comparten desde la pantalla, el comprador 
   expect(sin.status).toBe(404);
   const sinArchivo = await fetch(`${API_URL}/api/v1/granted/${g.id}/documents/${version}/content`, { headers: { authorization: `Bearer ${tok.externo}` } });
   expect(sinArchivo.status).toBe(404);
+});
+
+// País de producción (2026-10-30): se declara explícitamente en la ficha de la parcela, queda versionado y nunca se rellena solo. Corregir añade una declaración nueva.
+test('país de producción: sin declarar al inicio, se declara en la ficha, persiste, y corregir conserva la declaración anterior', async ({ browser }) => {
+  const b = `/api/v1/organizations/${orgA}`;
+  const lista = (r: unknown) => (Array.isArray(r) ? r : ((r as { items?: unknown[] }).items ?? [])) as Array<Record<string, string>>;
+  const productor = lista(await api(`${b}/producers?limit=100`, { token: tok.admin })).find((p) => p.producer_code === 'P-CA')!.id;
+  const parcela = (await api(`${b}/plots`, { method: 'POST', token: tok.admin, body: { producer_id: productor, plot_code: 'PAIS-1', crop: 'Cacao' } })).id as string;
+  const adm = await abrir(browser, 'admin', `/organizaciones/${orgA}/parcelas/${parcela}`);
+  await expect(adm.page.getByRole('heading', { name: 'País de producción' })).toBeVisible();
+  await expect(adm.page.locator('#pais-titulo ~ p .badge')).toContainText('Sin declarar'); // la organización es de Ecuador, pero eso no se asume
+  await adm.page.locator('#pais-valor').selectOption({ label: 'Ecuador (EC)' });
+  await adm.page.getByRole('button', { name: 'Guardar declaración' }).click();
+  await expect(adm.page.locator('#pais-titulo ~ p .badge')).toContainText('Declarado: EC');
+  await adm.page.reload();
+  await expect(adm.page.locator('#pais-titulo ~ p .badge')).toContainText('Declarado: EC'); // persiste
+  // Corregir: «No se sabe» es una declaración nueva y la anterior queda en el historial.
+  await adm.page.locator('#pais-valor').selectOption({ label: 'No se sabe (declarar como desconocido)' });
+  await adm.page.getByRole('button', { name: 'Guardar declaración' }).click();
+  await expect(adm.page.locator('#pais-titulo ~ p .badge')).toContainText('Declarado como desconocido');
+  const r = await api(`${b}/plots/${parcela}/production-country`, { token: tok.admin });
+  expect(r.history.map((h: { declaration_number: number; country: string | null }) => [h.declaration_number, h.country])).toEqual([[2, null], [1, 'EC']]);
+  expect(await adm.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  await adm.ctx.close();
 });

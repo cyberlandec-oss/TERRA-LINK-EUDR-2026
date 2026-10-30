@@ -15,8 +15,8 @@ interface Snapshot {
   id: string; snapshot_number: number; is_latest: boolean; captured_at: string; captured_by: string; content_hash: string;
   content: {
     subject: { code: string; product: string; unit: string; origin_status: string }; quantities: { physical: string; reserved: string; available: string; unit: string };
-    deliveries: Array<{ id: string; code: string; origin_plots: string[] }>;
-    plots: Array<{ plot_id: string; plot_code: string; version_number: number | null; geometry_type: string | null; geometry_hash: string | null; gis_status: string | null; geometry: unknown }>;
+    deliveries: Array<{ id: string; code: string; origin_plots: string[]; harvest?: { precision: string; start: string | null; end: string | null; correction_number: number } }>;
+    plots: Array<{ production_country?: { declaration_number: number; country: string | null; declared_at: string }; plot_id: string; plot_code: string; version_number: number | null; geometry_type: string | null; geometry_hash: string | null; gis_status: string | null; geometry: unknown }>;
     quality: Array<{ reception_id: string; delivery_code: string; decision: string }>;
     documents: Array<{ version_id: string; title: string; version_number: number; sha256: string; used_by: string; reference: string }>;
     evidence: Array<{ id: string; claim_type: string; status: string }>;
@@ -31,6 +31,19 @@ interface Snapshot {
   actions: { start_review: boolean; return: boolean; approve: boolean; approve_blocked_reason: string | null; export_internal: boolean; export_package: boolean; export_package_blocked_reason: string | null };
 }
 interface DdCase { id: string; case_number: string; subject: { code: string }; scope_note: string; created_by: string; latest: Snapshot | null; history: Array<{ id: string; snapshot_number: number; readiness_label: string; captured_at: string; content_hash: string }>; actions: { snapshot: boolean } }
+
+// Declarado / desconocido / sin declarar: tres cosas distintas. La fecha de entrega o de recepción nunca sustituye a la cosecha, ni la organización al país de producción.
+const cosechaDe = (h?: { precision: string; start: string | null; end: string | null; correction_number: number }) => {
+  if (!h) return { estado: 'NOT_DECLARED', texto: 'cosecha sin declarar (desconocida)' };
+  if (h.precision === 'UNKNOWN') return { estado: 'DECLARED_UNKNOWN', texto: 'cosecha declarada como desconocida' };
+  const rango = h.start === h.end || !h.end ? h.start : `${h.start} a ${h.end}`;
+  return { estado: 'DECLARED', texto: `cosecha declarada (${h.precision === 'MONTH' ? 'mes' : 'día'}): ${rango}${h.correction_number > 0 ? ` · corregida ${h.correction_number} vez/veces` : ''}` };
+};
+const paisDe = (p?: { declaration_number: number; country: string | null }) => {
+  if (!p) return { estado: 'NOT_DECLARED', texto: 'país de producción sin declarar' };
+  if (!p.country) return { estado: 'DECLARED_UNKNOWN', texto: `país de producción declarado como desconocido (declaración ${p.declaration_number})` };
+  return { estado: 'DECLARED', texto: `país de producción declarado: ${p.country} (declaración ${p.declaration_number})` };
+};
 
 const ACTION_LABEL: Record<string, string> = { START_REVIEW: 'Revisión iniciada', RETURN: 'Devuelta', APPROVE: 'Aprobada' };
 const SECTION_LABEL: Record<string, string> = { subject: 'sujeto', quantities: 'cantidades', origin: 'origen', deliveries: 'entregas', plots: 'parcelas/geometrías', quality: 'calidad', documents: 'documentos', evidence: 'evidencias', risk: 'riesgo', mitigations: 'mitigaciones', profiles: 'perfiles' };
@@ -104,8 +117,8 @@ export default function DdCasePage() {
         <section className="card" aria-labelledby="dd-origin">
           <h2 id="dd-origin">Origen</h2>
           {s.redacted.geometry && <p className="field-help">Tu rol no permite ver coordenadas: se muestran solo el código y el hash de cada geometría.</p>}
-          <ul className="plain" aria-label="Entregas de origen">{s.content.deliveries.map((x) => <li key={x.id}>{x.code}: {x.origin_plots.length ? x.origin_plots.join(', ') : 'sin parcela declarada'}</li>)}</ul>
-          <ul className="plain" aria-label="Parcelas">{s.content.plots.map((p) => <li key={p.plot_id}>{p.plot_code} · versión {p.version_number ?? '—'} · {p.geometry_type ?? 'sin geometría'} · validación técnica {p.gis_status ?? 'sin evaluar'}{p.geometry_hash ? <> · <code className="hash">{p.geometry_hash.slice(0, 16)}</code></> : null}</li>)}</ul>
+          <ul className="plain" aria-label="Entregas de origen">{s.content.deliveries.map((x) => <li key={x.id}>{x.code}: {x.origin_plots.length ? x.origin_plots.join(', ') : 'sin parcela declarada'} · <span data-estado={cosechaDe(x.harvest).estado}>{cosechaDe(x.harvest).texto}</span></li>)}</ul>
+          <ul className="plain" aria-label="Parcelas">{s.content.plots.map((p) => <li key={p.plot_id}>{p.plot_code} · versión {p.version_number ?? '—'} · {p.geometry_type ?? 'sin geometría'} · validación técnica {p.gis_status ?? 'sin evaluar'} · <span data-estado={paisDe(p.production_country).estado}>{paisDe(p.production_country).texto}</span>{p.geometry_hash ? <> · <code className="hash">{p.geometry_hash.slice(0, 16)}</code></> : null}</li>)}</ul>
           <p className="field-help">Calidad: {s.content.quality.map((q) => `${q.delivery_code} ${q.decision === 'NO_RESULT' ? 'pendiente de evaluación' : q.decision}`).join(' · ') || '—'}</p>
         </section>
         <section className="card" aria-labelledby="dd-risk">

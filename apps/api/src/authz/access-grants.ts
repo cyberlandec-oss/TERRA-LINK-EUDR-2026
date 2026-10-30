@@ -14,7 +14,7 @@ import type { Permission } from './catalog';
 import { referenciaDe } from '../traceability/public-references';
 import { DdService } from '../dd/dd';
 import { evaluateRequirements } from '../dd/requirements';
-import { indicadoresDe, periodoDeProduccion } from '../sharing/indicadores';
+import { indicadoresDe, periodoDeProduccion, produccionDeContenido } from '../sharing/indicadores';
 import { OBJECT_STORE, sha256 as sha256Bytes, type ObjectStore } from '../storage/object-store';
 
 // P0-003 / D-P0003.1 opción A — Concesiones externas de LECTURA y DESCARGA, sin portal comprador.
@@ -315,8 +315,14 @@ export class AccessGrantsService {
       // Período de producción (S1 §44): SOLO lo declarado como cosecha. Sin declaración queda desconocido;
       // la fecha de entrega no lo sustituye.
       const cosechas = (await sql<{ harvest_precision: string | null; harvest_start: string | null; harvest_end: string | null; harvest_derived_start: string | null; harvest_derived_end: string | null }>`
-        SELECT DISTINCT d.harvest_precision, d.harvest_start::text, d.harvest_end::text, d.harvest_derived_start::text, d.harvest_derived_end::text
+        SELECT DISTINCT CASE WHEN c.id IS NULL THEN d.harvest_precision ELSE c.harvest_precision END AS harvest_precision,
+               CASE WHEN c.id IS NULL THEN d.harvest_start ELSE c.harvest_start END::text AS harvest_start,
+               CASE WHEN c.id IS NULL THEN d.harvest_end ELSE c.harvest_end END::text AS harvest_end,
+               CASE WHEN c.id IS NULL THEN d.harvest_derived_start END::text AS harvest_derived_start,
+               CASE WHEN c.id IS NULL THEN d.harvest_derived_end END::text AS harvest_derived_end
         FROM lot_inputs i JOIN receptions r ON r.id = i.reception_id JOIN deliveries d ON d.id = r.delivery_id
+        LEFT JOIN LATERAL (SELECT k.id, k.harvest_precision, k.harvest_start, k.harvest_end FROM delivery_corrections k
+                           WHERE k.delivery_id = d.id AND k.organization_id = d.organization_id ORDER BY k.correction_number DESC LIMIT 1) c ON true
         WHERE i.lot_id = ${l.id} AND d.organization_id = ${org}`.execute(this.db)).rows;
       return { resource_type: 'LOT', lot_code: l.lot_code, status: l.status, product: l.product,
         origin_status: l.origin_status, productores: l.productores, parcelas: l.parcelas,
@@ -336,13 +342,15 @@ export class AccessGrantsService {
         public_reference: await referenciaDe(this.db, org, 'SHIPMENT', s.id),
         nota: 'Destino declarado por la organización; Terra Link no lo verifica.' };
     }
-    const sn = (await sql<{ id: string; snapshot_number: number; readiness: string; content_hash: string; case_number: string; requirements: Array<{ code: string; status: string }>; content: { documents?: Array<{ version_id: string; classification: string }>; plots?: Array<{ geometry?: unknown }> } | null }>`
+    const sn = (await sql<{ id: string; snapshot_number: number; readiness: string; content_hash: string; case_number: string; requirements: Array<{ code: string; status: string }>; content: { documents?: Array<{ version_id: string; classification: string }>; plots?: Array<{ geometry?: unknown }>; deliveries?: Array<unknown> } | null }>`
       SELECT sn.id, sn.snapshot_number, sn.readiness, sn.content_hash, c.case_number, sn.requirements, sn.content
       FROM dd_snapshots sn JOIN dd_cases c ON c.id = sn.case_id WHERE sn.id = ${g.resource_id} AND sn.organization_id = ${org}`.execute(this.db)).rows[0];
     if (!sn) throw this.opaca;
     return { resource_type: 'DD_SNAPSHOT', case_number: sn.case_number, snapshot_number: sn.snapshot_number,
       readiness: sn.readiness, content_hash: sn.content_hash,
       requirements: (sn.requirements ?? []).map((r) => ({ code: r.code, status: r.status })),
+      // Período y país de producción TAL COMO la instantánea los fijó: declarado / desconocido / sin declarar, con recuentos; sin códigos de entrega ni de parcela.
+      production: produccionDeContenido(sn.content as never),
       // Soportes: solo CIFRAS (ni nombres ni tipos de lo excluido). La lista y los archivos están en sus propias rutas, y solo si la concesión los incluye.
       documents: g.include_documents ? soportesResumen(sn.content?.documents ?? []) : { shared: false },
       // Geometrías: solo la CIFRA; los polígonos están en su propia ruta y solo si la concesión los incluye.
@@ -425,14 +433,18 @@ export class AccessGrantsService {
     if (g.resource_type !== 'DD_SNAPSHOT' || !g.include_geometries) {
       throw forbidden('GRANT_GEOMETRIES_NOT_INCLUDED', 'Esta concesión no incluye las geometrías de las parcelas. Pide a la organización que te conceda una que las incluya.');
     }
-    const sn = (await sql<{ snapshot_number: number; content_hash: string; case_number: string; content: { plots?: Array<{ plot_code: string; version_number: number | null; geometry_type: string | null; geometry_hash: string | null; validation_status: string | null; geometry: unknown | null }> } | null }>`
+    const sn = (await sql<{ snapshot_number: number; content_hash: string; case_number: string; content: { plots?: Array<{ plot_code: string; version_number: number | null; geometry_type: string | null; geometry_hash: string | null; validation_status: string | null; geometry: unknown | null; production_country?: { declaration_number: number; country: string | null } }> } | null }>`
       SELECT sn.snapshot_number, sn.content_hash, c.case_number, sn.content
       FROM dd_snapshots sn JOIN dd_cases c ON c.id = sn.case_id WHERE sn.id = ${g.resource_id} AND sn.organization_id = ${g.organization_id}`.execute(this.db)).rows[0];
     if (!sn) throw this.opaca;
     const plots = sn.content?.plots ?? [];
     const features = plots.filter((p) => p?.geometry).map((p) => ({
       type: 'Feature' as const, geometry: p.geometry,
-      properties: { plot_code: p.plot_code, version_number: p.version_number, geometry_type: p.geometry_type, geometry_hash: p.geometry_hash, validation_status: p.validation_status },
+      properties: {
+        plot_code: p.plot_code, version_number: p.version_number, geometry_type: p.geometry_type, geometry_hash: p.geometry_hash, validation_status: p.validation_status,
+        // País de producción de ESA parcela tal como la instantánea lo fijó; sin declaración, «NOT_DECLARED» (no se asigna ningún país).
+        production_country: p.production_country ? { state: p.production_country.country ? 'DECLARED' : 'DECLARED_UNKNOWN', country: p.production_country.country, declaration_number: p.production_country.declaration_number } : { state: 'NOT_DECLARED', country: null, declaration_number: 0 },
+      },
     }));
     await this.audit.record(this.db, { organizationId: g.organization_id, actorUserId: user.id, action: 'grant.geometries_read', entityType: 'access_grant', entityId: g.id, result: 'SUCCESS',
       after: { snapshot_number: sn.snapshot_number, plots: features.length, without_geometry: plots.length - features.length } });

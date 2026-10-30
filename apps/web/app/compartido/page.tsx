@@ -23,7 +23,12 @@ import { Alert, EmptyState, ErrorPanel, Loading, PageHeader, StatusBadge, type T
 
 interface Concesion { id: string; organization: string; resource_type: string; can_read: boolean; can_download: boolean; include_documents?: boolean; include_geometries?: boolean; expires_at: string }
 interface Soporte { version_id: string; title: string; document_type: string; version_number: number; file_name: string; mime_type: string; size_bytes: number; sha256: string; matches_stored_sha256: boolean; used_by: string[]; expires_at: string | null; expired: boolean; availability: 'AVAILABLE' | 'PENDING' | 'REJECTED' | 'SCAN_FAILED'; downloadable: boolean }
-interface Geometrias { case_number: string; snapshot_number: number; snapshot_content_hash: string; without_geometry_count: number; geojson: { type: 'FeatureCollection'; features: Array<{ type: 'Feature'; geometry: unknown; properties: { plot_code: string; version_number: number | null; geometry_type: string | null; geometry_hash: string | null; validation_status: string | null } }> }; limits: string[] }
+interface Produccion {
+  period: { precision: string; start: string | null; end: string | null; note: string; deliveries: { total: number; declared: number; declared_unknown: number; not_declared: number; corrected: number };
+    by_origin_delivery: Array<{ state: string; precision: string | null; start: string | null; end: string | null; corrections: number }> };
+  country: { parcels: { total: number; declared: number; declared_unknown: number; not_declared: number }; declared_countries: Array<{ country: string; parcels: number }>; note: string };
+}
+interface Geometrias { case_number: string; snapshot_number: number; snapshot_content_hash: string; without_geometry_count: number; geojson: { type: 'FeatureCollection'; features: Array<{ type: 'Feature'; geometry: unknown; properties: { production_country?: { state: string; country: string | null; declaration_number: number }; plot_code: string; version_number: number | null; geometry_type: string | null; geometry_hash: string | null; validation_status: string | null } }> }; limits: string[] }
 interface Soportes { case_number: string; snapshot_number: number; snapshot_content_hash: string; documents: Soporte[]; restricted_count: number; can_download: boolean; limits: string[] }
 const DISPONIBILIDAD: Record<Soporte['availability'], { tono: Tone; texto: string }> = {
   AVAILABLE: { tono: 'valid', texto: 'Disponible' }, PENDING: { tono: 'review', texto: 'Análisis pendiente' },
@@ -41,6 +46,7 @@ interface Proyeccion {
   requirements?: Array<{ code: string; status: string }>;
   documents?: { shared: boolean; shareable_count?: number; restricted_count?: number };
   geometries?: { shared: boolean; count?: number };
+  production?: Produccion;
 }
 
 const TIPO: Record<string, string> = { LOT: 'Lote', SHIPMENT: 'Embarque', DD_SNAPSHOT: 'Instantánea de diligencia' };
@@ -241,6 +247,32 @@ export default function CompartidoPage() {
               ))}</tbody>
             </table></div>
           )}
+          {abierta.datos.production && (
+            <section aria-labelledby="produccion-titulo">
+              <h3 id="produccion-titulo">Período y país de producción</h3>
+              <Alert tone="review" title="Lo que la organización declaró, tal como lo fijó la instantánea">
+                <p>
+                  Se distingue lo <strong>declarado</strong>, lo <strong>declarado como desconocido</strong> y lo <strong>sin declarar</strong>. Lo desconocido no se asigna a ningún país
+                  ni se cubre con la fecha de entrega. Terra Link no verifica estos datos.
+                </p>
+              </Alert>
+              <div className="table-wrap"><table aria-label="Período de producción por origen">
+                <thead><tr><th scope="col">Origen (entrega)</th><th scope="col">Estado</th><th scope="col">Cosecha</th></tr></thead>
+                <tbody>{abierta.datos.production.period.by_origin_delivery.map((d, i) => (
+                  <tr key={i}><td>Origen {i + 1}</td>
+                    <td>{d.state === 'DECLARED' ? 'Declarada' : d.state === 'DECLARED_UNKNOWN' ? 'Declarada como desconocida' : 'Sin declarar'}</td>
+                    <td>{d.state === 'DECLARED' ? `${d.start}${d.end && d.end !== d.start ? ` a ${d.end}` : ''} (${d.precision === 'MONTH' ? 'mes' : 'día'})${d.corrections > 0 ? ` · corregida ${d.corrections} vez/veces` : ''}` : '—'}</td></tr>
+                ))}</tbody>
+              </table></div>
+              <p className="field-help">{abierta.datos.production.period.note}</p>
+              <p>
+                País de producción: {abierta.datos.production.country.parcels.declared} de {abierta.datos.production.country.parcels.total} parcela(s) con país declarado
+                {abierta.datos.production.country.declared_countries.length > 0 ? ` (${abierta.datos.production.country.declared_countries.map((c) => `${c.country}: ${c.parcels}`).join(', ')})` : ''};
+                {' '}{abierta.datos.production.country.parcels.declared_unknown} declarada(s) como desconocida(s); {abierta.datos.production.country.parcels.not_declared} sin declarar.
+              </p>
+              <p className="field-help">{abierta.datos.production.country.note}</p>
+            </section>
+          )}
           {soportes && (
             <section aria-labelledby="soportes-titulo">
               <h3 id="soportes-titulo">Soportes de la instantánea</h3>
@@ -287,11 +319,12 @@ export default function CompartidoPage() {
               ) : (
                 <>
                   <div className="table-wrap"><table aria-label="Polígonos de las parcelas de origen">
-                    <thead><tr><th scope="col">Parcela</th><th scope="col">Versión</th><th scope="col">Tipo</th><th scope="col">Huella SHA-256</th><th scope="col">Validación técnica</th></tr></thead>
+                    <thead><tr><th scope="col">Parcela</th><th scope="col">Versión</th><th scope="col">Tipo</th><th scope="col">Huella SHA-256</th><th scope="col">Validación técnica</th><th scope="col">País de producción</th></tr></thead>
                     <tbody>{geometrias.geojson.features.map((f) => (
                       <tr key={`${f.properties.plot_code}-${f.properties.version_number}`}>
                         <td>{f.properties.plot_code}</td><td>{f.properties.version_number ?? '—'}</td><td>{f.properties.geometry_type ?? '—'}</td>
                         <td><code title={f.properties.geometry_hash ?? ''}>{(f.properties.geometry_hash ?? '—').slice(0, 16)}…</code></td><td>{f.properties.validation_status ?? '—'}</td>
+                        <td>{f.properties.production_country?.state === 'DECLARED' ? `${f.properties.production_country.country} (declarado)` : f.properties.production_country?.state === 'DECLARED_UNKNOWN' ? 'Declarado como desconocido' : 'Sin declarar'}</td>
                       </tr>
                     ))}</tbody>
                   </table></div>

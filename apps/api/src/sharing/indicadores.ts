@@ -132,6 +132,65 @@ export function periodoDeProduccion(cosechas: FilaCosecha[]): PeriodoProduccion 
 }
 
 /**
+ * Período y país de producción de una INSTANTÁNEA, tal como la instantánea los fijó. Tres estados que no se mezclan:
+ *   · `DECLARED`         — la organización declaró un valor (cosecha con día o mes; país con código);
+ *   · `DECLARED_UNKNOWN` — la organización dejó constancia de que NO lo sabe;
+ *   · `NOT_DECLARED`     — nadie declaró nada (la clave no existe en el contenido).
+ * Los recuentos por estado se entregan siempre, de modo que un origen desconocido nunca queda dentro de un intervalo general que parezca completo.
+ * No hay fecha de entrega, de recepción ni de análisis como sustituto, ni país deducido de la organización, del comprador o del destino.
+ * Sin identificadores: ni códigos de entrega ni de parcela (las parcelas, con su geometría, solo si la concesión las incluye).
+ */
+export type EstadoDeclaracion = 'DECLARED' | 'DECLARED_UNKNOWN' | 'NOT_DECLARED';
+export interface ProduccionDeInstantanea {
+  period: PeriodoProduccion & {
+    deliveries: { total: number; declared: number; declared_unknown: number; not_declared: number; corrected: number };
+    by_origin_delivery: Array<{ state: EstadoDeclaracion; precision: string | null; start: string | null; end: string | null; corrections: number }>;
+  };
+  country: {
+    parcels: { total: number; declared: number; declared_unknown: number; not_declared: number };
+    declared_countries: Array<{ country: string; parcels: number }>;
+    note: string;
+  };
+}
+
+export function produccionDeContenido(c: Pick<DdContent, 'deliveries' | 'plots'>): ProduccionDeInstantanea {
+  const entregas = c.deliveries ?? [];
+  const filas: FilaCosecha[] = entregas.map((d) => ({
+    harvest_precision: d.harvest?.precision ?? null, harvest_start: d.harvest?.start ?? null, harvest_end: d.harvest?.end ?? null,
+    harvest_derived_start: null, harvest_derived_end: null,
+  }));
+  const estadoDe = (d: (typeof entregas)[number]): EstadoDeclaracion => (!d.harvest ? 'NOT_DECLARED' : d.harvest.precision === 'UNKNOWN' ? 'DECLARED_UNKNOWN' : 'DECLARED');
+  const por = entregas.map(estadoDe);
+  const periodo = periodoDeProduccion(filas);
+
+  const parcelas = c.plots ?? [];
+  const paises = new Map<string, number>();
+  let desconocidos = 0; let sinDeclarar = 0;
+  for (const p of parcelas) {
+    if (!p.production_country) sinDeclarar++;
+    else if (!p.production_country.country) desconocidos++;
+    else paises.set(p.production_country.country, (paises.get(p.production_country.country) ?? 0) + 1);
+  }
+  const declaradas = [...paises.values()].reduce((a, b) => a + b, 0);
+  return {
+    period: {
+      ...periodo,
+      deliveries: {
+        total: entregas.length, declared: por.filter((e) => e === 'DECLARED').length, declared_unknown: por.filter((e) => e === 'DECLARED_UNKNOWN').length,
+        not_declared: por.filter((e) => e === 'NOT_DECLARED').length, corrected: entregas.filter((d) => (d.harvest?.correction_number ?? 0) > 0).length,
+      },
+      by_origin_delivery: entregas.map((d, i) => ({ state: por[i], precision: d.harvest?.precision ?? null, start: d.harvest?.start ?? null, end: d.harvest?.end ?? null, corrections: d.harvest?.correction_number ?? 0 }))
+        .sort((a, b) => `${a.state}${a.start ?? ''}${a.end ?? ''}`.localeCompare(`${b.state}${b.start ?? ''}${b.end ?? ''}`)),
+    },
+    country: {
+      parcels: { total: parcelas.length, declared: declaradas, declared_unknown: desconocidos, not_declared: sinDeclarar },
+      declared_countries: [...paises.entries()].map(([country, parcels]) => ({ country, parcels })).sort((a, b) => a.country.localeCompare(b.country)),
+      note: 'País de producción declarado por la organización parcela por parcela; Terra Link no lo deduce ni lo verifica. Las parcelas sin declarar o declaradas como desconocidas NO se asignan a ningún país.',
+    },
+  };
+}
+
+/**
  * Los once indicadores de S3 §22.8. Los dos de recuento (productores y parcelas) siguen viajando como
  * agregados en la proyección; aquí van los nueve que son **estado**.
  */
