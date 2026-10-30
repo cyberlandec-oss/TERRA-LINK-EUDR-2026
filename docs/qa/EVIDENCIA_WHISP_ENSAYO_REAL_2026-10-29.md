@@ -30,3 +30,14 @@ Un polígono artificial de ≈100 m (≈1 ha) en una zona cacaotera del Guayas, 
 - Un único análisis, una geometría artificial; no mide cobertura, latencia ni coste en uso real.
 - Sigue pendiente, de otras personas: catálogo de riesgo y conclusión humana (D-07), `LEGAL_PROFILE`, dato real de CAD-1027213440 y configuración geográfica revisada. Ninguno se tocó. El ensayo **no** cambia datos de DD-2026-00002 ni aprueba perfiles.
 - No se rehízo el adaptador; no cambió código, por lo que no se repiten validaciones funcionales.
+
+## Comprobación en la web del resultado ya guardado (solo lectura, `ac1fdec`)
+`node e2e/review/whisp-resultado-web.mjs` (cuenta ORG_ADMIN vigente de DEMO · Exportadora Pacífico; resultado en `docs/qa/whisp-resultado-web.json`, captura `docs/qa/capturas/web-por-rol/whisp-resultado--admin-exportadora.png`). Sin ningún encargo nuevo (0 `POST` a satélite, 0 botones «Solicitar»).
+- Se **consulta** y se **descarga** desde la tarjeta: 5674 bytes, SHA-256 `34edb8c7…5939`, idéntico al guardado.
+- Muestra procedencia (fuente WHISP, método, versión), fecha de análisis (declarada por el proveedor) y de guardado, **cobertura «desconocida» (UNKNOWN)**, confianza no definida, **conclusión NOT_EVALUATED** y los límites declarados. Texto fijo: «Sin alertas» no equivale a «sin deforestación»; no es conclusión jurídica. No hay ninguna frase favorable.
+- «Origen del resultado: Consulta real al proveedor, guardada en Terra Link». **Que la geometría es artificial** lo dice la parcela rotulada `ENSAYO-WHISP-ART-A`; la tarjeta no tiene un campo para ello (límite registrado, no se amplió el modelo).
+- **Defecto encontrado y corregido** (`ac1fdec`, solo `apps/web/lib/satellite.tsx` y su traducción): el aviso decía «El adaptador existe, pero su uso real no está autorizado» junto a un resultado real ya guardado, mezclando dos estados. Ahora, con resultados guardados, la pantalla dice **«Nuevos análisis deshabilitados: el servicio real no está autorizado ahora»** y, aparte, que los resultados guardados siguen disponibles y que consultarlos no habilita nuevos análisis. `npm run validate` APROBADA sobre `ac1fdec` (`validation-results/2026-10-30T02-20-42-906Z`); web reconstruida una vez.
+
+## Separado, sin deducirse del ensayo
+- **Autorización para parcelas reales:** no existe. Exige una autorización expresa distinta (datos de productores, base del tratamiento).
+- **Activación permanente** (D-09 parte B: `WHISP` en `SELECTED` con responsable permanente y `SATELLITE_LIVE_CALLS=enabled`): no se decidió; la configuración temporal se restauró.
