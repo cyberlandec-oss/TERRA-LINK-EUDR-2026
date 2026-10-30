@@ -219,3 +219,10 @@ Qué información pide el expediente, de dónde sale en Terra Link, quién la ap
 - **Exclusiones:** los documentos de datos personales (clasificación leída **de nuevo** al listar y al descargar) y las geometrías. De lo excluido solo se informa **cuántos son**: ni título, ni archivo, ni tipo, ni huella, ni identificadores.
 - **Controles al listar y al descargar:** cuenta destinataria activa, concesión vigente (no vencida ni revocada), lectura y, para descargar, descarga concedida; escaneo `CLEAN`; huella de la versión guardada igual a la de la instantánea y a la de los bytes; todo uso queda en la auditoría de la organización concedente.
 - **Límite:** copias ya descargadas no se retiran al revocar. Pruebas: `access-grants-soportes.int-spec.ts` (13) y e2e `concesiones.spec.ts`.
+
+### Entrega de las geometrías al destinatario (2026-10-30)
+
+- **Decisión del propietario:** los polígonos se comparten por una concesión **aparte** de los soportes. Migración `0074`: `include_geometries`, explícito, **apagado por omisión**, no editable (se revoca y se concede otra) y solo para una instantánea con lectura. Las concesiones existentes conservan su alcance.
+- **Qué se entrega:** las geometrías que la instantánea fijó, con su tipo original (punto, polígono, multipolígono), versión y huella; nunca la geometría vigente de hoy. Sin identidad del productor. Ruta `GET /api/v1/granted/{id}/geometries`, auditada (`grant.geometries_read`).
+- **Quién concede:** solo quien administra concesiones y puede leer geometrías exactas.
+- **Límites:** revocar impide nuevas consultas pero no retira archivos ya guardados; no es una presentación de DDS ni acredita la exactitud; los documentos con datos personales siguen excluidos. Evidencia: `qa/EVIDENCIA_GEOMETRIAS_CONCESION_2026-10-30.md`.

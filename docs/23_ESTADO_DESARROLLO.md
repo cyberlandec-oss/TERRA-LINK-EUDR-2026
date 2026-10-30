@@ -855,3 +855,5 @@ Sobre `44c8b8f`. **Pruebas dirigidas, no `npm run validate`.**
 
 ## Actualización 2026-10-29 — Whisp
 Ensayo real con **geometría artificial** completado desde la plataforma (propietario: clave y términos confirmados). Resultado, límites y restauración en `docs/qa/EVIDENCIA_WHISP_ENSAYO_REAL_2026-10-29.md`. Sustituye lo que decía «sin clave / sin autorización» en este documento. Parcelas reales siguen sin autorización.
+
+**Actualización (2026-10-30, tarde):** SHA validado y desplegado **`ab7752b`** (esquema `0074`): concesión de las geometrías de una instantánea al destinatario (A-08), decisión aparte de los soportes. Demostración 7/7 con las cuentas vigentes. Evidencia: `qa/EVIDENCIA_GEOMETRIAS_CONCESION_2026-10-30.md`. Siguiente entrega: país y periodo de producción en la instantánea. Porcentajes aceptados sin cambio (70 % y 68,2 % del MVP).

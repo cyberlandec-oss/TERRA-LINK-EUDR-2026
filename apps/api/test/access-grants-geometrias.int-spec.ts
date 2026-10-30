@@ -136,6 +136,34 @@ describeDb('concesión de una instantánea con geometrías: alcance exacto y lí
     await sql`UPDATE access_grants SET revoked_at = now(), revoked_by = granted_by, revoke_reason = 'cierre de la prueba' WHERE id = ${g2.id}`.execute(h.db);
   });
 
+  it('conserva el TIPO original de cada geometría (punto, polígono y multipolígono): no convierte puntos en polígonos', async () => {
+    const productor = (await http().post(`${base(orgA)}/producers`).set(as(ADMIN)).send({ producer_code: 'GE-P2', legal_name: 'Finca Tipos' }).expect(201)).body.id;
+    const productoId = (await sql<{ id: string }>`SELECT id FROM products WHERE organization_id = ${orgA} LIMIT 1`.execute(h.db)).rows[0].id;
+    const centroId = (await sql<{ id: string }>`SELECT id FROM locations WHERE organization_id = ${orgA} LIMIT 1`.execute(h.db)).rows[0].id;
+    const multi = { type: 'MultiPolygon', coordinates: [poligono(0.001).coordinates, [[[-80.3, -0.9], [-80.299, -0.9], [-80.299, -0.899], [-80.3, -0.899], [-80.3, -0.9]]]] };
+    const casos: Array<[string, Record<string, unknown>]> = [['GE-PT', { type: 'Point', coordinates: [-80.2, -0.85] }], ['GE-MP', multi]];
+    const plots: string[] = [];
+    for (const [codigo, g] of casos) {
+      const p = (await http().post(`${base(orgA)}/plots`).set(as(ADMIN)).send({ producer_id: productor, plot_code: codigo, crop: 'Cacao' }).expect(201)).body.id;
+      await http().post(`${base(orgA)}/plots/${p}/geometry-versions`).set(as(ADMIN)).send({ expected_version: 1, survey_method: 'MANUAL_COORDINATES', geometry: g, area_declared_ha: 1 }).expect(201);
+      plots.push(p);
+    }
+    const entrega = (await http().post(`${base(orgA)}/deliveries`).set(as(ADMIN)).send({ operation_id: randomUUID(), producer_id: productor, product_id: productoId, delivery_date: today, quantity_declared: '50', unit: 'KG', origins: plots.map((p) => ({ plot_id: p })), register: true }).expect(201)).body.delivery.id;
+    const rec = (await http().post(`${base(orgA)}/deliveries/${entrega}/receptions`).set(as(ADMIN)).send({ operation_id: randomUUID(), location_id: centroId, received_at: new Date().toISOString(), weighing: { method: 'Báscula sintética', quantity: '50', unit: 'KG', weighed_on: today } }).expect(201)).body.reception_id;
+    const lote = (await http().post(`${base(orgA)}/lots`).set(as(ADMIN)).send({ operation_id: randomUUID(), inputs: [{ reception_id: rec, quantity: '50' }] }).expect(201)).body.lot.id;
+    const caso2 = (await http().post(`${base(orgA)}/dd-cases`).set(as(ADMIN)).send({ operation_id: randomUUID(), lot_id: lote, scope_note: 'Tipos de geometría' }).expect(201)).body.case;
+    const snap2 = (await http().post(`${base(orgA)}/dd-cases/${caso2.id}/snapshots`).set(as(ADMIN)).send({ operation_id: randomUUID() }).expect(201)).body.snapshot;
+    const g = (await conceder({ grantee_user_id: externoId, resource_type: 'DD_SNAPSHOT', resource_id: snap2.id, include_geometries: true, expires_at: futuro(), reason: 'Tipos de geometría' }).expect(201)).body.grant;
+    const r = (await geo(g.id).expect(200)).body;
+    const porCodigo = Object.fromEntries(r.geojson.features.map((f: { properties: { plot_code: string } }) => [f.properties.plot_code, f]));
+    expect(porCodigo['GE-PT'].geometry).toEqual({ type: 'Point', coordinates: [-80.2, -0.85] });
+    expect(porCodigo['GE-PT'].properties.geometry_type).toBe('POINT');
+    expect(porCodigo['GE-MP'].geometry.type).toBe('MultiPolygon');
+    expect(porCodigo['GE-MP'].geometry.coordinates).toHaveLength(2);
+    expect((await http().get(`/api/v1/granted/${g.id}`).set(as(EXTERNO)).expect(200)).body.geometries).toEqual({ shared: true, count: 2 });
+    await revocar(g.id).expect(201);
+  });
+
   it('soportes y geometrías se conceden por separado y juntos sin confundirse', async () => {
     const solo = (await conceder({ grantee_user_id: externoId, resource_type: 'DD_SNAPSHOT', resource_id: snap.id, include_documents: true, expires_at: futuro(), reason: 'Solo soportes' }).expect(201)).body.grant;
     expect((await geo(solo.id).expect(403)).body.error.code).toBe('GRANT_GEOMETRIES_NOT_INCLUDED');
