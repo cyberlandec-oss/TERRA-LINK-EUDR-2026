@@ -101,7 +101,7 @@ export class SatelliteRunner {
       },
       onProgress: async ({ percent, message }) => {
         const r = await this.db.updateTable('satellite_jobs')
-          .set({ provider_progress_percent: percent, provider_progress_note: message, provider_progress_at: new Date(), locked_until: new Date(Date.now() + this.opts.leaseSeconds * 1000) })
+          .set({ provider_progress_percent: percent, provider_progress_note: message, provider_progress_at: new Date(), locked_until: sql`now() + make_interval(secs => ${this.opts.leaseSeconds})` })
           .where('id', '=', j.id).where('lease_token', '=', j.lease_token).executeTakeFirst();
         if (Number(r.numUpdatedRows) !== 1) throw new Error('LEASE_LOST');
       },
@@ -210,7 +210,7 @@ export class SatelliteRunner {
       if (retryable) {
         const delay = Math.min(this.opts.backoffBaseMs * 2 ** (j.attempts - 1), 15 * 60_000);
         const r = await this.db.updateTable('satellite_jobs')
-          .set({ status: 'REQUESTED', locked_by: null, locked_until: null, lease_token: null, last_error_code: outcome.errorCode, next_attempt_at: new Date(Date.now() + delay) })
+          .set({ status: 'REQUESTED', locked_by: null, locked_until: null, lease_token: null, last_error_code: outcome.errorCode, next_attempt_at: sql`now() + make_interval(secs => ${delay / 1000})` })
           .where('id', '=', j.id).where('lease_token', '=', j.lease_token).executeTakeFirst();
         if (Number(r.numUpdatedRows) === 1) out.retried++;
         continue;
