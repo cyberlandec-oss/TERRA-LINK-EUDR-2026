@@ -21,14 +21,14 @@ El expediente decía **qué** estaba pendiente pero no **quién** podía resolve
 | `RISK_CATALOG_APPROVED` (NOT_EVALUABLE) | Perfil jurídico aprobado (D-07.5) | Propietario del producto + revisión jurídica | Perfil jurídico | **Externa / decisión pendiente** |
 | `LEGAL_PROFILE` (NOT_EVALUABLE) | Perfil jurídico adoptado con revisión | Adopta `ORG_ADMIN`; la revisión es jurídica externa (plataforma registra) | Perfil jurídico | **Externa**; Terra Link no sustituye la revisión |
 | `GEOLOCATION_PROFILE` (NOT_EVALUABLE) | Configuración de geolocalización adoptada y revisada | Adopta `ORG_ADMIN`; revisa la plataforma | Geolocalización | Configuración + revisión de la plataforma |
-| `DEFORESTATION_ANALYSIS` (NOT_EVALUABLE) | Análisis satelital con proveedor seleccionado | `ORG_ADMIN`, `EUDR_MANAGER`, `EXPORT_MANAGER` | Parcela → Análisis satelital | **Externa**: sin proveedor (D-09 parte B, decisión del propietario) |
+| `DEFORESTATION_ANALYSIS` (NOT_EVALUABLE) | Análisis satelital con proveedor seleccionado | `ORG_ADMIN`, `EUDR_MANAGER`, `EXPORT_MANAGER` | Parcela → Análisis satelital | **Uso autorizado pendiente**: el adaptador y el ensayo real con geometría artificial ya están demostrados; falta la autorización de uso sobre estas parcelas (D-09 parte B) y las condiciones para que el resultado satisfaga el requisito |
 
 ## Por expediente
 ### DD-2026-00001 · LOT-2026-00002 · ENT-2026-00002 · productor DEMO-RV-005
 Lote de **origen incompleto** (la entrega no tiene parcela).
 | Requisito | Qué falta | Quién · pantalla | ¿Qué tipo de falta? |
 | --- | --- | --- | --- |
-| `ORIGIN_DECLARED` (PENDING) | Parcela de origen | `ORG_ADMIN`, `MANAGER`, `RECEPTION_OPERATOR` · Entregas | **No hay función para añadir parcelas a una entrega ya registrada**: es decisión de diseño (D-39, el origen incompleto no se completa ni se mezcla). Si el origen real se conoce, se registra una entrega nueva con su parcela. No se construye sin decisión del propietario. |
+| `ORIGIN_DECLARED` (PENDING) | Parcela de origen | `ORG_ADMIN`, `MANAGER`, `RECEPTION_OPERATOR` · Entregas | **No hay función para añadir parcelas a una entrega ya registrada**: es decisión de diseño (D-39, el origen incompleto no se completa ni se mezcla). Si el origen real se conoce, se registra una entrega nueva con su parcela. **Decisión del propietario (2026-10-30): se mantiene D-39**; no se construye corrección de origen. Registrar otra entrega no corrige este lote ni este expediente, y no debe volver a registrarse la misma mercancía (duplicaría cantidades). |
 | `GEOMETRY_TECHNICAL` (NOT_EVALUABLE) | Sin parcelas de origen no hay geometría | Consecuencia del anterior | — |
 | `QUALITY_DECIDED` (PENDING) | Muestra y decisión de calidad (recepción «sin resultado») | `ORG_ADMIN`, `QUALITY_OPERATOR` (decide); registran muestra `RECEPTION_OPERATOR` · Entregas → recepción | Información/decisión humana; existe |
 | `RISK_NO_BLOCKING_FINDINGS` (INVALID) | Hallazgo bloqueante por origen incompleto | — | Reevaluar no lo quita: lo sostiene el origen incompleto |
@@ -49,7 +49,12 @@ Origen completo, calidad `RELEASED`, geometría técnica y embarque cumplidos. S
 2. **Equipo de campo:** superficie declarada o polígono de CAD-1027213440 (00002).
 3. **Calidad:** decisión de calidad de la recepción de ENT-2026-00002 (00001).
 4. **Responsable EUDR / administración:** reevaluar el riesgo, iniciar la revisión y que una persona **distinta** verifique cada mitigación.
-5. **Propietario / terceros:** proveedor satelital (D-09 B), revisión de la configuración de geolocalización, perfil jurídico y su revisión jurídica (D-07.5/D-37).
-6. **Propietario:** si el origen incompleto de 00001 debe poder corregirse cuando el origen real se descubre (hoy: nueva entrega).
+5. **Propietario / terceros:** uso autorizado del análisis satelital sobre estas parcelas (D-09 B; el adaptador ya está demostrado), revisión de la configuración de geolocalización, perfil jurídico y su revisión jurídica (D-07.5/D-37).
+6. **Cerrado:** el origen incompleto de 00001 no se corrige (D-39 mantenida). DD-2026-00001 se conserva como caso bloqueado y prueba negativa: no todo expediente DEMO debe terminar en `READY`.
 
 Actualizar una instantánea resolvió su desactualización; **completar estos requisitos es el siguiente avance** y no hay atajo: un `READY` sin ellos sería falso. Nada de esto es una presentación de DDS ni acredita conformidad.
+
+## Operativo frente a externo
+- **Operativo, con las cuentas actuales, cuando exista el soporte y una decisión fundada:** vincular soportes existentes, reevaluar el riesgo, iniciar la revisión y verificar mitigaciones (persona distinta).
+- **No se inventa:** el dato de campo, la decisión de calidad ni la revisión competente.
+- Terra Link conserva y presenta documentos y estados; no certifica su autenticidad.
