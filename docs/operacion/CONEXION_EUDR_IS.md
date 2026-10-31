@@ -13,6 +13,13 @@ Estado (2026-10-30): **implementado en local el registro cifrado de credenciales
 `EUDR_IS_LIVE_CALLS` · `EUDR_IS_ACCEPTANCE_USERNAME` · `EUDR_IS_ACCEPTANCE_AUTH_KEY` · `EUDR_IS_ACCEPTANCE_CLIENT_ID` · `EUDR_IS_PRODUCTION_USERNAME` · `EUDR_IS_PRODUCTION_AUTH_KEY` · `EUDR_IS_PRODUCTION_CLIENT_ID`.
 Las de un entorno **no se reutilizan** para el otro. Dónde se obtienen: usuario y Authentication Key en el perfil EU Login (Edit Profile → Web Services Access → Active); la dirección donde se generan indica el entorno (`acceptance.eudr.webcloud.ec.europa.eu` = ACCEPTANCE; `eudr.webcloud.ec.europa.eu` = PRODUCTION). La organización de Terra Link debe corresponder al **operador o representación autorizada en TRACES**, no a una cuenta DEMO por defecto.
 
+### Dónde está cada dato (indicación del propietario, 2026-10-31)
+- **Username:** TRACES NT → usuario (arriba a la derecha) → Edit Profile → Personal Information. **Authentication Key** y **WebServiceClientId:** Web Services Access (ojo para ver la clave). La Authentication Key **no** es la contraseña de EU Login. Si «Web Services Access» no aparece, comprobar que el operador esté validado y el usuario vinculado a él.
+- **Operador:** Directory → Operators. El rol `EXPORT_MANAGER` de Terra Link no establece por sí mismo la identidad del operador. Si la integración actúa para varios operadores existe un *Web Service Access Identifier / OperatorAccessIdentifier* (en los identificadores del operador), distinto de la clave y del WebServiceClientId; **Terra Link aún no lo almacena** (se decidirá en el tramo de `submitDds`).
+- Los datos del cacao (parcelas, producto, HS, cantidades, trazabilidad, soportes, análisis, evaluación) proceden de la operación en Terra Link, no de las claves de TRACES.
+- Registrarse en un entorno no da acceso al otro; empezar por ACCEPTANCE (sin valor legal). Soporte oficial: SANTE-TRACES@ec.europa.eu.
+- Al propietario le basta comunicar: entorno, nombre del operador y si aparece «Web Services Access». Las claves se guardan solo en `.env`.
+
 ## Procedimiento local
 1. Completa en `.env` las tres variables del entorno (nunca las pegues en el chat ni las versiones).
 2. Carga cifrada, con organización y entorno **explícitos** (no hay valores por defecto; el comando solo informa «credencial registrada/rotada» o un error redactado):
