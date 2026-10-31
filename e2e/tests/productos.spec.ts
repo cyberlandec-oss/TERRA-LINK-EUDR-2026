@@ -49,7 +49,7 @@ test('catálogo vacío, alta con opciones de la API y código duplicado con el f
   const { ctx, page } = await open(browser);
   await page.goto(`${orgUrl}/productos`);
   await expect(page.getByText('Aún no hay productos en el catálogo.')).toBeVisible();
-  await expect(page.getByText(/no define conversiones entre unidades/)).toBeVisible();
+  await expect(page.getByText(/No se aplican conversiones entre unidades/)).toBeVisible();
   const add = async (code: string, name: string, state: string) => {
     await page.getByLabel('Código', { exact: true }).fill(code);
     await page.getByLabel('Nombre', { exact: true }).fill(name);
@@ -758,9 +758,9 @@ test('P0-030 reportes: indicadores con definición y denominador; no calculable 
   // decirlo: la fila se marca en pantalla como extensión de Terra Link y las otras tres de riesgo no llevan esa marca.
   await expect(table.locator('tbody tr')).toHaveCount(12);
   const critico = table.locator('tbody tr', { hasText: 'risk_critical' });
-  await expect(critico).toContainText(/Extensión de Terra Link: no está en la lista de S1 §60/);
-  await expect(table.locator('tbody tr', { hasText: 'risk_high' })).not.toContainText(/Extensión de Terra Link/);
-  await expect(table.locator('tbody tr').filter({ hasText: /Extensión de Terra Link/ })).toHaveCount(1);
+  await expect(critico).toContainText(/Indicador propio de Terra Link/);
+  await expect(table.locator('tbody tr', { hasText: 'risk_high' })).not.toContainText(/Indicador propio de Terra Link/);
+  await expect(table.locator('tbody tr').filter({ hasText: /Indicador propio de Terra Link/ })).toHaveCount(1);
   // Lo que se puede calcular, se calcula: esta organización tiene productores y parcelas de las pruebas anteriores.
   const productores = table.locator('tbody tr', { hasText: 'producers_total' });
   await expect(productores).toContainText('Estado actual');
@@ -802,9 +802,9 @@ test('P0-030 reportes: indicadores con definición y denominador; no calculable 
   // Interpretación y laguna histórica declaradas, no implícitas.
   await expect(page.getByText(/Readiness no es conformidad/)).toBeVisible();
   await expect(page.getByText(/Reserva no es despacho/)).toBeVisible();
-  // Cobertura histórica: incompleta por pérdida de almacenamiento, SIN afirmar que lo anterior esté vacío.
-  await expect(page.getByText(/Cobertura histórica incompleta/)).toBeVisible();
-  await expect(page.getByText(/Los registros disponibles se incluyen SIEMPRE por su fecha operativa declarada/)).toBeVisible();
+  // Cobertura histórica: sin declaración en esta organización: se muestra como NO DETERMINADA, ni completa ni incompleta.
+  await expect(page.getByText(/Cobertura histórica no determinada/)).toBeVisible();
+  await expect(page.getByText(/No se ha declarado la cobertura histórica/)).toBeVisible();
   await expect(page.getByText(/toda serie anterior.*vacía/i)).toHaveCount(0);
   await expect(page.getByText(/no contiene datos personales ni coordenadas/)).toBeVisible();
   // Comparación de actividad entre dos períodos: usa fechas operativas y declara si los tramos son equivalentes.
@@ -860,7 +860,7 @@ test('P0-030 reportes por entidad: §97 en pantalla, desconocidos visibles, GeoJ
   await expect(page.getByText(/DESCONOCIDO/).first()).toBeVisible();
   await expect(page).toHaveURL(/reporte=plots/);
   // La exportación GeoJSON vive aquí, con su aviso: exportación técnica, perfil regulatorio pendiente de D-05.
-  await expect(page.getByRole('heading', { name: 'Exportación GeoJSON de parcelas' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Descargar geometrías de parcelas' })).toBeVisible();
   await expect(page.getByText(/Aplicabilidad jurídica del perfil pendiente \(D-05\.B\)/)).toBeVisible();
   await expect(page.getByText(/no es un paquete de debida diligencia/i)).toBeVisible();
   // Las filas se paginan y los totales cubren el conjunto completo, no la página mostrada.

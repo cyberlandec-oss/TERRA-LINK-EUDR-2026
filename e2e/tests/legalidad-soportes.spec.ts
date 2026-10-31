@@ -119,7 +119,7 @@ test('el perfil técnico queda en su contexto: Administración, y solo para quie
   await pa.getByText('Para quien revisa: perfil jurídico y evaluación de legalidad').click();
   await expect(pa.getByText(/No condicionan que aportes ni consultes soportes aquí/)).toBeVisible();
   await pa.getByRole('link', { name: 'Abrir el perfil jurídico (configuración técnica)' }).click();
-  await expect(pa.getByText('Esta pantalla es de configuración técnica y de revisión')).toBeVisible();
+  await expect(pa.getByText('Para aportar soportes no hace falta adoptar un perfil')).toBeVisible();
   await expect(pa.getByText(/no depende de que este perfil esté aprobado/)).toBeVisible();
   await ctxA.close();
   // El productor no ve el perfil técnico en su menú ni en la pantalla.

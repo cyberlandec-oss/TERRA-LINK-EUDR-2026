@@ -161,6 +161,17 @@ export class DocumentsService {
       WHERE v.organization_id = ${ctx.organizationId} AND v.document_id = ${documentId}
       ORDER BY v.version_number DESC`.execute(db);
     const links = await db.selectFrom('document_links').select(['entity_type', 'entity_id', 'created_at']).where('organization_id', '=', ctx.organizationId).where('document_id', '=', documentId).execute();
+    // Uso como soporte de entrega (delivery_supports): solo con lectura de TODAS las entregas de la organización. Con un alcance menor no se afirma ausencia ni se filtran códigos ocultos.
+    const usoEnEntregas = this.has(ctx, 'delivery:read')
+      ? (await sql<{ delivery_id: string; delivery_code: string; document_version_id: string; version_number: number; support_kind: string; added_at: string; withdrawn_at: string | null; withdrawn_reason: string | null }>`
+          SELECT s.delivery_id, d.delivery_code, s.document_version_id, v.version_number, s.support_kind, s.added_at::text, w.withdrawn_at::text, w.reason AS withdrawn_reason
+          FROM delivery_supports s JOIN deliveries d ON d.id = s.delivery_id AND d.organization_id = s.organization_id
+          JOIN document_versions v ON v.id = s.document_version_id
+          LEFT JOIN delivery_support_withdrawals w ON w.support_id = s.id
+          WHERE s.organization_id = ${ctx.organizationId} AND s.document_id = ${documentId} ORDER BY s.added_at DESC`.execute(db)).rows.map((r) => ({
+          delivery_id: r.delivery_id, delivery_code: r.delivery_code, version_id: r.document_version_id, version_number: r.version_number, support_kind: r.support_kind,
+          added_at: r.added_at, status: r.withdrawn_at ? 'WITHDRAWN' : 'ACTIVE', withdrawn_at: r.withdrawn_at, withdrawn_reason: r.withdrawn_reason }))
+      : null;
     const personal = d.classification === 'PERSONAL_DATA';
     const contentAllowed = !personal || this.personalContentAllowed(ctx, d.document_type);
     return {
@@ -180,6 +191,7 @@ export class DocumentsService {
         };
       }),
       links,
+      delivery_usage: usoEnEntregas,
       note: 'El hash y el análisis antimalware no prueban autenticidad ni validez jurídica. La revisión humana es por versión; un documento no es evidencia aprobada (P0-019).',
     };
   }

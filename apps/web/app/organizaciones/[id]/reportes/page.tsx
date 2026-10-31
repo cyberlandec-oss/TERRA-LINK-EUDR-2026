@@ -20,7 +20,15 @@ interface Indicator {
   /** Identidad del criterio versionado con el que se contó, cuando el indicador depende de uno. */
   criterion?: { id: string; version_current: string; versions_counted: string[]; mixed_versions: boolean; note: string };
 }
-interface Coverage { status: string; event_date: string; note: string; not_reconstructed: string; reference: string }
+/** Hora legible en la zona del navegador (identificada expresamente); el instante canónico sigue siendo el UTC del servidor. */
+const zonaDelNavegador = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'zona del navegador'; } };
+const fechaLegible = (iso: string) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); };
+function CoberturaAviso({ c }: { c: Coverage }) {
+  if (c.status === 'COMPLETE') return <p className="muted">Cobertura histórica declarada completa{c.declared_at ? ` el ${fechaLegible(c.declared_at)}` : ''}.</p>;
+  if (c.status === 'INCOMPLETE') return <Alert tone="review" title="Cobertura histórica incompleta">Este informe utiliza los registros disponibles. Hay antecedentes incompletos y los resultados pueden no representar toda la actividad histórica. {c.note}</Alert>;
+  return <Alert tone="review" title="Cobertura histórica no determinada">{c.note} Los resultados reflejan los registros disponibles.</Alert>;
+}
+interface Coverage { status: 'UNKNOWN' | 'INCOMPLETE' | 'COMPLETE'; event_date: string | null; note: string; not_reconstructed: string; reference: string | null; declared_at: string | null }
 interface TimeBasis { as_of: string; as_of_note: string; period_bounds: string; civil_dates: string }
 interface Comparison {
   period: { from: string | null; to: string | null };
@@ -174,7 +182,7 @@ export default function ReportsPage() {
   return (
     <>
       <Breadcrumb items={[{ label: ws.activeOrg.name, href: `/organizaciones/${orgId}` }, { label: 'Reportes' }]} />
-      <PageHeader title="Reportes e indicadores" meta={catalog ? `Catálogo ${catalog.catalog_version} · S1 §60 (indicadores) y §97 (por entidad), más las extensiones marcadas como de Terra Link` : undefined} />
+      <PageHeader title="Reportes e indicadores" meta={catalog ? `Indicadores de la organización y reportes por entidad · catálogo ${catalog.catalog_version}` : undefined} />
 
       {catalog && (
         <nav className="card" aria-label="Reportes disponibles">
@@ -230,13 +238,16 @@ export default function ReportsPage() {
 
       {(data ?? entity) && (
         <section className="card">
-          <p className="muted">{data ? data.scope_note : 'Este reporte aplica organización y alcance antes de agregar: los totales no incluyen nada que tu rol no pueda leer.'}</p>
+          <p className="muted">El reporte incluye únicamente los productores y registros que puedes consultar.</p>
+          <p className="muted">Calculado: <strong>{fechaLegible((data ?? entity)!.time_basis.as_of)}</strong> <span className="field-help">(hora de tu navegador, {zonaDelNavegador()}; instante UTC: <code>{(data ?? entity)!.time_basis.as_of}</code>). Las fechas de entrega y cosecha son fechas civiles declaradas y no se convierten.</span></p>
           {data && <p className="muted">{data.privacy_note}</p>}
-          <p className="muted">{(data ?? entity)!.time_basis.as_of_note} Calculado: <code>{(data ?? entity)!.time_basis.as_of}</code></p>
           <p className="muted">{data ? data.interpretation_note : entity!.source}</p>
-          <Alert tone="review" title="Cobertura histórica incompleta">
-            {(data ?? entity)!.coverage.note} {(data ?? entity)!.coverage.not_reconstructed} <code>{(data ?? entity)!.coverage.reference}</code>
-          </Alert>
+          <CoberturaAviso c={(data ?? entity)!.coverage} />
+          <details>
+            <summary>Cómo se calcula este reporte</summary>
+            <p className="muted">{data ? data.scope_note : 'Este reporte aplica organización y alcance antes de agregar: los totales no incluyen nada que tu rol no pueda leer.'}</p>
+            <p className="muted">{(data ?? entity)!.time_basis.as_of_note}</p>
+          </details>
         </section>
       )}
 
@@ -252,7 +263,7 @@ export default function ReportsPage() {
                   <tr key={i.code}>
                     <td><strong>{i.name}</strong><div className="muted"><code>{i.code}</code></div><div className="muted">{KIND[i.kind]}</div>
                       {i.catalog === 'TERRA_LINK' && (
-                        <div className="muted">Extensión de Terra Link: no está en la lista de S1 §60. Se publica para que los casos críticos no queden fuera del desglose.</div>
+                        <div className="muted">Indicador propio de Terra Link: se publica para que los casos críticos no queden fuera del desglose.</div>
                       )}</td>
                     <td>
                       {i.status === 'OK'
@@ -390,11 +401,12 @@ export default function ReportsPage() {
 
       {catalog && activo === 'plots' && (
         <section className="card" aria-labelledby="rp-geojson">
-          <h2 id="rp-geojson">Exportación GeoJSON de parcelas</h2>
-          <p className="field-help">{catalog.geojson.notice}</p>
+          <h2 id="rp-geojson">Descargar geometrías de parcelas</h2>
+          <p>Exporta las ubicaciones y límites registrados de las parcelas que puedes consultar, en su versión vigente. No presenta ninguna declaración externa.</p>
+          <p className="field-help">El archivo indica cuántas parcelas incluye y cuántas omite (las que solo tienen superficie declarada o no tienen versión vigente no se inventan) y, por parcela, la versión y la huella de su geometría. Es distinto de descargar el archivo original importado de una versión y de la evaluación EUDR_GEO_V1. {catalog.geojson.notice}</p>
           <Alert tone="review" title="Aplicabilidad jurídica del perfil pendiente (D-05.B)">{catalog.geojson.regulatory_profile}</Alert>
           {catalog.geojson.available
-            ? <button type="button" onClick={() => void download(`/api/v1/organizations/${orgId}/reports/entities/plots/geojson`, 'parcelas.geojson')} disabled={exporting}>{exporting ? 'Generando…' : 'Descargar GeoJSON'}</button>
+            ? <button type="button" onClick={() => void download(`/api/v1/organizations/${orgId}/reports/entities/plots/geojson`, 'parcelas.geojson')} disabled={exporting}>{exporting ? 'Generando…' : 'Descargar geometrías de parcelas'}</button>
             : <p className="muted">Tu rol no permite esta exportación: falta {catalog.geojson.missing.join(' y ')}. Entrega coordenadas exactas, por eso exige <code>plot:read_geometry</code>.</p>}
         </section>
       )}

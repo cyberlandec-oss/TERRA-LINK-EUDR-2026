@@ -325,10 +325,11 @@ export function SatelliteAnalysis({ orgId, plotId }: { orgId: string; plotId: st
             <Alert
               tone="info"
               title={data.provider_selection.status === 'SELECTED_FOR_DEVELOPMENT'
-                ? (data.jobs.some((j) => j.result) ? t('Nuevos análisis deshabilitados: el servicio real no está autorizado ahora.') : t('El adaptador existe, pero su uso real no está autorizado.'))
+                ? `${t('Nuevos análisis con')} ${data.provider_selection.provider_code ?? ''} ${t('deshabilitados')}`
                 : t('No hay proveedor satelital seleccionado.')}
             >
               <p>{t(data.provider_selection.note ?? '')}</p>
+              {data.provider_selection.status === 'SELECTED_FOR_DEVELOPMENT' && <p>{t('Motivo: las llamadas reales al proveedor están desactivadas hasta que el propietario autorice su uso sobre estas parcelas. El adaptador ya fue comprobado con una geometría artificial. Qué decide el propietario: organización y parcelas, ejecución individual o automática, y duración.')}</p>}
               {data.provider_selection.status === 'SELECTED_FOR_DEVELOPMENT' && data.jobs.some((j) => j.result) && <p>{t('Los resultados ya guardados siguen disponibles abajo para consultarlos y descargarlos; que se pueda consultar un resultado no habilita nuevos análisis.')}</p>}
             </Alert>
           )}

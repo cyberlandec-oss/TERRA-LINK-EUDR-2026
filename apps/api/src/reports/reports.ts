@@ -14,8 +14,8 @@ import { forbidden, notFound } from '../common/errors';
 import { csvCell } from '../audit/audit-query';
 import { ReportCompareDto, ReportPeriodDto } from './reports.dto';
 import {
-  ASSIGNED_SCOPE_NOTE, COVERAGE, EXPORT_RECALC_NOTE, INTERPRETATION_NOTE, REPORT_CATALOG_VERSION, REPORT_EXPORT_FORMAT,
-  SCOPE_NOTE, SNAPSHOT_NOTE, has, timeBasis, type IndicatorStatus, type Period,
+  ASSIGNED_SCOPE_NOTE, coverageFor, coverageLine, EXPORT_RECALC_NOTE, INTERPRETATION_NOTE, REPORT_CATALOG_VERSION, REPORT_EXPORT_FORMAT,
+  SCOPE_NOTE, SNAPSHOT_NOTE, has, timeBasis, type Coverage, type IndicatorStatus, type Period,
 } from './reports-shared';
 import { severityBucket, type CatalogState } from './reports-risk';
 
@@ -333,7 +333,7 @@ export class ReportsController {
     return out;
   }
 
-  meta(period: Period, asOf: string) {
+  meta(period: Period, asOf: string, coverage: Coverage) {
     return {
       catalog_version: REPORT_CATALOG_VERSION,
       source: 'S1 §60 (lista de KPI). Contrato: docs/decisiones/P0-030-REPORTES.md',
@@ -351,7 +351,7 @@ export class ReportsController {
         CRITERION_UNDEFINED: 'El criterio carece de definición aprobada (D-05) y todavía no puede evaluarse.',
         RESTRICTED: 'Tu rol no tiene el permiso de ese dominio: no se calcula ni se informa parcialmente.',
       },
-      coverage: COVERAGE,
+      coverage,
     };
   }
 
@@ -360,7 +360,7 @@ export class ReportsController {
    * mismas fechas operativas). NO reconstruye existencias ni saldos a una fecha: eso es otra capacidad, con su propio
    * contrato, y no se aproxima aquí. Los indicadores de estado declaran que no se comparan en vez de inventar una serie.
    */
-  private comparison(actual: Indicator[], base: Indicator[], period: Period, compare: Period) {
+  private comparison(actual: Indicator[], base: Indicator[], period: Period, compare: Period, coverage: Coverage) {
     const dias = (p: Period) => (p.from && p.to ? Math.round((Date.parse(`${p.to}T00:00:00Z`) - Date.parse(`${p.from}T00:00:00Z`)) / 86400000) + 1 : null);
     const d1 = dias(period);
     const d2 = dias(compare);
@@ -374,7 +374,7 @@ export class ReportsController {
         : 'Los períodos NO abarcan el mismo número de días (o alguno no tiene ambos extremos): la diferencia no es comparable sin más, y por eso se declara en vez de corregirse en silencio.',
       scope_note: 'Solo se comparan los indicadores de ACTIVIDAD, por su fecha operativa declarada. Los de estado describen el momento actual y no tienen serie que comparar.',
       balance_note: 'Comparar actividad NO es reconstruir existencias: el saldo a una fecha es una capacidad distinta, sin contrato aprobado, y no se aproxima aquí.',
-      coverage_note: `${COVERAGE.note} Por eso un período antiguo puede quedar por debajo de lo ocurrido y la comparación debe leerse con esa advertencia.`,
+      coverage_note: coverage.status === 'INCOMPLETE' ? `${coverage.note} Por eso un período antiguo puede quedar por debajo de lo ocurrido y la comparación debe leerse con esa advertencia.` : coverage.note,
       indicators: actual.filter((i) => i.kind === 'ACTIVITY').map((i) => {
         const b = base.find((x) => x.code === i.code);
         const comparable = i.status === 'OK' && b?.status === 'OK' && i.value !== null && b.value !== null;
@@ -400,9 +400,9 @@ export class ReportsController {
     // Ambos cálculos, dentro de la MISMA instantánea: si no, los dos períodos podrían venir de estados distintos.
     const { indicators, comparison } = await this.snapshot(async (trx) => {
       const indicators = await this.compute(trx, ctx, period);
-      return { indicators, comparison: pide ? this.comparison(indicators, await this.compute(trx, ctx, compare), period, compare) : null };
+      return { indicators, comparison: pide ? this.comparison(indicators, await this.compute(trx, ctx, compare), period, compare, await coverageFor(trx, orgId)) : null };
     });
-    return { ...this.meta(period, new Date().toISOString()), can_export: ctx.permissions.includes('report:export'), indicators, comparison };
+    return { ...this.meta(period, new Date().toISOString(), await coverageFor(this.db, orgId)), can_export: ctx.permissions.includes('report:export'), indicators, comparison };
   }
 
   @Get('indicators/export')
@@ -413,13 +413,13 @@ export class ReportsController {
     const indicators = await this.snapshot((trx) => this.compute(trx, ctx, period));
     const org = await this.db.selectFrom('organizations').select('name').where('id', '=', ctx.organizationId).executeTakeFirstOrThrow();
     const generatedAt = new Date().toISOString();
-    const m = this.meta(period, generatedAt);
+    const m = this.meta(period, generatedAt, await coverageFor(this.db, orgId));
     const head: Array<[string, string]> = [
       ['formato', REPORT_EXPORT_FORMAT], ['catalogo', REPORT_CATALOG_VERSION], ['organizacion', org.name], ['organizacion_id', ctx.organizationId],
       ['periodo_desde', period.from ?? 'sin límite'], ['periodo_hasta', period.to ?? 'sin límite'], ['generado', generatedAt],
       ['recalculo', EXPORT_RECALC_NOTE], ['instantanea', SNAPSHOT_NOTE], ['fechas', `${m.time_basis.period_bounds} ${m.time_basis.civil_dates}`], ['as_of', m.time_basis.as_of_note],
       ['alcance', m.scope_note], ['alcance_asignado', m.assigned_scope_note], ['privacidad', m.privacy_note], ['interpretacion', m.interpretation_note],
-      ['cobertura_historica', `${COVERAGE.note} ${COVERAGE.not_reconstructed} Detalle: ${COVERAGE.reference}`],
+      ['cobertura_historica', coverageLine(m.coverage)],
       ['estados', Object.entries(m.status_legend).map(([k, v]) => `${k}: ${v}`).join(' | ')],
       ['nota', 'Formato local provisional. No acredita conformidad EUDR ni aprobación de ninguna autoridad.'],
     ];

@@ -59,6 +59,9 @@ describeDb('P0-030 reportes por entidad: alcance, desconocidos y exportación', 
     orgA = await mk('Coop Entidades A', ADMIN);
     orgB = await mk('Coop Entidades B', 'admin-b@test.local');
     orgC = await mk('Coop Entidades C (volumen)', ADMIN);
+    // Cobertura histórica DECLARADA (migración 0076) para esta organización de ensayo; otra sin declaración sale «desconocida».
+    await sql`INSERT INTO report_coverage_declarations (id, organization_id, status, event_date, note, reference, declared_by)
+      VALUES (${randomUUID()}, ${orgA}, 'INCOMPLETE', '2026-10-13', 'Cobertura histórica incompleta (declaración SINTÉTICA de ensayo): se perdieron registros creados antes del 2026-10-13. Los registros disponibles se incluyen SIEMPRE por su fecha operativa declarada, aunque sea anterior a esa fecha; por eso un período antiguo puede devolver menos de lo que ocurrió.', 'docs/qa/HALLAZGO_PERDIDA_DATOS_DEMO_2026-10-13.md', 'prueba')`.execute(h.db);
     for (const [e, r] of [[AUD, 'AUDITOR'], [EUDR, 'EUDR_MANAGER'], ['exportacion@test.local', 'EXPORT_MANAGER'], ['tecnico@test.local', 'FIELD_TECHNICIAN'], ['trazabilidad@test.local', 'TRACEABILITY_MANAGER']]) await join(e, r);
     product = (await http().post(`${api(orgA)}/products`).set(as(ADMIN)).send({ code: 'CACAO_BABA', name: 'Cacao en baba', product_state: 'CACAO_BABA', unit: 'KG' }).expect(201)).body.id;
     center = (await http().post(`${api(orgA)}/locations`).set(as(ADMIN)).send({ code: 'CR', name: 'Centro', location_type: 'COLLECTION_CENTER' }).expect(201)).body.id;

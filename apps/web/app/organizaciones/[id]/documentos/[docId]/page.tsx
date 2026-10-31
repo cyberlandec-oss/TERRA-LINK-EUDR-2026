@@ -50,11 +50,25 @@ export default function DocumentDetailPage() {
       </section>
       {ws.can('document:upload') && <NewVersion orgId={orgId} doc={d} onDone={load} />}
       <section className="card" aria-labelledby="links-h">
-        <h2 id="links-h">Vinculado a</h2>
-        {d.links.length === 0 ? <p className="muted">Sin vínculos adicionales al titular.</p> : (
-          <ul className="plain">{d.links.map((l) => <li key={`${l.entity_type}:${l.entity_id}`}>{OWNER_LABEL[l.entity_type] ?? l.entity_type} · <code>{l.entity_id}</code></li>)}</ul>
+        <h2 id="links-h">Dónde se usa</h2>
+        <p><strong>Titular:</strong> {OWNER_LABEL[d.owner_type] ?? d.owner_type}. El titular es a quién pertenece el documento; no es lo mismo que usarlo como soporte de una entrega.</p>
+        <h3>Soporte de entregas</h3>
+        {d.delivery_usage === null ? (
+          <p className="muted">{ws.can('document:upload') && !ws.can('delivery:create') ? 'Puedes aportar el archivo; el personal autorizado de acopio lo vincula a la entrega correspondiente. ' : ''}Tu alcance no permite consultar las entregas de la organización, por lo que aquí no se puede saber si este documento ya se usa como soporte.</p>
+        ) : d.delivery_usage.length === 0 ? (
+          <p className="muted">Este documento todavía no está asociado a una entrega.{ws.can('delivery:create') ? <> Para vincularlo: <a href={`/organizaciones/${orgId}/entregas`}>Entregas</a> → abrir la entrega → «Soportes documentales» → «Vincular soporte».</> : null}</p>
+        ) : (
+          <ul className="plain">{d.delivery_usage.map((u) => (
+            <li key={`${u.delivery_id}:${u.version_id}:${u.added_at}`}>
+              <a href={`/organizaciones/${orgId}/entregas/${u.delivery_id}`}>{u.delivery_code}</a> · versión {u.version_number} · {u.status === 'ACTIVE' ? 'vínculo vigente' : `vínculo retirado${u.withdrawn_reason ? `: ${u.withdrawn_reason}` : ''}`}
+            </li>
+          ))}</ul>
         )}
-        <p className="muted">Un soporte de entrega no se vincula desde aquí: se vincula desde la propia entrega («Soportes documentales»), donde queda con su versión exacta. Las relaciones probatorias (respalda/contradice) son del grafo de evidencias (P0-019).</p>
+        {d.links.length > 0 && <>
+          <h3>Otros vínculos</h3>
+          <ul className="plain">{d.links.map((l) => <li key={`${l.entity_type}:${l.entity_id}`}>{OWNER_LABEL[l.entity_type] ?? l.entity_type} · <code>{l.entity_id}</code></li>)}</ul>
+        </>}
+        <p className="muted">Vincular o subir un archivo no certifica su autenticidad ni lo aprueba: la revisión humana de cada versión es un paso aparte.</p>
       </section>
     </>
   );

@@ -847,6 +847,11 @@ export interface SatelliteJobsTable {
   // 0072: organización que solicita (su credencial se usa) y autorización de la propietaria cuando es otra.
   requesting_organization_id: ColumnType<string, string | undefined, string>; authorization_id: string | null;
 }
+export interface ReportCoverageDeclarationsTable {
+  id: string; organization_id: string; status: 'INCOMPLETE' | 'COMPLETE'; event_date: string | null; note: string; reference: string | null; declared_by: string;
+  declared_at: ColumnType<Date, Date | undefined, never>;
+}
+
 export interface PlotProductionDeclarationsTable {
   id: string; organization_id: string; plot_id: string; declaration_number: number; country: string | null; note: string | null;
   declared_by: string; declared_at: Generated<Timestamp>; operation_id: string;
@@ -1089,6 +1094,7 @@ export interface Database {
   satellite_jobs: SatelliteJobsTable;
   satellite_plot_authorizations: SatellitePlotAuthorizationsTable;
   plot_production_declarations: PlotProductionDeclarationsTable;
+  report_coverage_declarations: ReportCoverageDeclarationsTable;
   satellite_results: SatelliteResultsTable;
   satellite_credentials: SatelliteCredentialsTable;
 }

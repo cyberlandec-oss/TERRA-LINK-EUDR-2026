@@ -181,6 +181,12 @@ describeDb('P0-012 entregas, recepción física, soportes y calidad', () => {
     const w = (await http().post(`${base(orgA)}/deliveries/${d.id}/supports/${after.supports[0].id}/withdraw`).set(as('admin-a@test.local')).send({ reason: 'Documento equivocado' }).expect(200)).body;
     expect(w.supports.find((s: { id: string }) => s.id === after.supports[0].id).withdrawn).toMatchObject({ reason: 'Documento equivocado' });
     await expect(sql`DELETE FROM delivery_supports WHERE delivery_id = ${d.id}`.execute(h.db)).rejects.toThrow(/append-only/);
+    // F02: la ficha del documento muestra la entrega que lo usa, con la versión exacta y el estado del vínculo (vigente / retirado); la otra organización no lo ve.
+    const usoDoc = async (doc: { id: string }) => (await http().get(`${base(orgA)}/documents/${doc.id}`).set(as('admin-a@test.local')).expect(200)).body.delivery_usage as Array<{ delivery_code: string; version_number: number; status: string; withdrawn_reason: string | null }>;
+    expect(await usoDoc(doc2)).toEqual([expect.objectContaining({ delivery_code: d.delivery_code, version_number: 1, status: 'ACTIVE' })]);
+    expect(await usoDoc(doc1)).toEqual([expect.objectContaining({ delivery_code: d.delivery_code, version_number: 1, status: 'WITHDRAWN', withdrawn_reason: 'Documento equivocado' })]);
+    expect(await usoDoc(other)).toEqual([]); // control: un documento que ninguna entrega usa figura sin entregas
+    await http().get(`${base(orgA)}/documents/${doc1.id}`).set(as('admin-b@test.local')).expect(404);
   });
 
   it('calidad durante la recepción o después del pesaje; pendiente sin decisión; liberar exige límites; decisión con permiso de calidad; estado separado', async () => {

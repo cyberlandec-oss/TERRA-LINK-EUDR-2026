@@ -23,6 +23,15 @@ interface Fuente {
 }
 interface Regla { code: string; matter: string; article: string; subject: string; applicability_condition: string; evidence_required: string; product_can_check: string; review_status: string; gaps: string }
 interface Version { version: string; technical_status: string; scope: string; scope_note: string; pending_matters: string[]; covered_matters: string[]; legal_review_status: string; sources: Fuente[]; rules: Regla[] }
+const MATERIAS: Record<string, string> = { TENURE: 'tenencia de la tierra', LAND_USE: 'uso del suelo', ENVIRONMENT: 'protección ambiental', LABOUR: 'derechos laborales', HUMAN_RIGHTS: 'derechos humanos', FPIC: 'consentimiento libre, previo e informado', TAX: 'tributos', CUSTOMS: 'aduanas', ANTICORRUPTION: 'anticorrupción' };
+const materia = (c: string) => MATERIAS[c] ?? c;
+/** Estado exacto del perfil frente al requisito del expediente: depende de su alcance y su revisión, no es una negativa permanente. */
+function estadoFrenteAlExpediente(v: { scope: string; legal_review_status: string; pending_matters: string[] }) {
+  const faltas = [...(v.scope !== 'COMPLETE' ? ['materias sin cubrir'] : []), ...(v.legal_review_status !== 'REVIEWED' ? ['revisión jurídica pendiente'] : [])];
+  return faltas.length
+    ? `Para el expediente, este perfil todavía no permite dar por cumplido el requisito de perfil jurídico: ${faltas.join(' y ')}. Esto puede cambiar cuando se publique y revise otra versión.`
+    : 'Este perfil es completo y está revisado: para el expediente falta que la organización lo adopte.';
+}
 interface Catalogo { adopted: { version: string; scope: string; legal_review_status: string } | null; note: string; versions: Version[] }
 interface Item {
   id: string; rule_code: string; applicability: string; applicability_reason: string | null;
@@ -116,17 +125,17 @@ export default function PerfilJuridicoPage() {
     return <ErrorPanel error={new ApiError(403, { code: 'PERMISSION_DENIED', message: 'Tu rol no permite consultar el catálogo de perfiles jurídicos.', request_id: null })} />;
   }
 
-  // El perfil principal (adoptable) es el más reciente PUBLICADO. Un borrador nunca se presenta como adoptable.
-  const v = cat?.versions.find((x) => x.technical_status === 'PUBLISHED');
+  // El perfil principal es el ADOPTADO por la organización; sin adopción, el más reciente PUBLICADO (adoptable). Un borrador nunca se presenta como adoptable.
+  const v = cat?.versions.find((x) => x.version === cat.adopted?.version) ?? cat?.versions.find((x) => x.technical_status === 'PUBLISHED');
   const borradores = cat?.versions.filter((x) => x.technical_status !== 'PUBLISHED') ?? [];
   return (
     <>
       <Breadcrumb items={[{ label: ws.activeOrg.name, href: `/organizaciones/${orgId}` }, { label: 'Perfil jurídico' }]} />
       <PageHeader
-        title="Perfil jurídico (P1-005)"
-        meta="Mecanismo para preparar y revisar un perfil. NO es un perfil aprobado: no acredita legalidad, no satisface el requisito del expediente y no habilita READY."
+        title="Configuración de requisitos documentales"
+        meta="Aquí se configura qué materias y fuentes orientan los soportes de legalidad de tu organización. El perfil se adopta y se revisa aparte; adoptarlo o revisarlo no certifica los documentos ni acredita legalidad."
       />
-      <Alert tone="info" title="Esta pantalla es de configuración técnica y de revisión">
+      <Alert tone="info" title="Para aportar soportes no hace falta adoptar un perfil">
         <p>Para <strong>aportar y consultar soportes</strong>, ver qué documentar y qué observaciones hay, usa <a href={`/organizaciones/${orgId}/legalidad`}>Legalidad y soportes</a>: no depende de que este perfil esté aprobado.</p>
       </Alert>
       {error && <ErrorPanel error={error} onRetry={cargar} />}
@@ -134,11 +143,13 @@ export default function PerfilJuridicoPage() {
 
       {v && (
         <>
-          <Alert tone="review" title={`Perfil ${v.version}: alcance ${v.scope === 'PARTIAL' ? 'PARCIAL' : 'completo'}, revisión jurídica ${v.legal_review_status === 'REVIEWED' ? 'resuelta' : 'PENDIENTE'}`}>
+          <Alert tone={cat?.adopted?.version === v.version ? 'info' : 'review'} title={`${cat?.adopted?.version === v.version ? 'Perfil adoptado' : 'Perfil publicado (aún no adoptado)'} ${v.version}: alcance ${v.scope === 'PARTIAL' ? 'parcial' : 'completo'}, revisión jurídica ${v.legal_review_status === 'REVIEWED' ? 'resuelta' : 'pendiente'}`}>
             <p>{v.scope_note}</p>
             {v.pending_matters.length > 0 && (
-              <p><strong>Materias que NO cubre:</strong> {v.pending_matters.join(', ')}. Mientras falten, este perfil <strong>no satisface</strong> el requisito de perfil jurídico del expediente.</p>
+              <p><strong>Materias que este perfil aún no cubre:</strong> {v.pending_matters.map(materia).join(', ')}.</p>
             )}
+            <p>{estadoFrenteAlExpediente(v)}</p>
+            <details><summary>Códigos de las materias</summary><p className="muted">Cubre: {v.covered_matters.join(', ') || '—'} · No cubre: {v.pending_matters.join(', ') || '—'}</p></details>
           </Alert>
 
           <section>

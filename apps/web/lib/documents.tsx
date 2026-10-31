@@ -14,7 +14,10 @@ export interface DocVersion {
 export interface Doc {
   id: string; document_type: string; type_label: string; classification: string; owner_type: string; owner_id: string; title: string;
   row_version: number; created_at: string; content_access: 'ALLOWED' | 'RESTRICTED'; versions: DocVersion[];
-  links: Array<{ entity_type: string; entity_id: string; created_at: string }>; note: string;
+  links: Array<{ entity_type: string; entity_id: string; created_at: string }>;
+  /** Entregas que usan versiones de este documento como soporte; null = tu alcance no permite consultarlas (no significa que no existan). */
+  delivery_usage: Array<{ delivery_id: string; delivery_code: string; version_id: string; version_number: number; support_kind: string; added_at: string; status: 'ACTIVE' | 'WITHDRAWN'; withdrawn_at: string | null; withdrawn_reason: string | null }> | null;
+  note: string;
 }
 
 export const AVAILABILITY: Record<DocVersion['availability'], { label: string; tone: 'valid' | 'review' | 'blocked' | 'neutral' }> = {

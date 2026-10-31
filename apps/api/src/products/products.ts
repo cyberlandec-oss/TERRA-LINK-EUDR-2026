@@ -137,7 +137,7 @@ export class ProductsService {
     const units = await this.db.selectFrom('measurement_units').select(['code', 'label', 'symbol', 'dimension', 'source']).orderBy('code').execute();
     return {
       states, units, conversions: [],
-      conversions_note: 'El contrato no define conversiones entre unidades: no se aplica ninguna (D-32).',
+      conversions_note: 'No se aplican conversiones entre unidades mientras no haya factores y redondeo adoptados (D-32). La humedad del secado ya se declara en %BH.',
       immutable_fields: IMMUTABLE,
       transformation_note: 'Cambiar de estado (p. ej. de cacao en baba a fermentado) es un proceso con evento y rendimiento, no una edición del catálogo.',
     };

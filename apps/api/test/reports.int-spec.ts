@@ -55,6 +55,9 @@ describeDb('P0-030 reportes: indicadores con denominador, período y permisos', 
     const mk = async (name: string, admin: string) => (await http().post('/api/v1/organizations').set(as('super@test.local')).send({ name, organization_type: 'COOPERATIVE', country: 'EC', initial_admin_email: admin }).expect(201)).body.id;
     orgA = await mk('Coop Reportes A', ADMIN);
     orgB = await mk('Coop Reportes B', 'admin-b@test.local');
+    // Cobertura histórica DECLARADA (migración 0076) para esta organización de ensayo; otra sin declaración sale «desconocida».
+    await sql`INSERT INTO report_coverage_declarations (id, organization_id, status, event_date, note, reference, declared_by)
+      VALUES (${randomUUID()}, ${orgA}, 'INCOMPLETE', '2026-10-13', 'Cobertura histórica incompleta (declaración SINTÉTICA de ensayo): se perdieron registros creados antes del 2026-10-13. Los registros disponibles se incluyen SIEMPRE por su fecha operativa declarada, aunque sea anterior a esa fecha; por eso un período antiguo puede devolver menos de lo que ocurrió.', 'docs/qa/HALLAZGO_PERDIDA_DATOS_DEMO_2026-10-13.md', 'prueba')`.execute(h.db);
     for (const [e, r] of [[AUD, 'AUDITOR'], ['exportacion@test.local', 'EXPORT_MANAGER'], ['recepcion@test.local', 'RECEPTION_OPERATOR'], ['tecnico@test.local', 'FIELD_TECHNICIAN']]) await join(e, r);
     product = (await http().post(`${api(orgA)}/products`).set(as(ADMIN)).send({ code: 'CACAO_BABA', name: 'Cacao en baba', product_state: 'CACAO_BABA', unit: 'KG' }).expect(201)).body.id;
     center = (await http().post(`${api(orgA)}/locations`).set(as(ADMIN)).send({ code: 'CR', name: 'Centro', location_type: 'COLLECTION_CENTER' }).expect(201)).body.id;
@@ -116,6 +119,11 @@ describeDb('P0-030 reportes: indicadores con denominador, período y permisos', 
     expect(b.coverage.status).toBe('INCOMPLETE');
     expect(b.coverage.event_date).toBe('2026-10-13');
     expect(b.coverage.reference).toBe('docs/qa/HALLAZGO_PERDIDA_DATOS_DEMO_2026-10-13.md');
+    // F03: la declaración es de ESTA organización; la otra no la hereda y su cobertura es DESCONOCIDA (ni completa ni incompleta), también en la descarga.
+    const sin = await report('admin-b@test.local', '', orgB);
+    expect(sin.coverage).toMatchObject({ status: 'UNKNOWN', event_date: null, reference: null });
+    expect(sin.coverage.note).toMatch(/no se ha declarado la cobertura/i);
+    expect(JSON.stringify(sin)).not.toMatch(/2026-10-13/);
     expect(b.coverage.note).toMatch(/cobertura histórica incompleta/i);
     expect(b.coverage.note).toMatch(/fecha operativa/i);
     expect(b.coverage.not_reconstructed).toMatch(/no se reconstruye/i);

@@ -2,6 +2,8 @@
 // Contrato: docs/decisiones/P0-030-REPORTES.md.
 import type { TenantContext } from '../authz/authorization.service';
 import type { Permission } from '../authz/catalog';
+import { sql, type Kysely, type Transaction } from 'kysely';
+import type { Database } from '../db/schema';
 
 // El catálogo de REPORTES cambia cuando cambia la LISTA de indicadores publicados; `2026-10-15.1` añade
 // `risk_critical`, que no está en S1 §60 y va marcado `catalog: 'TERRA_LINK'`. No tiene relación con el catálogo de
@@ -16,22 +18,23 @@ export interface Period { from: string | null; to: string | null }
 export type IndicatorStatus = 'OK' | 'NO_DENOMINATOR' | 'UNKNOWN' | 'CRITERION_UNDEFINED' | 'RESTRICTED';
 
 /**
- * Cobertura histórica. La pérdida del 2026-10-13 fue del ALMACENAMIENTO, no de las fechas operativas: un registro
- * conservado o creado después puede declarar una entrega de septiembre y debe contar en septiembre. Lo que falta son
- * los registros perdidos, no un rango de fechas excluido.
+ * Cobertura histórica DECLARADA de los datos de una organización (migración 0076). Es un hecho del conjunto de datos, no una propiedad del producto ni un corte de
+ * fechas: los registros disponibles se incluyen SIEMPRE por su fecha operativa declarada (una entrega registrada después con fecha de septiembre cuenta en septiembre).
+ * Sin declaración la cobertura es DESCONOCIDA —ni completa ni incompleta—, y una base nueva tampoco acredita completitud histórica.
  */
-export const COVERAGE = {
-  status: 'INCOMPLETE' as const,
-  event_date: '2026-10-13',
-  note:
-    'Cobertura histórica incompleta: el almacenamiento local se recreó el 2026-10-13 y se perdieron registros creados antes de esa fecha. ' +
-    'Los registros disponibles se incluyen SIEMPRE por su fecha operativa declarada, aunque sea anterior a esa fecha: una entrega registrada ' +
-    'después de la pérdida con fecha de septiembre cuenta en septiembre. Lo que falta son registros perdidos, no fechas excluidas; por eso un ' +
-    'período antiguo puede devolver menos de lo que ocurrió, y su resultado no debe leerse como ausencia de actividad.',
-  not_reconstructed:
-    'No se reconstruye ninguna cifra a partir de los informes de QA anteriores: son evidencia histórica, no registros operativos.',
-  reference: 'docs/qa/HALLAZGO_PERDIDA_DATOS_DEMO_2026-10-13.md',
+export interface Coverage { status: 'UNKNOWN' | 'INCOMPLETE' | 'COMPLETE'; event_date: string | null; note: string; not_reconstructed: string; reference: string | null; declared_at: string | null }
+export const COVERAGE_UNKNOWN: Coverage = {
+  status: 'UNKNOWN', event_date: null, declared_at: null, reference: null,
+  note: 'No se ha declarado la cobertura histórica de los datos de esta organización: no se afirma que los registros estén completos ni que falten.',
+  not_reconstructed: 'No se reconstruye ninguna cifra a partir de informes anteriores: son evidencia histórica, no registros operativos.',
 };
+export async function coverageFor(db: Kysely<Database> | Transaction<Database>, organizationId: string): Promise<Coverage> {
+  const r = await db.selectFrom('report_coverage_declarations').select(['status', sql<string | null>`event_date::text`.as('event_date'), 'note', 'reference', 'declared_at'])
+    .where('organization_id', '=', organizationId).orderBy('declared_at', 'desc').limit(1).executeTakeFirst();
+  if (!r) return COVERAGE_UNKNOWN;
+  return { status: r.status, event_date: r.event_date, note: r.note, reference: r.reference, declared_at: r.declared_at.toISOString(), not_reconstructed: COVERAGE_UNKNOWN.not_reconstructed };
+}
+export const coverageLine = (c: Coverage) => `${c.note} ${c.not_reconstructed}${c.reference ? ` Detalle: ${c.reference}` : ''}`;
 
 /**
  * Fechas y zona horaria. El sistema no asume ninguna zona: las marcas con hora la exigen explícita (DATETIME_ZONE_REQUIRED)

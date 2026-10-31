@@ -57,8 +57,8 @@ export default function ProductsPage() {
   return (
     <>
       <Breadcrumb items={[{ label: ws.activeOrg.name, href: `/organizaciones/${orgId}` }, { label: 'Productos' }]} />
-      <PageHeader title="Productos" meta="Catálogo de productos de la organización: estado o presentación del cacao y unidad de medida." />
-      {options && <p className="muted">{options.transformation_note} {options.conversions_note}</p>}
+      <PageHeader title="Productos" meta="Consulta los productos que utiliza tu organización, su presentación y unidad de medida." />
+      <p className="muted">Para registrar fermentación o secado de un lote, utiliza {ws.can('lot:read') ? <Link href={`/organizaciones/${orgId}/procesos`}>Procesos</Link> : 'Procesos'}. La presentación y la unidad de un producto no se editan: cambiar la mercancía física es un proceso con sus cantidades. No se aplican conversiones entre unidades (quintal, libra u otras) mientras no haya factores y redondeo adoptados.</p>
       <form className="card" role="search" aria-label="Buscar productos" onSubmit={(e) => { e.preventDefault(); void load(); }}>
         <div className="grid-3">
           <div>

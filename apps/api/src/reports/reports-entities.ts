@@ -18,7 +18,7 @@ import {
   type Definition, type EntityKind,
 } from './reports-catalog';
 import {
-  ASSIGNED_SCOPE_NOTE, COVERAGE, EXPORT_RECALC_NOTE, GEOJSON_EXPORT_FORMAT, INTERPRETATION_NOTE, REPORT_CATALOG_VERSION,
+  ASSIGNED_SCOPE_NOTE, coverageFor, coverageLine, type Coverage, EXPORT_RECALC_NOTE, GEOJSON_EXPORT_FORMAT, INTERPRETATION_NOTE, REPORT_CATALOG_VERSION,
   REPORT_EXPORT_FORMAT, SCOPE_NOTE, SNAPSHOT_NOTE, exportLimitNote, has, timeBasis, type Period,
 } from './reports-shared';
 
@@ -119,7 +119,7 @@ export class EntityReportsController {
     return this.db.transaction().setIsolationLevel('repeatable read').setAccessMode('read only').execute(fn);
   }
 
-  private meta(period: Period, asOf: string) {
+  private meta(period: Period, asOf: string, coverage: Coverage) {
     return {
       catalog_version: REPORT_CATALOG_VERSION,
       time_basis: timeBasis(asOf),
@@ -129,7 +129,7 @@ export class EntityReportsController {
       snapshot_note: SNAPSHOT_NOTE,
       export_note: exportLimitNote(EXPORT_MAX_ROWS),
       export_limit: EXPORT_MAX_ROWS,
-      coverage: COVERAGE,
+      coverage,
       period: { from: period.from, to: period.to },
       limit_note:
         `Las filas se paginan por cursor sobre la clave natural del reporte (página por omisión ${PAGE_DEFAULT}, máximo ${PAGE_MAX}). ` +
@@ -645,7 +645,7 @@ export class EntityReportsController {
         production_period_note: 'El periodo de produccion que exige el Art. 9(1)(d) NO viaja en este archivo: vive en el contexto operativo (entregas) y no hay contrato que diga como representarlo aqui.',
         notice: GEOJSON_PROFILE_NOTICE,
         snapshot: SNAPSHOT_NOTE,
-        coverage: COVERAGE,
+        coverage: await coverageFor(this.db, ctx.organizationId),
       },
     };
     const body = Buffer.from(JSON.stringify(collection, null, 2), 'utf8');
@@ -713,7 +713,7 @@ export class EntityReportsController {
         regulatory_profile: { status: 'PENDING', depends_on: 'D-05.B', technical_profile: 'EUDR_GEO_V1 1.0.0 (D-05.A, provisional)', note: GEOJSON_REGULATORY },
         snapshot: SNAPSHOT_NOTE,
         recalculation: EXPORT_RECALC_NOTE,
-        coverage: COVERAGE,
+        coverage: await coverageFor(this.db, ctx.organizationId),
       },
     };
     const body = Buffer.from(JSON.stringify(collection, null, 2), 'utf8');
@@ -738,7 +738,7 @@ export class EntityReportsController {
     const limit = Math.min(q.limit ?? PAGE_DEFAULT, PAGE_MAX);
     const built = await this.snapshot((trx) => this.build(trx, ctx, d.kind, period, { after: q.cursor ?? null, limit }));
     return {
-      ...this.meta(period, new Date().toISOString()),
+      ...this.meta(period, new Date().toISOString(), await coverageFor(this.db, orgId)),
       kind: d.kind, title: d.title, source: d.source, requires: d.requires, why: d.why,
       period_applies: d.period_applies, period_note: d.period_note,
       can_export: has(ctx, 'report:export'),
@@ -762,7 +762,7 @@ export class EntityReportsController {
     const built = await this.snapshot((trx) => this.buildAll(trx, ctx, d, period));
     const org = await this.db.selectFrom('organizations').select('name').where('id', '=', ctx.organizationId).executeTakeFirstOrThrow();
     const generatedAt = new Date().toISOString();
-    const m = this.meta(period, generatedAt);
+    const m = this.meta(period, generatedAt, await coverageFor(this.db, orgId));
     const head: Array<[string, string]> = [
       ['formato', REPORT_EXPORT_FORMAT], ['catalogo', REPORT_CATALOG_VERSION], ['reporte', d.title], ['fuente', d.source],
       ['organizacion', org.name], ['organizacion_id', ctx.organizationId],
@@ -771,7 +771,7 @@ export class EntityReportsController {
       ['generado', generatedAt], ['recalculo', EXPORT_RECALC_NOTE], ['instantanea', m.snapshot_note], ['limite_exportacion', m.export_note],
       ['fechas', `${m.time_basis.period_bounds} ${m.time_basis.civil_dates}`],
       ['alcance', m.scope_note], ['alcance_asignado', m.assigned_scope_note], ['interpretacion', m.interpretation_note],
-      ['cobertura_historica', `${COVERAGE.note} ${COVERAGE.not_reconstructed} Detalle: ${COVERAGE.reference}`],
+      ['cobertura_historica', coverageLine(m.coverage)],
       ['filas', `${built.rows.length} de ${built.total_rows}${built.truncated ? ` (TRUNCADO en el tope de ${EXPORT_MAX_ROWS}; los totales cubren el conjunto completo)` : ' (conjunto completo)'}`],
       ...built.notes.map((n, i) => [`nota_${i + 1}`, n] as [string, string]),
       ...built.totals.map((t) => [`total_${t.key}`, `${t.label}: ${t.value}`] as [string, string]),
