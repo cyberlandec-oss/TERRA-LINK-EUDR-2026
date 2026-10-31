@@ -1,0 +1,68 @@
+{
+  "fecha": "2026-10-12T15:41:11.051Z",
+  "base": "http://localhost:3000",
+  "entorno": "DESARROLLO local (contenedores), datos DEMO y archivos sintéticos",
+  "ok": true,
+  "casos": [
+    {
+      "caso": "admin: elige Lotes, descarga su plantilla y ve que solo asigna recepciones confirmadas",
+      "ok": true,
+      "detalle": "plantilla-lotes_v1.xlsx",
+      "captura": "docs/qa/capturas/importacion/lo01-admin-plantilla-lotes.png"
+    },
+    {
+      "caso": "admin: exceso, recepción sin existencia, recepción no disponible y fila sin identidad son errores; no confirmable",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/lo02-admin-errores-lotes.png"
+    },
+    {
+      "caso": "admin: la vista previa explica el movimiento antes de confirmar (sin guardar)",
+      "ok": true,
+      "detalle": "movimiento explicado",
+      "captura": "docs/qa/capturas/importacion/lo03-admin-vista-previa-lotes.png"
+    },
+    {
+      "caso": "admin: confirmación con teclado → lote creado",
+      "ok": true,
+      "detalle": "foco en «Confirmar importación»",
+      "captura": "docs/qa/capturas/importacion/lo04-admin-resultado-lotes.png"
+    },
+    {
+      "caso": "base: lote abierto con origen conocido y 20 kg movidos por el ledger desde la recepción",
+      "ok": true,
+      "detalle": "LOT-2026-00004:OPEN:COMPLETE; recepción 50.000000 → 30.000000 kg sin lote",
+      "captura": null
+    },
+    {
+      "caso": "390 px: reimportación = sin cambios («ya está asignada»), nada que confirmar",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/lo05-390-reimportacion-lotes.png"
+    },
+    {
+      "caso": "390 px: sin desplazamiento horizontal de la página",
+      "ok": true,
+      "detalle": "exceso 0px",
+      "captura": null
+    },
+    {
+      "caso": "supervisión (MANAGER): Lotes habilitada",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/lo06-supervision-lotes.png"
+    },
+    {
+      "caso": "trazabilidad (otra organización): sin acceso a la importación de lotes de la cooperativa",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/lo07-trazabilidad-denegado.png"
+    },
+    {
+      "caso": "técnico de campo: sin acceso a la importación de lotes de la cooperativa",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/lo08-técnico-denegado.png"
+    }
+  ]
+}

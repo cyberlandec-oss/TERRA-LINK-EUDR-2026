@@ -1,0 +1,49 @@
+{
+  "entorno": "EMULADOR Android (no teléfono físico)",
+  "pasos": [
+    {
+      "paso": "preparar",
+      "en": "2026-10-11T16:49:42.013Z",
+      "ok": true,
+      "detalle": "Permisos de ubicación y cámara concedidos por adb; posición EMULADA -0.8479, -80.1601; proxy en modo pass",
+      "captura": "docs/qa/capturas/movil-emulador/01-inicio.png"
+    },
+    {
+      "paso": "login",
+      "en": "2026-10-11T16:50:38.210Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Elige la organización/ en 30000 ms (captura de fallo eliminada: contenía una credencial tecleada en el campo equivocado)",
+      "captura": null
+    },
+    {
+      "paso": "login",
+      "en": "2026-10-11T16:55:28.907Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Elige la organización/ en 30000 ms",
+      "captura": null
+    },
+    {
+      "paso": "descargar",
+      "en": "2026-10-11T16:56:00.966Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Descargar datos asignados/ en 30000 ms",
+      "captura": null
+    },
+    {
+      "paso": "login",
+      "en": "2026-10-11T16:58:34.448Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Mi jornada/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/05-fallo-login.png"
+    },
+    {
+      "paso": "descargar",
+      "en": "2026-10-11T16:59:11.712Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Descargar datos asignados/ en 30000 ms",
+      "captura": null
+    }
+  ],
+  "apk": "terra-link-campo-aceptacion-43f26c95 (43f26c95df008f232225f7bc350490034026ad114fc6a1279430fedf681d3219)",
+  "conclusion": "Recorrido INTERRUMPIDO. La interfaz completó el inicio de sesión online (tecnico1 DEMO, organización DEMO · Cooperativa), pero al abrir el almacén cifrado apareció «file is not a database»: withExclusiveTransactionAsync abre una conexión nueva sin la clave de SQLCipher. Defecto corregido en el código (conexión única con cola); la recompilación se detuvo por la guardia de disco (2,07 GB libres). Los demás pasos (captura, foto, offline, cierre forzado, sincronización, interrupción tras commit, cambio de cuenta, vencimiento, revocación, conflicto, almacenamiento lleno inducido) NO se ejecutaron."
+}

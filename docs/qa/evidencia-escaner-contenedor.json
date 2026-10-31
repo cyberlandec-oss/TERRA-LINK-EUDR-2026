@@ -1,0 +1,78 @@
+{
+  "descripcion": "Foto sintética (fixture) por la API en contenedor con el escáner ClamAV real. No es una foto real ni un ensayo en dispositivo.",
+  "api": "http://localhost:4000",
+  "fases": [
+    {
+      "fase": "disponible",
+      "en": "2026-10-11T05:48:11.247Z",
+      "health_ready_http": 200,
+      "operation_id": "23c6557e-4d10-4b1d-b716-aa52880bcece",
+      "push_status": "ACCEPTED",
+      "attachment_before_upload": "AWAITING_CONTENT",
+      "upload_http": 200,
+      "attachment_after_upload": "AVAILABLE",
+      "document_id": "53a2bb1d-8d99-4088-9486-6730e4f67e4e",
+      "version_id": "d92b86ca-4c72-486e-adc2-59132990944e",
+      "ok": true
+    },
+    {
+      "fase": "caido",
+      "en": "2026-10-11T05:48:28.688Z",
+      "health_ready_http": 200,
+      "operation_id": "697239bd-6bad-44bb-ae2c-08a27ed9b6cb",
+      "push_status": "ACCEPTED",
+      "attachment_before_upload": "AWAITING_CONTENT",
+      "upload_http": 200,
+      "attachment_after_upload": "PENDING_SCAN",
+      "document_id": "3e7e91a2-b552-4980-8332-fc9367d2e6de",
+      "version_id": "9598bffc-7908-403e-b20f-53cbc1754557",
+      "ok": true
+    },
+    {
+      "fase": "reintento",
+      "en": "2026-10-11T05:49:21.680Z",
+      "health_ready_http": 200,
+      "operation_id": "697239bd-6bad-44bb-ae2c-08a27ed9b6cb",
+      "disponibilidad_antes": "AVAILABLE",
+      "retry_http": "ya reintentado",
+      "availability_documentos": "AVAILABLE",
+      "ok": true
+    },
+    {
+      "fase": "caido",
+      "en": "2026-10-11T05:49:36.154Z",
+      "health_ready_http": 200,
+      "operation_id": "a5ee9928-7c8c-476d-bac9-a665f891c639",
+      "push_status": "ACCEPTED",
+      "attachment_before_upload": "AWAITING_CONTENT",
+      "upload_http": 200,
+      "attachment_after_upload": "PENDING_SCAN",
+      "document_id": "9d7b7c9e-b2d3-44d2-b5b6-3b9cfb3231a8",
+      "version_id": "228895e4-6637-4546-bedc-dd7e41c96d60",
+      "ok": true
+    },
+    {
+      "fase": "reintento",
+      "en": "2026-10-11T05:50:06.790Z",
+      "health_ready_http": 200,
+      "operation_id": "a5ee9928-7c8c-476d-bac9-a665f891c639",
+      "disponibilidad_antes": "SCAN_FAILED",
+      "retry_http": 200,
+      "availability_documentos": "AVAILABLE",
+      "ok": true
+    },
+    {
+      "fase": "disponible",
+      "en": "2026-10-11T05:58:18.570Z",
+      "health_ready_http": 200,
+      "operation_id": "99d7bb26-4d93-434c-a0cb-2cd6ce37d103",
+      "push_status": "ACCEPTED",
+      "attachment_before_upload": "AWAITING_CONTENT",
+      "upload_http": 200,
+      "attachment_after_upload": "AVAILABLE",
+      "document_id": "f72dd8c4-74d0-446a-94e1-9c30b177eea2",
+      "version_id": "f14da887-3619-440c-b0dd-7bc862207f21",
+      "ok": true
+    }
+  ]
+}

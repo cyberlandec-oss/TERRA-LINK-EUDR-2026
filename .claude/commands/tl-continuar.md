@@ -8,4 +8,5 @@ Si cambió lo relevante, revalida esa parte; conserva el trabajo ajeno y módulo
 Identifica historia, dependencias, bloqueos y siguiente paso documentado.
 Continúa dentro del alcance autorizado; consulta contratos de esa tarea y comandos reales.
 Actualiza pruebas/evidencia/estado y registro de sesión con lo efectivamente realizado.
+Validación de cierre: `npm run validate` local (no se relanza GitHub Actions en esta etapa).
 Contexto adicional: $ARGUMENTS

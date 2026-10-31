@@ -1,0 +1,221 @@
+{
+  "entorno": "EMULADOR Android (no teléfono físico)",
+  "pasos": [
+    {
+      "paso": "preparar",
+      "en": "2026-10-11T19:09:39.266Z",
+      "ok": true,
+      "detalle": "Permisos de ubicación y cámara concedidos por adb; posición EMULADA -0.8479, -80.1601; proxy en modo pass",
+      "captura": null
+    },
+    {
+      "paso": "login",
+      "en": "2026-10-11T19:10:29.309Z",
+      "ok": true,
+      "detalle": "Inicio de sesión online como tecnico1 (DEMO) y organización DEMO · Cooperativa",
+      "captura": "docs/qa/capturas/movil-emulador/01-mi-jornada.png"
+    },
+    {
+      "paso": "descargar-asignaciones",
+      "en": "2026-10-11T19:10:41.790Z",
+      "ok": true,
+      "detalle": "5 parcela(s) autorizadas descargadas",
+      "captura": "docs/qa/capturas/movil-emulador/02-descarga.png"
+    },
+    {
+      "paso": "capturar-ubicacion",
+      "en": "2026-10-11T19:11:08.140Z",
+      "ok": true,
+      "detalle": "Muestra de ubicación EMULADA en DEMO-PAR-001",
+      "captura": "docs/qa/capturas/movil-emulador/03-ubicacion.png"
+    },
+    {
+      "paso": "foto",
+      "en": "2026-10-11T19:11:47.984Z",
+      "ok": true,
+      "detalle": "Foto de la cámara VIRTUAL del emulador (escena sintética); metadatos quitados por la app",
+      "captura": "docs/qa/capturas/movil-emulador/04-foto.png"
+    },
+    {
+      "paso": "guardar-offline",
+      "en": "2026-10-11T19:15:28.034Z",
+      "ok": true,
+      "detalle": {
+        "modo_red": "offline (proxy)",
+        "operaciones": [
+          "Muestra de ubicación:aa5471ef",
+          "Foto:bddafbd6"
+        ]
+      },
+      "captura": "docs/qa/capturas/movil-emulador/05-pendientes-offline.png"
+    },
+    {
+      "paso": "cierre-forzado-y-reapertura",
+      "en": "2026-10-11T19:15:57.404Z",
+      "ok": true,
+      "detalle": {
+        "antes": [
+          "Muestra de ubicación:aa5471ef",
+          "Foto:bddafbd6"
+        ],
+        "despues": [
+          "Muestra de ubicación:aa5471ef",
+          "Foto:bddafbd6"
+        ]
+      },
+      "captura": "docs/qa/capturas/movil-emulador/06-tras-reapertura.png"
+    },
+    {
+      "paso": "interrupcion-tras-commit",
+      "en": "2026-10-11T19:16:24.097Z",
+      "ok": true,
+      "detalle": {
+        "respuesta_cortada": true,
+        "operaciones_confirmadas_en_servidor": 2,
+        "muestras_creadas": 1
+      },
+      "captura": "docs/qa/capturas/movil-emulador/07-sync-cortada.png"
+    },
+    {
+      "paso": "reintento-sin-duplicar",
+      "en": "2026-10-11T19:16:53.717Z",
+      "ok": true,
+      "detalle": {
+        "muestras_tras_reintento": 1,
+        "filas_sync": 2,
+        "ids_mostrados": [
+          "Muestra de ubicación:aa5471ef",
+          "Foto:bddafbd6"
+        ],
+        "mismos_ids": true
+      },
+      "captura": "docs/qa/capturas/movil-emulador/08-sync-reintento.png"
+    },
+    {
+      "paso": "foto-sin-analisis-no-disponible",
+      "en": "2026-10-11T19:17:08.118Z",
+      "ok": true,
+      "detalle": {
+        "app": "archivo recibido, análisis pendiente",
+        "documentos": "SCAN_FAILED",
+        "descargable": false,
+        "tipo": "FIELD_PHOTO"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/09-foto-analisis-pendiente.png"
+    },
+    {
+      "paso": "foto-disponible-tras-analisis",
+      "en": "2026-10-11T19:17:54.259Z",
+      "ok": true,
+      "detalle": {
+        "reintento_analisis": 200,
+        "documentos": "AVAILABLE",
+        "app": "archivo disponible en el servidor"
+      },
+      "captura": "docs/qa/capturas/movil-emulador/10-foto-disponible.png"
+    },
+    {
+      "paso": "conflicto-visible",
+      "en": "2026-10-11T19:18:50.282Z",
+      "ok": true,
+      "detalle": {
+        "edicion_web_http": 201,
+        "version_servidor": 8
+      },
+      "captura": "docs/qa/capturas/movil-emulador/11-conflicto.png"
+    },
+    {
+      "paso": "conflicto-resuelto",
+      "en": "2026-10-11T19:19:20.579Z",
+      "ok": true,
+      "detalle": {
+        "servidor": [
+          "ACCEPTED:a55a99a5-7c5f-4bbd-aaf7-5fc19a414372",
+          "CONFLICT:-"
+        ]
+      },
+      "captura": "docs/qa/capturas/movil-emulador/12-conflicto-resuelto.png"
+    },
+    {
+      "paso": "cambioCuenta",
+      "en": "2026-10-11T19:20:15.330Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Iniciar sesión/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/13-fallo-cambioCuenta.png"
+    },
+    {
+      "paso": "sesion-vencida-bloquea-sin-borrar",
+      "en": "2026-10-11T19:20:53.483Z",
+      "ok": true,
+      "detalle": "reloj del emulador +2 h: captura bloqueada; pendientes visibles",
+      "captura": "docs/qa/capturas/movil-emulador/14-sesion-vencida.png"
+    },
+    {
+      "paso": "reloj-atrasado-bloquea",
+      "en": "2026-10-11T19:21:18.414Z",
+      "ok": true,
+      "detalle": "reloj del emulador −1 día: bloqueo por reloj atrasado",
+      "captura": "docs/qa/capturas/movil-emulador/15-reloj-atrasado.png"
+    },
+    {
+      "paso": "cambioCuenta",
+      "en": "2026-10-11T19:24:35.044Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /^Inicio$/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/17-fallo-cambioCuenta.png"
+    },
+    {
+      "paso": "cerrar-sesion-avisa",
+      "en": "2026-10-11T19:25:31.564Z",
+      "ok": true,
+      "detalle": "aviso de capturas sin enviar",
+      "captura": null
+    },
+    {
+      "paso": "otra-cuenta-no-ve",
+      "en": "2026-10-11T19:26:22.920Z",
+      "ok": true,
+      "detalle": "tecnico2 no ve capturas de tecnico1",
+      "captura": "docs/qa/capturas/movil-emulador/18-tecnico2-sin-capturas.png"
+    },
+    {
+      "paso": "misma-cuenta-recupera",
+      "en": "2026-10-11T19:27:34.646Z",
+      "ok": true,
+      "detalle": {
+        "operaciones": 2
+      },
+      "captura": "docs/qa/capturas/movil-emulador/19-tecnico1-recupera.png"
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-11T19:28:20.022Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Mi jornada/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/21-fallo-almacenamientoLleno.png"
+    },
+    {
+      "paso": "dispositivo-revocado",
+      "en": "2026-10-11T19:28:34.139Z",
+      "ok": true,
+      "detalle": {
+        "revocados": 1
+      },
+      "captura": "docs/qa/capturas/movil-emulador/22-revocado.png"
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-11T19:29:22.258Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Mi jornada/ en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/23-fallo-almacenamientoLleno.png"
+    },
+    {
+      "paso": "almacenamientoLleno",
+      "en": "2026-10-11T19:31:07.184Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Captura · / en 30000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/24-fallo-almacenamientoLleno.png"
+    }
+  ]
+}

@@ -17,3 +17,7 @@ Campo current_quantity editable es simple pero pierde causalidad y tiene carrera
 ## Validación
 
 QA-05/06/07: 800 entrada, 750 salida, 50 merma; doble cierre/retry; dos consumos simultáneos; reserva y despacho; corrección con descendientes; fallos intermedios revierten toda la transacción. Aceptación por operaciones/tech lead antes de cambiar una excepción ya implementada.
+
+## Estado de implementación (2026-10-10)
+
+Implementada la parte de **eventos inmutables + outbox transaccional** (doc 08 «Implementación vigente»). **No implementados:** ledger de inventario, reservas, bloqueo de saldo negativo y correcciones con impacto (P0-016/017/029). Este ADR sigue PROPUESTO.

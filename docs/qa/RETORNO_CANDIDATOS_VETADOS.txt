@@ -1,0 +1,7 @@
+# RNF-12 — Candidatos VETADOS como destino de retorno
+#
+# Un candidato aquí NO se usa como destino de retorno aunque su validación esté aprobada: tiene un defecto
+# conocido. Una línea por candidato: <sha corto> <fecha> <motivo>.
+# Se añade un candidato cuando se descubre el defecto, no cuando se corrige.
+
+8f54b71 2026-10-17 La elevación de plataforma se ligaba a users.token_version, que es por cuenta y no distingue sesiones simultáneas: una segunda sesión de la misma cuenta heredaba la elevación aprobada para la primera. Validación APROBADA pese al defecto. Corregido en de7f996.

@@ -1,0 +1,2 @@
+/data/data/ec.agtech.terralink.campo.pruebanegativa/shared_prefs/expo.modules.kotlin.PersistentDataManager.xml
+/data/data/ec.agtech.terralink.campo.pruebanegativa/files/profileinstaller_profileWrittenFor_lastUpdateTime.dat

@@ -1,0 +1,70 @@
+{
+  "descripcion": "Fixtures sintéticos (no son fotos reales). El SHA-256 de la procesada corresponde al archivo procesado por la app, no al original.",
+  "ok": true,
+  "result": [
+    {
+      "orientacion": 1,
+      "original_orientacion": 1,
+      "procesada_orientacion": 1,
+      "original_con_metadatos": true,
+      "procesada_aceptada_por_servidor": true,
+      "modelo_o_fecha_en_procesada": false,
+      "sha256_original": "0495e6063f7d67f2f57ee6d532b255815145494a5c1c871eb86446db392d64db",
+      "sha256_procesada": "e9e4e923f7b2f696e15868125d3c82e6f6d175701db06b5c3efbd9dc4a43dde4",
+      "o": 1,
+      "original": "240x360",
+      "procesada": "240x360",
+      "referencia": "240x360",
+      "dif_media_original_vs_procesada": 0,
+      "dif_media_procesada_vs_referencia": 0.1286429398148148
+    },
+    {
+      "orientacion": 3,
+      "original_orientacion": 3,
+      "procesada_orientacion": 3,
+      "original_con_metadatos": true,
+      "procesada_aceptada_por_servidor": true,
+      "modelo_o_fecha_en_procesada": false,
+      "sha256_original": "84d8c97c6e5c665946829e5e13777a0557d69bbaf95aea093fba255c1ed9f2d7",
+      "sha256_procesada": "c025fb2cf1dc4d1c0eea4395d97ab4c347bc85bb01ae0c9454bf52f913ded241",
+      "o": 3,
+      "original": "240x360",
+      "procesada": "240x360",
+      "referencia": "240x360",
+      "dif_media_original_vs_procesada": 0,
+      "dif_media_procesada_vs_referencia": 0.12951099537037036
+    },
+    {
+      "orientacion": 6,
+      "original_orientacion": 6,
+      "procesada_orientacion": 6,
+      "original_con_metadatos": true,
+      "procesada_aceptada_por_servidor": true,
+      "modelo_o_fecha_en_procesada": false,
+      "sha256_original": "a01c9d4a06779d5c09819ea802246889ba17c1af328eb9eaccad7e7b3222b8a7",
+      "sha256_procesada": "315578de2f8e8b169f93733fec56155984126616b9937528541bf037ee0c182d",
+      "o": 6,
+      "original": "240x360",
+      "procesada": "240x360",
+      "referencia": "240x360",
+      "dif_media_original_vs_procesada": 0,
+      "dif_media_procesada_vs_referencia": 0.12812210648148148
+    },
+    {
+      "orientacion": 8,
+      "original_orientacion": 8,
+      "procesada_orientacion": 8,
+      "original_con_metadatos": true,
+      "procesada_aceptada_por_servidor": true,
+      "modelo_o_fecha_en_procesada": false,
+      "sha256_original": "293667b5967b9f5427fd35859ca462e6d2f393f4f6ba8ca53e4d7314c9bc80e9",
+      "sha256_procesada": "2c51ea0878fa654eefe8b764fa9ebc630ae16422ce51a43c6041483994109649",
+      "o": 8,
+      "original": "240x360",
+      "procesada": "240x360",
+      "referencia": "240x360",
+      "dif_media_original_vs_procesada": 0,
+      "dif_media_procesada_vs_referencia": 0.12922164351851853
+    }
+  ]
+}

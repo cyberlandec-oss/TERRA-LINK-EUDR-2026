@@ -1,0 +1,26 @@
+{
+  "tipo": "satelite",
+  "casos": [
+    {
+      "cuenta": "admin.cooperativa (ORG_ADMIN)",
+      "resultado": "tarjeta=1; botones de solicitud=0; estado=NO EVALUADO; razón=«»",
+      "ok": true
+    },
+    {
+      "cuenta": "auditor.cooperativa (AUDITOR)",
+      "resultado": "tarjeta=1; botones=0; razón=«Tu rol no encarga análisis satelitales.»; coordenadas en la tarjeta=false",
+      "ok": true
+    },
+    {
+      "cuenta": "tecnico1.cooperativa (FIELD_TECHNICIAN, 390 px)",
+      "resultado": "tarjeta=0 y encabezado=0 (esperado 0 y 0); estado satelital filtrado=true; «sin datos»=false; desborde=false; resto de la ficha visible=true",
+      "ok": true
+    },
+    {
+      "cuenta": "admin.cooperativa (error 503, teclado, 390 px)",
+      "resultado": "panel de error=true; foco en «Reintentar» con contorno solid/2px; tras Enter muestra el estado real=true; desborde=false",
+      "ok": true
+    }
+  ],
+  "ok": true
+}

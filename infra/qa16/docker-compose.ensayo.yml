@@ -1,0 +1,86 @@
+# QA-16 · ENSAYO DE RESTAURACIÓN. Instancia aislada que levanta la aplicación contra una COPIA restaurada.
+#
+# Aislamiento, a propósito y por completo:
+# - proyecto Compose propio (`-p tl-ensayo-qa16`), por tanto red y volúmenes propios;
+# - puertos distintos de los de desarrollo (5450/6390/9010/4010/3010 frente a 5440/6379/9000/4000/3000);
+# - **sin `migrate` y sin `worker`**: la copia no se migra ni se procesa; se restaura y se usa;
+# - los secretos llegan por `--env-file` desde un archivo temporal generado a partir del `claves.env` del respaldo:
+#   nunca se escriben en el repositorio.
+#
+# Uso (procedimiento completo y comprobaciones en docs/qa/EVIDENCIA_QA16_RESTAURACION_2026-10-15.md):
+#   docker compose -p tl-ensayo-qa16 -f infra/qa16/docker-compose.ensayo.yml --env-file <tmp>/ensayo.env up -d --wait
+#
+# NO apunta a la base ni al almacenamiento de desarrollo. Si alguna variable faltara, el arranque falla en vez de
+# caer por omisión en los valores de desarrollo: por eso ninguna tiene valor por defecto.
+name: tl-ensayo-qa16
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: ${ENSAYO_PG_USER:?falta ENSAYO_PG_USER}
+      POSTGRES_PASSWORD: ${ENSAYO_PG_PASSWORD:?falta ENSAYO_PG_PASSWORD}
+      POSTGRES_DB: ${ENSAYO_PG_DB:?falta ENSAYO_PG_DB}
+    ports: ["5450:5432"]
+    volumes: [ensayo-postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7.4-alpine
+    ports: ["6390:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  object-storage:
+    image: versity/versitygw:v1.8.0
+    command: ["--port", ":9000", "posix", "/data"]
+    environment:
+      ROOT_ACCESS_KEY: ${S3_ACCESS_KEY:?falta S3_ACCESS_KEY}
+      ROOT_SECRET_KEY: ${S3_SECRET_KEY:?falta S3_SECRET_KEY}
+    ports: ["9010:9000"]
+    volumes: [ensayo-object-data:/data]
+  api:
+    image: terra-link-api:local
+    environment:
+      DATABASE_URL: postgres://${ENSAYO_PG_USER}:${ENSAYO_PG_PASSWORD}@postgres:5432/${ENSAYO_PG_DB}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET}
+      JWT_TTL_SECONDS: 3600
+      PII_KEYS: ${PII_KEYS:?falta PII_KEYS}
+      PII_ACTIVE_KEY_ID: ${PII_ACTIVE_KEY_ID:?falta PII_ACTIVE_KEY_ID}
+      PII_INDEX_KEY: ${PII_INDEX_KEY:?falta PII_INDEX_KEY}
+      S3_ENDPOINT: http://object-storage:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET:?falta S3_BUCKET}
+      WEB_ORIGIN: http://localhost:3010
+      API_PORT: 4000
+      # Escáner no disponible en el ensayo: la API lo informa como capacidad ausente y las subidas no se ejercitan.
+      SCANNER_HOST: scanner-ausente
+      # Llamadas externas y fixture satelital DESHABILITADAS de forma explícita.
+      SATELLITE_LIVE_CALLS: disabled
+      SATELLITE_FIXTURE_ENABLED: "false"
+      # Marca de la instancia, visible en la configuración efectiva.
+      TL_INSTANCIA: ENSAYO_DE_RESTAURACION_QA16
+    ports: ["4010:4000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      object-storage: { condition: service_started }
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:4010
+    image: terra-link-web:ensayo-qa16
+    ports: ["3010:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+volumes:
+  ensayo-postgres-data:
+  ensayo-object-data:

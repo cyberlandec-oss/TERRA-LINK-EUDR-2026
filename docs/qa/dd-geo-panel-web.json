@@ -1,0 +1,23 @@
+{
+  "fecha": "2026-10-29T17:46:40.742Z",
+  "resultados": [
+    {
+      "cuenta": "eudr.cooperativa",
+      "panel_visible": true,
+      "estado_actual": true,
+      "motivo_concreto": true,
+      "ultima_instantanea": true,
+      "aviso_fijo_antiguo": false,
+      "sin_conexion": false
+    },
+    {
+      "cuenta": "auditor.cooperativa",
+      "panel_visible": true,
+      "estado_actual": true,
+      "motivo_concreto": true,
+      "ultima_instantanea": true,
+      "aviso_fijo_antiguo": false,
+      "sin_conexion": false
+    }
+  ]
+}
