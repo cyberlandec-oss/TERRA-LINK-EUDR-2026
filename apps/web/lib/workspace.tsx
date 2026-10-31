@@ -138,6 +138,7 @@ function navFor(ws: Workspace, orgId: string | null, t: (es: string) => string):
     // P1-008: destinos de integración y resultado de cada entrega. Leerlo exige `integration:read`;
     // configurarlos, `integration:manage`. Estar en el menú no concede ninguno de los dos.
     if (ws.can('integration:read')) admin.push({ href: `${base}/integracion`, label: t('Integración (webhooks)'), match: (p) => p.startsWith(`${base}/integracion`) });
+    if (ws.can('integration:read')) admin.push({ href: `${base}/eudr-is`, label: t('Conexión EUDR-IS'), match: (p) => p.startsWith(`${base}/eudr-is`) });
     if (admin.length) groups.push({ title: t('Administración'), items: admin });
   }
   const general: NavItem[] = [{ href: '/organizaciones', label: ws.isPlatformAdmin ? t('Organizaciones (plataforma)') : t('Mis organizaciones'), match: (p) => p === '/organizaciones' }];

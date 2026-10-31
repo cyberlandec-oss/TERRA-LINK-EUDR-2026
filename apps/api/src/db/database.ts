@@ -78,6 +78,7 @@ import * as m0073 from './migrations/0073_concesion_soportes_instantanea';
 import * as m0074 from './migrations/0074_concesion_geometrias_instantanea';
 import * as m0075 from './migrations/0075_pais_de_produccion_por_parcela';
 import * as m0076 from './migrations/0076_cobertura_historica_declarada';
+import * as m0077 from './migrations/0077_eudr_is_credenciales';
 
 // Las migraciones se registran explícitamente (orden por nombre). Nunca editar una ya publicada.
 const MIGRATIONS: Record<string, Migration> = {
@@ -157,6 +158,7 @@ const MIGRATIONS: Record<string, Migration> = {
   '0074_concesion_geometrias_instantanea': m0074,
   '0075_pais_de_produccion_por_parcela': m0075,
   '0076_cobertura_historica_declarada': m0076,
+  '0077_eudr_is_credenciales': m0077,
 };
 
 class StaticMigrationProvider implements MigrationProvider {

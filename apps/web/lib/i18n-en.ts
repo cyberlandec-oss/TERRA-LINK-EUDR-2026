@@ -216,6 +216,7 @@ export const EN: Record<string, string> = {
   'Auditoría': 'Audit',
   'Entregas de eventos': 'Event deliveries',
   'Integración (webhooks)': 'Integration (webhooks)',
+  'Conexión EUDR-IS': 'EUDR-IS connection',
   'Administración': 'Administration',
   'Organizaciones (plataforma)': 'Organizations (platform)',
   'Mis organizaciones': 'My organizations',

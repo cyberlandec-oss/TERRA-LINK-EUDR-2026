@@ -847,6 +847,16 @@ export interface SatelliteJobsTable {
   // 0072: organización que solicita (su credencial se usa) y autorización de la propietaria cuando es otra.
   requesting_organization_id: ColumnType<string, string | undefined, string>; authorization_id: string | null;
 }
+export interface EudrIsCredentialsTable {
+  organization_id: string; environment: 'ACCEPTANCE' | 'PRODUCTION'; username_ciphertext: string; auth_key_ciphertext: string; client_id_ciphertext: string;
+  registered_via: 'API' | 'CLI'; created_by: string | null; created_at: ColumnType<Date, Date | undefined, never>; rotated_at: ColumnType<Date | null, Date | null | undefined, Date | null>;
+}
+
+export interface EudrIsEchoChecksTable {
+  id: string; organization_id: string; environment: 'ACCEPTANCE' | 'PRODUCTION'; outcome: 'OK' | 'AUTH_FAILED' | 'FAULT' | 'UNEXPECTED_RESPONSE' | 'UNREACHABLE';
+  http_status: number | null; detail: string | null; requested_by: string | null; checked_at: ColumnType<Date, Date | undefined, never>;
+}
+
 export interface ReportCoverageDeclarationsTable {
   id: string; organization_id: string; status: 'INCOMPLETE' | 'COMPLETE'; event_date: string | null; note: string; reference: string | null; declared_by: string;
   declared_at: ColumnType<Date, Date | undefined, never>;
@@ -1095,6 +1105,8 @@ export interface Database {
   satellite_plot_authorizations: SatellitePlotAuthorizationsTable;
   plot_production_declarations: PlotProductionDeclarationsTable;
   report_coverage_declarations: ReportCoverageDeclarationsTable;
+  eudr_is_credentials: EudrIsCredentialsTable;
+  eudr_is_echo_checks: EudrIsEchoChecksTable;
   satellite_results: SatelliteResultsTable;
   satellite_credentials: SatelliteCredentialsTable;
 }
