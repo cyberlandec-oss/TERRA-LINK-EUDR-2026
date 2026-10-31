@@ -12910,6 +12910,150 @@
         ]
       }
     },
+    "/api/v1/organizations/{orgId}/eudr-is/credentials": {
+      "get": {
+        "operationId": "EudrIsController_status",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "eudr-is"
+        ]
+      }
+    },
+    "/api/v1/organizations/{orgId}/eudr-is/credentials/{environment}": {
+      "put": {
+        "operationId": "EudrIsController_set",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetEudrIsCredentialDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "eudr-is"
+        ]
+      },
+      "delete": {
+        "operationId": "EudrIsController_remove",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "eudr-is"
+        ]
+      }
+    },
+    "/api/v1/organizations/{orgId}/eudr-is/echo/{environment}": {
+      "post": {
+        "operationId": "EudrIsController_echo",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "eudr-is"
+        ]
+      }
+    },
     "/api/v1/organizations/{orgId}/reports/indicators": {
       "get": {
         "operationId": "ReportsController_indicators",
@@ -16752,6 +16896,28 @@
         "required": [
           "operation_id",
           "reason"
+        ]
+      },
+      "SetEudrIsCredentialDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Usuario de servicios web (atributo «username» del perfil EU Login). Se cifra y nunca se devuelve."
+          },
+          "authentication_key": {
+            "type": "string",
+            "description": "Authentication Key del perfil (Web Services Access). Se cifra y nunca se devuelve."
+          },
+          "web_service_client_id": {
+            "type": "string",
+            "description": "WebServiceClientId. Se cifra y nunca se devuelve."
+          }
+        },
+        "required": [
+          "username",
+          "authentication_key",
+          "web_service_client_id"
         ]
       }
     }
