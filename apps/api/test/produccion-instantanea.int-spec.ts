@@ -176,6 +176,13 @@ describeDb('período y país de producción en la instantánea', () => {
     // …y la vigente informa que las secciones de entregas y parcelas cambiaron.
     const vista = (await http().get(`${base(orgA)}/dd-snapshots/${snap1.id}`).set(as(ADMIN)).expect(200)).body;
     expect(vista.readiness.changed_sections).toEqual(expect.arrayContaining(['deliveries', 'plots']));
+    // Guía de resolución: todo requisito NO cumplido tiene su guía, con roles del catálogo vigente (control: ningún requisito cumplido la trae).
+    const noCumplidos = (vista.requirements as Array<{ code: string; status: string }>).filter((r) => r.status !== 'MET');
+    expect(noCumplidos.length).toBeGreaterThan(0);
+    for (const r of noCumplidos) expect(vista.resolution[r.code]).toMatchObject({ action: expect.any(String), screen: expect.any(String), kind: expect.stringMatching(/^(DATA|ACTION|DECISION|EXTERNAL)$/) });
+    expect(vista.resolution.RISK_EVALUATION_CURRENT.roles).toEqual(['EUDR_MANAGER', 'ORG_ADMIN']);
+    expect(vista.resolution.SHIPMENT_LINK.roles).toEqual(['EXPORT_MANAGER', 'ORG_ADMIN']);
+    for (const r of (vista.requirements as Array<{ code: string; status: string }>).filter((x) => x.status === 'MET')) expect(vista.resolution[r.code]).toBeUndefined();
     // La nueva instantánea fija la corrección con su procedencia (número de corrección y declaración 2); el historial del país conserva la 1.
     const snap2 = (await http().post(`${base(orgA)}/dd-cases/${caso.id}/snapshots`).set(as(ADMIN)).send({ operation_id: randomUUID() }).expect(201)).body.snapshot;
     const c2 = await snapshotDe(snap2.id);

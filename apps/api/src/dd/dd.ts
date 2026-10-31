@@ -19,6 +19,7 @@ import { EVENT_STORE, type EventStore } from '../events/events';
 import { RiskService } from '../risk/risk';
 import { geoEvaluationPanel } from './geo-panel';
 import { buildPackage, evaluateRequirements, manifestOf, readinessOf, sectionHashes, sha256, summary, DISCLAIMER, type DdContent, type Requirement } from './requirements';
+import { resolucionDe } from './resolucion';
 
 /** D-34.A.1: el vínculo concreto que una acreditación debe cubrir para despachar ese ítem. */
 export interface DispatchLink { shipment_id: string; item_id: string; reservation_id: string; quantity: string }
@@ -444,6 +445,8 @@ export class DdService {
       content_hash: s.content_hash, manifest: s.manifest, content: this.redact(ctx, s.content),
       redacted: { geometry: !this.profile(ctx).geometry, personal_documents: !this.profile(ctx).personal_documents },
       requirements: s.requirements, summary: summary(s.requirements),
+      // Guía de resolución por requisito NO cumplido: qué falta, quién puede aportarlo (roles del catálogo vigente), desde qué pantalla y de qué naturaleza. No entra en el hash.
+      resolution: Object.fromEntries(s.requirements.filter((r) => r.status !== 'MET').map((r) => [r.code, resolucionDe(r.code)] as const).filter(([, g]) => g !== null)),
       readiness: { captured: s.readiness, effective, label: READINESS_LABEL[effective], changed_sections: fresh.changed,
         note: fresh.status === 'STALE' ? 'Cambiaron datos relevantes desde esta instantánea: la preparación dependiente quedó desactualizada (la instantánea no se modifica).' : 'READY indica preparación interna; ninguna instantánea significa DDS presentada.' },
       review: { process_status: process, history: reviews.map((r) => ({ action: r.action, reason: r.reason, at: r.reviewed_at, reviewer: name(r.f, r.l) })) },

@@ -728,6 +728,10 @@ test('P0-022 expediente: requisitos bloqueados explicados, borrador interno desc
   const reqs = page.getByRole('table', { name: 'Requisitos' });
   await expect(reqs.locator('tr').filter({ hasText: 'RISK_CATALOG_APPROVED' })).toContainText('No evaluable');
   await expect(reqs.locator('tr').filter({ hasText: 'REGULATORY_CONCLUSION' })).toContainText('No evaluable');
+  // Cómo se resuelve: naturaleza, roles del catálogo y pantalla; un requisito pendiente de un tercero lo dice sin prometer lo que Terra Link no puede hacer.
+  await expect(reqs.locator('tr').filter({ hasText: 'REGULATORY_CONCLUSION' })).toContainText('Requiere una decisión humana');
+  await expect(reqs.locator('tr').filter({ hasText: 'REGULATORY_CONCLUSION' }).getByRole('link', { name: /Ir a Riesgo del lote/ })).toBeVisible();
+  await expect(reqs.locator('tr').filter({ hasText: 'RISK_CATALOG_APPROVED' })).toContainText('Depende de un tercero');
   await expect(page.getByText('Bloqueada').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Generar paquete de diligencia' })).toBeDisabled();
   await page.getByRole('button', { name: 'Generar borrador interno' }).click();

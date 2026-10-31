@@ -1,14 +1,16 @@
 'use client';
 
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { ApiError, api, apiDownload } from '../../../../../lib/api';
+import { ApiError, ROLE_LABELS, api, apiDownload } from '../../../../../lib/api';
 import { useWorkspace } from '../../../../../lib/workspace';
 import { Alert, Breadcrumb, ErrorPanel, Loading, PageHeader, StatusBadge } from '../../../../../lib/ui';
 import { ErrorDetails } from '../../../../../lib/deliveries';
 import { DD_PROCESS, READINESS_TONE, REQ_STATUS } from '../../../../../lib/dd';
 import { GeoEvaluationPanel } from '../../../../../lib/geo-eval-panel';
 
+interface Resolucion { action: string; roles: string[]; permission: string | null; screen: string; kind: 'DATA' | 'ACTION' | 'DECISION' | 'EXTERNAL'; limit: string | null }
 interface Req { code: string; label: string; status: string; detail: string; source: string; references: string[] }
 interface Exp { id: string; kind: string; label: string; package_hash: string; size_bytes: number; exported_at: string; exported_by: string; disclaimer: string }
 interface Snapshot {
@@ -24,13 +26,14 @@ interface Snapshot {
     mitigations: Array<{ id: string; factor_code: string; status: string }>;
   };
   redacted: { geometry: boolean; personal_documents: boolean };
+  resolution?: Record<string, Resolucion>;
   requirements: Req[]; summary: { total: number; met: number; pending: number; invalid: number; not_evaluable: number; percent_met: number; note: string };
   readiness: { captured: string; effective: string; label: string; changed_sections: string[]; note: string };
   review: { process_status: string; history: Array<{ action: string; reason: string; at: string; reviewer: string }> };
   submission: { status: string; note: string }; exports: Exp[];
   actions: { start_review: boolean; return: boolean; approve: boolean; approve_blocked_reason: string | null; export_internal: boolean; export_package: boolean; export_package_blocked_reason: string | null };
 }
-interface DdCase { id: string; case_number: string; subject: { code: string }; scope_note: string; created_by: string; latest: Snapshot | null; history: Array<{ id: string; snapshot_number: number; readiness_label: string; captured_at: string; content_hash: string }>; actions: { snapshot: boolean } }
+interface DdCase { id: string; case_number: string; subject: { code: string; id: string }; scope_note: string; created_by: string; latest: Snapshot | null; history: Array<{ id: string; snapshot_number: number; readiness_label: string; captured_at: string; content_hash: string }>; actions: { snapshot: boolean } }
 
 // Declarado / desconocido / sin declarar: tres cosas distintas. La fecha de entrega o de recepción nunca sustituye a la cosecha, ni la organización al país de producción.
 const cosechaDe = (h?: { precision: string; start: string | null; end: string | null; correction_number: number }) => {
@@ -44,6 +47,28 @@ const paisDe = (p?: { declaration_number: number; country: string | null }) => {
   if (!p.country) return { estado: 'DECLARED_UNKNOWN', texto: `país de producción declarado como desconocido (declaración ${p.declaration_number})` };
   return { estado: 'DECLARED', texto: `país de producción declarado: ${p.country} (declaración ${p.declaration_number})` };
 };
+
+const NATURALEZA: Record<string, string> = { DATA: 'Falta información o un soporte', ACTION: 'Falta ejecutar una acción', DECISION: 'Requiere una decisión humana', EXTERNAL: 'Depende de un tercero o de una decisión pendiente' };
+const RUTA: Record<string, string> = { LOT_RISK: 'riesgo', DELIVERIES: 'entregas', MITIGATIONS: 'mitigaciones', SHIPMENTS: 'embarques', GEO_CONFIG: 'geolocalizacion', LEGAL_PROFILE: 'perfil-juridico', PLOTS: 'parcelas', INVENTORY: 'inventario', LOT: 'lotes' };
+const PANTALLA: Record<string, string> = { LOT_RISK: 'Riesgo del lote', DELIVERIES: 'Entregas', MITIGATIONS: 'Mitigaciones', SHIPMENTS: 'Embarques', GEO_CONFIG: 'Geolocalización', LEGAL_PROFILE: 'Perfil jurídico', PLOTS: 'Parcelas', INVENTORY: 'Inventario', LOT: 'Lotes' };
+
+// Guía de resolución (del servidor): qué falta, quién puede aportarlo y desde qué pantalla. No concede nada; el servidor decide cada acción.
+function Resolver({ g, orgId, d, can }: { g?: Resolucion; orgId: string; d: DdCase; can: (p: string) => boolean }) {
+  if (!g) return <span className="muted">—</span>;
+  const ruta = g.screen === 'LOT_RISK' ? `/organizaciones/${orgId}/riesgo/${d.subject.id}` : `/organizaciones/${orgId}/${RUTA[g.screen]}`;
+  const tuyo = g.permission ? can(g.permission) : false;
+  return (
+    <>
+      <div><strong>{NATURALEZA[g.kind]}.</strong> {g.action}</div>
+      <div className="field-help">
+        {g.roles.length ? <>Pueden: {g.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')}. {tuyo ? 'Tu cuenta puede hacerlo.' : 'Tu cuenta no tiene este permiso.'} </> : null}
+        {g.kind === 'EXTERNAL' ? 'Depende de un tercero o de una decisión del propietario; Terra Link no puede resolverlo por sí solo.' : null}
+        {g.limit ? <> {g.limit}</> : null}
+      </div>
+      <Link href={ruta}>Ir a {PANTALLA[g.screen]}</Link>
+    </>
+  );
+}
 
 const ACTION_LABEL: Record<string, string> = { START_REVIEW: 'Revisión iniciada', RETURN: 'Devuelta', APPROVE: 'Aprobada' };
 const SECTION_LABEL: Record<string, string> = { subject: 'sujeto', quantities: 'cantidades', origin: 'origen', deliveries: 'entregas', plots: 'parcelas/geometrías', quality: 'calidad', documents: 'documentos', evidence: 'evidencias', risk: 'riesgo', mitigations: 'mitigaciones', profiles: 'perfiles' };
@@ -104,12 +129,13 @@ export default function DdCasePage() {
           {s.readiness.effective === 'STALE' && <Alert tone="review" title="Preparación desactualizada">{s.readiness.note} Cambió: {s.readiness.changed_sections.map((c) => SECTION_LABEL[c] ?? c).join(', ')}.</Alert>}
           <p>{s.summary.met} de {s.summary.total} requisitos cumplidos · {s.summary.pending} pendientes · {s.summary.invalid} inválidos · {s.summary.not_evaluable} no evaluables. <span className="field-help">{s.summary.note}</span></p>
           <div className="table-wrap"><table aria-label="Requisitos">
-            <thead><tr><th scope="col">Requisito</th><th scope="col">Estado</th><th scope="col">Detalle</th></tr></thead>
+            <thead><tr><th scope="col">Requisito</th><th scope="col">Estado</th><th scope="col">Detalle</th><th scope="col">Cómo se resuelve</th></tr></thead>
             <tbody>{s.requirements.map((r) => (
               <tr key={r.code}>
                 <td>{r.label}<div className="field-help">{r.code}</div></td>
                 <td><StatusBadge tone={REQ_STATUS[r.status].tone}>{REQ_STATUS[r.status].label}</StatusBadge></td>
                 <td>{r.detail}{r.references.length ? ` · ${r.references.join(', ')}` : ''}<div className="field-help">Fuente: {r.source}</div></td>
+                <td>{r.status === 'MET' ? <span className="muted">—</span> : <Resolver g={s.resolution?.[r.code]} orgId={orgId} d={d} can={ws.can} />}</td>
               </tr>
             ))}</tbody>
           </table></div>
