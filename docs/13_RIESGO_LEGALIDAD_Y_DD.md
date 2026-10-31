@@ -232,3 +232,7 @@ Qué información pide el expediente, de dónde sale en Terra Link, quién la ap
 - **Tres estados que no se mezclan:** declarado, declarado como desconocido y sin declarar; en el expediente, la vista del comprador y los polígonos. Lo desconocido no se asigna a ningún país ni se cubre con otra fecha.
 - **Un solo dato nuevo:** el país, como declaración por parcela de origen (varios orígenes se conservan por separado). El período reutiliza la cosecha efectiva de cada entrega; no existe otro período editable en el expediente.
 - **Frescura:** corregir una cosecha o redeclarar un país desactualiza la instantánea vigente y deja intactas las anteriores. Evidencia: `qa/EVIDENCIA_PRODUCCION_PAIS_Y_PERIODO_2026-10-30.md`.
+
+### Cómo se resuelve cada requisito (2026-10-31)
+
+- `GET …/dd-cases/{id}` devuelve `latest.resolution` para cada requisito no cumplido: acción, naturaleza (`DATA`, `ACTION`, `DECISION`, `EXTERNAL`), roles que hoy tienen el permiso (del catálogo), permiso y pantalla. Es guía de la vista: no entra en el hash de la instantánea y no concede nada. Un requisito `EXTERNAL` lo dice sin prometer lo que Terra Link no puede hacer. Registro de los tres expedientes del DEMO: `qa/REVISION_REQUISITOS_PENDIENTES_DD_2026-10-30.md`.
