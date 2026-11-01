@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-10-31T04:19:17.087Z",
+  "fecha": "2026-11-01T00:55:41.305Z",
   "base": "http://localhost:3000",
   "entorno": "DESARROLLO local (contenedores), datos DEMO",
   "combinaciones": 22,
@@ -28,7 +28,7 @@
     {
       "caso": "admin.cooperativa · DEMO · Cooperativa Río Verde · ORG_ADMIN",
       "ok": true,
-      "detalle": "coincide con permisos efectivos; 13 fila(s) [personal 3 · supervisión 10]: DELIVERY_DRAFTS(1), QUALITY_PENDING(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(7), MITIGATIONS_ASSIGNED(3)",
+      "detalle": "coincide con permisos efectivos; 14 fila(s) [personal 4 · supervisión 10]: DELIVERY_DRAFTS(1), QUALITY_PENDING(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(7), MITIGATIONS_ASSIGNED(4)",
       "captura": "docs/qa/capturas/web-por-rol/admin.cooperativa-cooperativa-inicio.png",
       "fila": {
         "cuenta": "admin.cooperativa",
@@ -37,7 +37,7 @@
         "permisos": 107,
         "menu": "coincide con permisos efectivos",
         "contexto": "organización activa, usuario y roles visibles",
-        "mi_trabajo": "13 fila(s) [personal 3 · supervisión 10]: DELIVERY_DRAFTS(1), QUALITY_PENDING(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(7), MITIGATIONS_ASSIGNED(3)",
+        "mi_trabajo": "14 fila(s) [personal 4 · supervisión 10]: DELIVERY_DRAFTS(1), QUALITY_PENDING(1), DUPLICATE_REVIEWS(1), PLOTS_WITHOUT_LOCATION(7), MITIGATIONS_ASSIGNED(4)",
         "lot_hub": "secciones según permiso; enlaces a parcelas: 2",
         "denegacion_misma_org": null,
         "denegacion_otra_org": null,
@@ -452,10 +452,10 @@
       "captura": "docs/qa/capturas/web-por-rol/admin-390-inicio.png"
     },
     {
-      "caso": "390 px: /lotes/f9dd5b28-0a5d-4bbf-8711-2ec4a2481ada sin desplazamiento horizontal",
+      "caso": "390 px: /lotes/083a2bc1-b883-4999-951a-755bf913888b sin desplazamiento horizontal",
       "ok": true,
       "detalle": "exceso 0px",
-      "captura": "docs/qa/capturas/web-por-rol/admin-390-lotesfddbadb.png"
+      "captura": "docs/qa/capturas/web-por-rol/admin-390-lotesabcbabf.png"
     },
     {
       "caso": "390 px: /entregas sin desplazamiento horizontal",
@@ -470,10 +470,10 @@
       "captura": "docs/qa/capturas/web-por-rol/admin-zoom200-inicio.png"
     },
     {
-      "caso": "zoom 200 % (1280 px a 640 px CSS): /lotes/f9dd5b28-0a5d-4bbf-8711-2ec4a2481ada sin desplazamiento horizontal",
+      "caso": "zoom 200 % (1280 px a 640 px CSS): /lotes/083a2bc1-b883-4999-951a-755bf913888b sin desplazamiento horizontal",
       "ok": true,
       "detalle": "exceso 0px",
-      "captura": "docs/qa/capturas/web-por-rol/admin-zoom200-lotesfddbadb.png"
+      "captura": "docs/qa/capturas/web-por-rol/admin-zoom200-lotesabcbabf.png"
     },
     {
       "caso": "zoom 200 % (1280 px a 640 px CSS): /entregas sin desplazamiento horizontal",

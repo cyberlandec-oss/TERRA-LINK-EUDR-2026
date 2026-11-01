@@ -17,7 +17,7 @@ const WEB = arg('--web', 'http://localhost:3000');
 const API = arg('--base', 'http://localhost:4000');
 const SALIDA = join('validation-results', `cadena-integral-web-${new Date().toISOString().slice(0, 10)}`);
 mkdirSync(SALIDA, { recursive: true });
-const MARCA = `CAD-${new Date().toISOString().slice(5, 19).replace(/[-:T]/g, '')}`;
+const MARCA = arg('--marca', `CAD-${new Date().toISOString().slice(5, 19).replace(/[-:T]/g, '')}`); // p. ej. --marca ENSAYO-LOCAL-DD-1101 (protocolo de validacion local completa)
 
 const pedir = async (t, m, p, body) => { const r = await fetch(API + p, { method: m, headers: { authorization: `Bearer ${t}`, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined }); return { s: r.status, b: await r.json().catch(() => null) }; };
 const lista = (b) => (Array.isArray(b) ? b : b?.items ?? b?.data ?? []);

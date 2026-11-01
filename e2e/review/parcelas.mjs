@@ -128,6 +128,7 @@ export async function reviewPlots({ browser, BASE, accounts, DEMO_ORGS, orgIdByN
     await plotRows(page, coopId);
     await page.getByRole('link', { name: /DEMO-PAR-003/ }).click();
     await page.getByRole('heading', { name: /DEMO-PAR-003/ }).waitFor();
+    await page.getByRole('button', { name: 'Polígono por vértices' }).click(); // la pantalla ofrece los métodos como pestañas
     const startBtn = page.getByRole('button', { name: 'Iniciar captura de polígono' });
     await startBtn.or(page.getByRole('button', { name: 'Añadir vértice' })).first().waitFor({ timeout: 15000 });
     if (await startBtn.count()) await startBtn.click();
