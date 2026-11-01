@@ -111,7 +111,11 @@ describeDb('Protocolo local: documentos del Productor (PostgreSQL, S3 y escáner
   it('el productor no revisa documentos (subir no es aprobar) y la subida no cambia su propio estado de revisión', async () => {
     const d = (await http().get(`${api()}/documents/${propio.op.id}`).set(as(PROD1)).expect(200)).body;
     expect(d.versions[0].review).toBeNull();
-    const r = await http().post(`${api()}/documents/${propio.op.id}/versions/${propio.op.ver}/review`).set(as(PROD1)).send({ decision: 'ACCEPTED', reason: 'Lo reviso yo' });
-    expect([403, 404, 405]).toContain(r.status);
+    const ruta = `${api()}/documents/${propio.op.id}/versions/${propio.op.ver}/reviews`;
+    expect((await http().post(ruta).set(as(PROD1)).send({ decision: 'ACCEPTED', reason: 'Lo reviso yo mismo' })).status).toBe(403);
+    const igual = (await http().get(`${api()}/documents/${propio.op.id}`).set(as(PROD1)).expect(200)).body;
+    expect(igual.versions[0].review).toBeNull(); // el rechazo no dejó rastro de revisión
+    // Control autorizado: la ruta existe y quien sí revisa la acepta.
+    await http().post(ruta).set(as(ADMIN)).send({ decision: 'ACCEPTED', reason: 'Coincide con el original (ensayo)' }).expect(201);
   });
 });

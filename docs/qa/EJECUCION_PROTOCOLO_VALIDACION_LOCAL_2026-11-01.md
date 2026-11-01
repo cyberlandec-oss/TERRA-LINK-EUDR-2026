@@ -56,3 +56,71 @@ Reejecutado el guion: 15 `FALLA` con detalle (más las notas «Tarea», datos de
 | 15 | entregas · calidad (sigue «Pendiente») | Dato | Esa entrega ya tiene decisión de calidad de ejecuciones anteriores |
 
 Nada se cambió en el producto. Los asserts de seguridad (auditor sin captura, técnico no asignado sin acceso, permisos por organización) pasan y no se tocaron. **No se reescribió el guion antiguo**: se sustituye por pruebas con datos propios (siguiente punto); su cobertura sigue siendo `npm run validate` + `web-por-rol.mjs`.
+
+---
+# Cierre de la ejecución (2026-11-01)
+
+## Conciliación del inventario de observaciones
+La cifra «16» era 18 incidencias de la primera corrida (10 notas «Tarea» + 8 módulos) menos los 2 sospechosos ya triados. La tabla de 15 clasifica las líneas `FALLA` de la **segunda** corrida: una de ellas (productor→Documentos) ya estaba triada y el técnico→tarjeta satelital **no se repitió**. Resultado: 14 nuevas clasificadas + 2 triadas antes; **las 10 notas «Tarea» no estaban en la tabla** y se clasifican aquí:
+
+| Nota «Tarea» | Clasificación | Motivo |
+| --- | --- | --- |
+| supervisor / coordinador: «11 productores visibles (esperado 8)» y «1 posible duplicado» | Dato | los productores del DEMO crecieron con ejecuciones posteriores; la cifra fija era de octubre |
+| técnico1: «7 productores visibles (esperado 5)» | Dato | las asignaciones crecieron (incluida `ENSAYO-LOCAL-DD-1101`) |
+| productor, recepción×2, calidad×2, exportación, comprador: «0 capacidades pendientes rotuladas» | Expectativa desfasada | la regla de la web (`50-frontend.md`) deja los módulos futuros fuera del menú; ya no hay capacidades rotuladas como pendientes |
+
+**Sigue pendiente de comprobación, sin declarar resuelta:** parcelas del administrador (#1: las 6 parcelas DEMO-PAR están en la lista, pero el guion no identifica qué condición falla). Las demás: sin defecto de producto.
+
+## Defecto corregido y verificado (documentos del Productor)
+- **Defecto:** el Productor vinculado recibía 403 al subir un documento a su **propio registro de productor** (la web se lo ofrece). El servidor exigía `producer:update_own`, que no tiene, aunque `docs/07` le da documentos propios.
+- **Corrección** (`documents.ts`, `entityScope`): solo para *subir* a un productor, si el alcance de edición falla y la cuenta tiene `producer:read_own` **y** `self_membership_id` igual a su membresía, se admite. No cambia permisos generales ni el alcance de lectura.
+- **Integración** (`documents-productor.int-spec.ts`, 5 pruebas): propio operativo (campos, hash, descarga idéntica); propio personal (metadatos sí, contenido 403 `CONTENT_RESTRICTED`); subida al productor propio 201 con contenido restringido; productor ajeno 404 en ambos sentidos; sin edición del registro; sin revisión propia (**403 en la ruta real `/reviews`, con control de la administración 201**). Se detectó y corrigió un falso positivo propio: la primera versión probaba `/review` (ruta inexistente, 404).
+- **Candidato `61c931d`:** `npm run validate` **APROBADA** (`validation-results/2026-11-01T02-04-32-681Z`, árbol limpio durante la corrida); desplegado una vez (`/version` = `61c931d`, esquema `0077`).
+- **Demostración sobre el despliegue** con la cuenta existente `productor.cooperativa` (`e2e/review/productor-documento-demostracion.mjs`, **8/8**): subida web de dos soportes ficticios (`ENSAYO-LOCAL-DD-1101`, operativo y de tenencia) al productor vinculado (única opción de titular visible: el propio); consulta posterior; ambos **sin revisión**; operativo descargable con huella coincidente; personal con contenido restringido y sin nombre de archivo; revisión propia 403 (control de ruta 400 con cuerpo inválido, sin aprobar nada); documento ajeno 404 (la administración ve 12, el productor 6); pantalla sin botones de descarga ni revisión. Capturas: `docs/qa/capturas/productor-documentos-subida.png` y `productor-documento-personal.png`. Dos registros ficticios rotulados quedan en el DEMO; un reintento los reutiliza.
+
+## Matriz E01–E23
+Columnas: **I** integración ejecutada (base desechable; 46 suites y 523 pruebas dirigidas el 2026-11-01, más `validate` sobre `61c931d`), **V** recorrido visual o R1 en la instalación, **R** evidencia anterior reutilizada, **P** comprobación pendiente.
+
+| Etapa | I | V | R | P |
+| --- | --- | --- | --- | --- |
+| E00 instalación | — | `/version`, salud, login localhost y 127.0.0.1 | — | `[::1]` no probado |
+| E01 organización y vínculo | members, producers, a01 | `web-por-rol` 22/22 | — | acción de vínculo en R1 no repetida |
+| E02 parcela Productor/técnico | plots, polygon-drafts, location-capture, a01 | R1 T1 (técnico) | emulador previo | captura del Productor en pantalla no repetida |
+| E03 geometría y versiones | gis-evaluation, geometry-imports, history | R1 T2 | — | GeoJSON por rol en pantalla (`geojson.mjs` desfasado) |
+| E04 documentos y versiones | documents, document-types, evidence, **documents-productor** | **Productor en la web, 8/8** | — | versión nueva desde la web; archivos dañados solo en integración |
+| E05 declaración y origen | deliveries, delivery-own, produccion-instantanea | R1 T3 | declaración móvil offline | — |
+| E06 recepción | deliveries | R1 T4 | — | — |
+| E07 calidad | deliveries | R1 T5 | — | rama rechazada solo en integración |
+| E08 lote y origen | lots | R1 T6, T13 | — | — |
+| E09 fermentación | lots | R1 T7 (450 + 30) | — | — |
+| E10 secado e inventario | lots, inventory | R1 T8 (conciliación) | — | secado en R1 no ejecutado (D-32) |
+| E11 embarque y reserva | shipments | R1 T12 (450 kg reservados) | — | — |
+| E12 análisis | satellite, satellite-autorizacion, satelite-riesgo-expediente | — | ensayo Whisp real con geometría artificial | sin llamadas nuevas |
+| E13 configuración y riesgo | risk, geo-profile | R1 T9 | — | sin adopciones competentes |
+| E14 hallazgos y mitigaciones | mitigations | R1 T10 | — | verificación por segunda persona (requiere documento vigente real) |
+| E15 conclusión humana | risk-conclusion | — | — | no se registra en el DEMO (sin catálogo ni perfil aprobados) |
+| E16 expediente e instantánea | dd, dd-geo-panel | R1 T11 | — | — |
+| E17 revisión y aprobación | **R3** cadena-tecnica-completa | bloqueado en R1 | — | R1 no llega a `READY` |
+| E18 paquete | **R3** cadena-tecnica-completa, exchange | bloqueado en R1 | paquete DD con instantánea vigente (A-08/A-09 7/7) | paquete en R1 no generable |
+| E19 comprador y concesiones | access-grants (3 suites) | R1 T14 | — | — |
+| E20 despacho y traspasos | shipments, d34a-despacho, custody-transfers | R1 T12 (compuerta), T15 | — | traspaso de lotes sin implementar |
+| E21 vigencia e historia | history, produccion-instantanea, event-corrections, gis-evaluation | — | — | casos de desactualización en R1 sin ejecutar |
+| E22 móvil y offline | sync, sync-altas, sync-productor, location-capture (servidor) | — | emulador (`docs/qa/movil-emulador`); sigue aplicable: el cambio de servidor solo toca la subida a un productor propietario y la sincronización de campo usa parcela; no se reconstruyó el APK | teléfono físico y GPS real (fuera de etapa) |
+| E23 auditoría e informes | reports, audit | R1 T13, `web-por-rol` | — | — |
+
+## Hasta dónde llega el recorrido normal y por qué se detiene
+R1 con datos propios (`ENSAYO-LOCAL-DD-1101`) llega a parcela, entrega, recepción, calidad, lote, fermentación, inventario, evaluación, mitigación abierta, expediente con instantánea y embarque reservado; el comprador consulta lo concedido. **No alcanza `READY`.**
+
+| Requisito | Motivo | Qué falta |
+| --- | --- | --- |
+| `GEOLOCATION_PROFILE` | no hay configuración geográfica adoptada con revisión vigente | configuración y decisión competente (el mecanismo existe) |
+| `LEGAL_PROFILE` | el perfil jurídico no tiene revisión competente (D-07.5/D-37) | decisión competente (el mecanismo existe) |
+| `RISK_CATALOG_APPROVED` | catálogo sin aprobación | decisión competente |
+| `REGULATORY_CONCLUSION` | requiere una conclusión humana posterior a lo anterior | decisión humana (mecanismo implementado) |
+| `RISK_NO_BLOCKING_FINDINGS` | depende de D-09.B (uso del análisis satelital sobre parcelas autorizadas) y D-05.B | decisión del propietario |
+| Soportes de la entrega y mitigación `DOCUMENT_EXPIRED` | falta un documento real y la verificación por otra persona | datos reales |
+
+El despacho queda bloqueado por la misma compuerta (4 comprobaciones). **Ramas posteriores** (aprobación, paquete, concesiones, desactualización): solo **R3** (`cadena-tecnica-completa`, `READY` forzado en base desechable); no se presentan como éxito de R1. Implementación pendiente real: traspaso de lotes entre organizaciones (T15) y presentación DDS (P1-007, siguientes tramos).
+
+## Limitaciones
+Teléfono físico y GPS real; aceptación jurídica; presentación DDS; la observación #1 (parcelas del administrador); `revision-por-rol.mjs` sin reescribir; F02 (técnico asignado sin vínculos de entregas). Los porcentajes de aceptación **no cambian**: esta corrección no está asociada a un criterio de aceptación registrado y no se propone ninguna fila.
