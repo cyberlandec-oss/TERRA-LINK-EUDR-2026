@@ -35,3 +35,24 @@ Tras corregir `parcelas.mjs` y `geojson.mjs` (pestañas por método), el guion c
 - **Productor → Documentos: NO es defecto.** El catálogo (`catalog.ts`, PRODUCER) concede `document:read` y `document:upload` a propósito («puerta de entrada» para aportar soportes, E04). Con la cuenta del productor la API devuelve 4 documentos; la administración ve 10 (alcance propio, no filtración). La expectativa del guion antiguo («acceso denegado») estaba desfasada. Pendiente no cubierto: comprobar el contenido de tipos personales (política de metadatos sin contenido) en una prueba dirigida con datos propios.
 - **Técnico → tarjeta satelital: NO es defecto.** El técnico no tiene `satellite:read`: la API responde 403 `PERMISSION_DENIED` y la ficha no muestra la tarjeta. El «sin datos» que esperaba el guion no aplica a un rol sin permiso (coherente con «no reemplazar acceso restringido por sin datos»).
 Resultado: de los dos sospechosos ninguno es defecto de producto; las otras 16 incidencias del guion antiguo siguen sin triar y sin valor probatorio.
+
+## Clasificación de las observaciones restantes de `revision-por-rol.mjs` (tercera pasada)
+Reejecutado el guion: 15 `FALLA` con detalle (más las notas «Tarea», datos del DEMO). Cada una se contrastó con la condición exacta del guion, el texto/código vigente de la web y, donde la interfaz decidía, una sonda en pantalla. **Ninguna es defecto reproducible del producto.** Las cifras fijas del guion (5 parcelas, 11 hitos con 5 pendientes, 150 = 140 + 10) eran del DEMO de octubre.
+
+| # | Observación | Clasificación | Evidencia |
+| --- | --- | --- | --- |
+| 1 | parcelas · admin | **No concluyente (evidencia insuficiente)** | Las 6 parcelas DEMO-PAR están en la lista y no hay paginación; el guion no imprime qué condición falla (¿foco o enlaces «volver»?). Se cubre con e2e de parcelas de `validate` |
+| 2 | parcelas · técnico asignado (esperaba 5, ve 14) | Expectativa desfasada / dato | Las parcelas creadas después (incluida la de `ENSAYO-LOCAL-DD-1101`) se asignan al técnico; la restricción a asignados se prueba en integración |
+| 3 | polígono por rol (admin 0) | Expectativa desfasada | La acción vive bajo la pestaña «Polígono por vértices». Sonda: admin sin pestaña 0, con pestaña 1; auditor: sin pestaña, sin captura y sin «Capturar ubicación» (la restricción de seguridad se cumple) |
+| 4 | coordinador · exportadora (esperaba 0, ve 1) | Dato | La exportadora tiene una parcela por concesión/prueba satelital posterior; autorizada, no filtración |
+| 5 | CTE admin (3 pendientes/8 integradas vs 5/6) | Expectativa desfasada | Más hitos integrados desde la cifra del guion; sin acciones operativas (0) y sin desborde |
+| 6 | documentos · técnico, foco | Expectativa desfasada | Los identificadores de React cambiaron (`_r_0_-title`); sin botón de revisión y sin desborde |
+| 7 | documentos · productor «sin permiso» | Expectativa desfasada | Catálogo: PRODUCER tiene `document:read/upload` (ya triado) |
+| 8 | mitigaciones · segunda persona | Dato | «sin cambios (ya revisada)»: el guion no es idempotente; la decisión original se conserva (`true`) |
+| 9 | mitigaciones · riesgo tras reevaluar | Expectativa desfasada / dato | Evaluación vigente 1, DATA_MISSING_ORIGIN y MITIGATION_UNVERIFIED visibles, conclusión Indeterminada; solo no coincide la frase de «sin revisión humana» (no existe en la web) |
+| 10 | diligencia · responsable EUDR | Expectativa desfasada | Sonda en DD-2026-00003: GEOLOCATION_PROFILE, LEGAL_PROFILE y D-05 visibles, «no evaluable» presente, paquete deshabilitado, presentación oficial «no presentada» |
+| 11–13 | lotes (3) | Expectativa desfasada | D-32: la humedad del secado es %BH con método declarado; ya no existe la frase «bloqueado hasta definir la unidad de humedad»; el proceso cerrado usa datos distintos a 150/140/10 |
+| 14 | entregas · admin («aviso de no conformidad») | Expectativa desfasada | Esa frase ya no existe en la pantalla de entregas |
+| 15 | entregas · calidad (sigue «Pendiente») | Dato | Esa entrega ya tiene decisión de calidad de ejecuciones anteriores |
+
+Nada se cambió en el producto. Los asserts de seguridad (auditor sin captura, técnico no asignado sin acceso, permisos por organización) pasan y no se tocaron. **No se reescribió el guion antiguo**: se sustituye por pruebas con datos propios (siguiente punto); su cobertura sigue siendo `npm run validate` + `web-por-rol.mjs`.

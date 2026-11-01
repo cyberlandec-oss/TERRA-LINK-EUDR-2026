@@ -101,7 +101,13 @@ export class DocumentsService {
   private async entityScope(db: Db, ctx: TenantContext, type: OwnerType, id: string, kind: 'read' | 'update') {
     // Un documento NO es titularidad de una entrega: se aporta al productor (o a la parcela de origen) y la entrega lo VINCULA como soporte (`POST /deliveries/:id/supports`).
     if (type === 'delivery') throw new AppError(422, 'ENTITY_TYPE_NOT_AVAILABLE', 'Los soportes de una entrega se aportan al productor o a su parcela de origen (tipo «Soporte de entrega») y se vinculan desde la entrega; una entrega no es titular de documentos.', [{ field: 'entity_type', reason: 'NOT_AVAILABLE' }]);
-    if (type === 'producer') await this.producers.load(db, ctx, id, kind);
+    if (type === 'producer') {
+      try { await this.producers.load(db, ctx, id, kind); } catch (e) {
+        // Aportar un documento a SU PROPIO productor no modifica el registro del productor: el productor vinculado (producer:read_own) no tiene producer:update_own, pero sí document:upload (docs/07: documentos propios). Solo con el vínculo propio y nunca por un permiso amplio.
+        const propio = kind === 'update' && ctx.permissions.includes('producer:read_own') && await db.selectFrom('producers').select('id').where('organization_id', '=', ctx.organizationId).where('id', '=', id).where('self_membership_id', '=', ctx.membershipId).executeTakeFirst();
+        if (!propio) throw e;
+      }
+    }
     else await this.plots.load(db, ctx, id, kind);
   }
 
