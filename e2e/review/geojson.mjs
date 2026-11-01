@@ -28,6 +28,8 @@ export async function reviewGeoJson({ browser, BASE, accounts, DEMO_ORGS, orgIdB
     await page.getByRole('heading', { name: new RegExp(code) }).waitFor();
     await page.getByRole('heading', { name: 'Versiones geométricas' }).waitFor();
     await page.waitForTimeout(1200);
+    const pestana = page.getByRole("button", { name: "Importar GeoJSON" }); // los métodos son pestañas
+    if (await pestana.count()) await pestana.click();
   };
   const casos = [];
 
