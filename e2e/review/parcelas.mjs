@@ -49,7 +49,7 @@ export async function reviewPlots({ browser, BASE, accounts, DEMO_ORGS, orgIdByN
     const back = await page.getByRole('list', { name: 'Parcelas del productor' }).getByRole('listitem').count();
     casos.push({ cuenta: 'admin.cooperativa', resultado: `${rows.length} parcelas; ficha: esquema=${sketch}, ${coords} coordenadas, ${versions} versiones, botones de funciones no implementadas (GPS nativo, satélite, riesgo)=${forbiddenButtons}, «Capturar ubicación»=${captureButton} (foco ${captureFocus}); foco campo=${outline}; productor→parcelas=${back}`,
       // El seed DEMO tiene 6 parcelas; la DEMO puede tener además parcelas importadas (P0-026) y más versiones.
-      ok: ['DEMO-PAR-001','DEMO-PAR-002','DEMO-PAR-003','DEMO-PAR-004','DEMO-PAR-005','DEMO-PAR-006'].every((c) => rows.some((r) => r.includes(c))) && sketch === 1 && coords >= 1 && versions >= 2 && forbiddenButtons === 0 && captureButton === 1 && captureFocus === 'solid' && outline === 'solid' && back === 2 });
+      ok: ['DEMO-PAR-001','DEMO-PAR-002','DEMO-PAR-003','DEMO-PAR-004','DEMO-PAR-005','DEMO-PAR-006'].every((c) => rows.some((r) => r.includes(c))) && sketch === 1 && coords >= 1 && versions >= 2 && forbiddenButtons === 0 && captureButton === 1 && captureFocus === 'solid' && outline === 'solid' && back >= 2 });
     await ctx.close();
   }
 
@@ -164,6 +164,8 @@ export async function reviewPlots({ browser, BASE, accounts, DEMO_ORGS, orgIdByN
       await page.getByRole('heading', { name: new RegExp(plotCode) }).waitFor();
       await page.getByRole('heading', { name: 'Versiones geométricas' }).waitFor();
       await page.waitForTimeout(1500);
+      const pestana = page.getByRole('button', { name: 'Polígono por vértices' }); // los métodos son pestañas; el rol sin permiso no la tiene
+      if (await pestana.count()) await pestana.click();
       const n = await page.getByRole('button', { name: /Iniciar captura de polígono|Añadir vértice/ }).count();
       await page.screenshot({ path: join(shots, `poligono--${local.split('.')[0]}-accion.png`), fullPage: true });
       await ctx.close();

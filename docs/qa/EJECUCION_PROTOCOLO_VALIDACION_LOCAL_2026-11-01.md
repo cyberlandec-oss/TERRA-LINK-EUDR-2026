@@ -103,7 +103,7 @@ Columnas: **I** integración ejecutada (base desechable; 46 suites y 523 pruebas
 | E17 revisión y aprobación | **R3** cadena-tecnica-completa | bloqueado en R1 | — | R1 no llega a `READY` |
 | E18 paquete | **R3** cadena-tecnica-completa, exchange | bloqueado en R1 | paquete DD con instantánea vigente (A-08/A-09 7/7) | paquete en R1 no generable |
 | E19 comprador y concesiones | access-grants (3 suites) | R1 T14 | — | — |
-| E20 despacho y traspasos | shipments, d34a-despacho, custody-transfers | R1 T12 (compuerta), T15 | — | traspaso de lotes sin implementar |
+| E20 despacho y traspasos | shipments, d34a-despacho, custody-transfers | R1 T12 (compuerta), T15 | — | traspaso entre organizaciones: implementación parcial, salida real bloqueada (A-03/D4); ver segunda ronda |
 | E21 vigencia e historia | history, produccion-instantanea, event-corrections, gis-evaluation | — | — | casos de desactualización en R1 sin ejecutar |
 | E22 móvil y offline | sync, sync-altas, sync-productor, location-capture (servidor) | — | emulador (`docs/qa/movil-emulador`); sigue aplicable: el cambio de servidor solo toca la subida a un productor propietario y la sincronización de campo usa parcela; no se reconstruyó el APK | teléfono físico y GPS real (fuera de etapa) |
 | E23 auditoría e informes | reports, audit | R1 T13, `web-por-rol` | — | — |
@@ -120,7 +120,66 @@ R1 con datos propios (`ENSAYO-LOCAL-DD-1101`) llega a parcela, entrega, recepci�
 | `RISK_NO_BLOCKING_FINDINGS` | depende de D-09.B (uso del análisis satelital sobre parcelas autorizadas) y D-05.B | decisión del propietario |
 | Soportes de la entrega y mitigación `DOCUMENT_EXPIRED` | falta un documento real y la verificación por otra persona | datos reales |
 
-El despacho queda bloqueado por la misma compuerta (4 comprobaciones). **Ramas posteriores** (aprobación, paquete, concesiones, desactualización): solo **R3** (`cadena-tecnica-completa`, `READY` forzado en base desechable); no se presentan como éxito de R1. Implementación pendiente real: traspaso de lotes entre organizaciones (T15) y presentación DDS (P1-007, siguientes tramos).
+El despacho queda bloqueado por la misma compuerta (4 comprobaciones). **Ramas posteriores** (aprobación, paquete, concesiones, desactualización): solo **R3** (`cadena-tecnica-completa`, `READY` forzado en base desechable); no se presentan como éxito de R1. Pendiente real: la salida del traspaso entre organizaciones (implementación parcial bloqueada por A-03/D4, ver segunda ronda) y la presentación DDS (P1-007: la conexión EUDR-IS ya existe; falta construir y enviar la declaración, recibos y conciliación).
 
 ## Limitaciones
 Teléfono físico y GPS real; aceptación jurídica; presentación DDS; la observación #1 (parcelas del administrador); `revision-por-rol.mjs` sin reescribir; F02 (técnico asignado sin vínculos de entregas). Los porcentajes de aceptación **no cambian**: esta corrección no está asociada a un criterio de aceptación registrado y no se propone ninguna fila.
+
+---
+# Segunda ronda (2026-11-01): observación de parcelas, caso ficticio completo, desactualización y compuertas
+
+Código validado y desplegado: `61c931d`. Cierre posterior: `858b383`. Esta ronda solo añade guiones, evidencia y documentación; no cambia el producto, así que no repite validación ni despliegue.
+
+## 1. Parcelas del administrador: CERRADA (expectativa desfasada, no defecto)
+| Comparación | Esperado | Obtenido |
+| --- | --- | --- |
+| Filas de la web (administrador, Cooperativa Río Verde) | = API | **16** |
+| `GET /plots` de la API, misma cuenta y organización | 16, sin paginación (`next_cursor` vacío) | **16** |
+| Parcelas `DEMO-PAR-001…006` en la lista | 6 de 6 | **6 de 6** |
+| Parcelas del productor `DEMO-RV-001` (lista «Parcelas del productor») | guion: 2 | **5**: `CAD-1027213440`, `CAD-1028225001`, `DEMO-PAR-001`, `DEMO-PAR-006`, `ENSAYO-LOCAL-DD-1101` |
+La condición que fallaba era `back === 2` en `parcelas.mjs`: el productor DEMO tiene más parcelas porque ejecuciones posteriores añadieron las suyas. Corregida a `back >= 2`. El resto de la ficha (esquema, 5 coordenadas, 2 versiones, «Capturar ubicación», foco) estaba bien. La acción de polígono del administrador también era una expectativa desfasada (vive bajo la pestaña «Polígono por vértices»: 0 sin pestaña, 1 con ella; el auditor no tiene pestaña ni captura). No hay defecto de producto.
+
+## 2. Caso ficticio con documentación ENSAYO (`e2e/review/caso-ficticio-soportes.mjs`, 10/10)
+Cuentas existentes; documentos rotulados `ENSAYO-LOCAL-DD-1101`; ninguno de otra mercancía y ningún expediente operativo tocado.
+- Soporte **exacto** de ENT-2026-00008: documento ficticio del productor de esa entrega, vinculado como `REMISSION_GUIDE`; figura **sin aprobar**; no aparece en ninguna de otras 6 entregas revisadas.
+- Mitigación `DOCUMENT_EXPIRED`: versión ficticia **vigente** (vence 2027-12-31, validez `VALID`), aportada por el responsable (administración), entregada; el responsable **no** puede verificarla (403 `SELF_VERIFICATION_NOT_ALLOWED`); la verifica **otra cuenta** existente autorizada (`eudr.cooperativa`) → `VERIFIED`.
+- Efecto en el expediente (instantánea posterior): `DELIVERY_SUPPORTS` pasa a **MET** y `MITIGATIONS_VERIFIED` a **MET**; los hallazgos `DATA_MISSING_ORIGIN` y `DOCUMENT_EXPIRED` quedan **NOT_HIT**. Esto es un caso local ficticio: **no** acredita nada para un expediente operativo real, que sí necesitaría documentos reales.
+
+## 3. Desactualización por el recorrido normal (`e2e/review/desactualizacion-demostracion.mjs`, 12/12)
+Sobre el caso ficticio (parcela y lote `ENSAYO-LOCAL-DD-1101` / LOT-2026-00011 / DD-2026-00006). Repetible: crea GIS → riesgo → instantánea vigentes, cambia la superficie declarada (1,25 → 1,5 ha) por la API normal y comprueba: GIS `PLOT_VERSION_CHANGED_SAME_GEOMETRY`, riesgo `STALE` con su motivo, expediente `STALE` con secciones `plots` y `risk`; **huellas de GIS, riesgo e instantánea idénticas antes y después** (el historial conserva su contenido); reevaluar y recapturar crean registros **nuevos**, el historial de riesgo suma exactamente una evaluación (5 → 6) y los anteriores siguen consultables y desactualizados. La instantánea nueva sigue `BLOCKED`. Se hizo con la instantánea inicial bloqueada, como permite el protocolo. Nota de comportamiento: crear una evaluación GIS nueva también cambia el grafo del lote, por lo que una evaluación de riesgo anterior a ella pasa a `STALE`; el guion ordena GIS → riesgo para dejarla vigente.
+
+## 4. Compuertas restantes del expediente ficticio (`READY` exige todos los requisitos `MET`: `readinessOf`, `apps/api/src/dd/requirements.ts:322`)
+Estado leído de la instantánea 5 de DD-2026-00006. Cumplidos: `SUBJECT_QUANTITY`, `QUANTITIES_CONSISTENT`, `ORIGIN_DECLARED`, `GEOMETRY_TECHNICAL`, `QUALITY_DECIDED`, `DELIVERY_SUPPORTS`, `RISK_EVALUATION_CURRENT`, `MITIGATIONS_VERIFIED`, `SHIPMENT_LINK`. Bloqueados (todos evaluados en `evaluateRequirements`, `requirements.ts:162`):
+| Requisito | Estado | Regla exacta y dónde se aplica | Acto que lo resuelve | Qué falta |
+| --- | --- | --- | --- | --- |
+| `GEOLOCATION_PROFILE` | NOT_EVALUABLE | `geolocationRequirement` (`requirements.ts:105`): exige configuración adoptada por la organización, vigente frente al perfil técnico, con revisión `REVIEWED` favorable y aplicable a la organización, con reglas activas | Plataforma: `POST /platform/geolocation-config/versions` y `/reviews`; organización: `POST /organizations/:orgId/geolocation-config/adoptions` (`apps/api/src/geo/geo-config.ts`) | **Decisión competente** (D-05.B: qué significa «satisface» la geolocalización) y su revisión; el código y los actos existen |
+| `DEFORESTATION_ANALYSIS` | NOT_EVALUABLE | `deforestationRequirement` (`requirements.ts:411`): sin análisis satelital real (no sintético) del proveedor seleccionado, con cobertura `COVERED` sobre la **versión vigente** de cada parcela | Encargar el análisis por `POST /plots/:plotId/satellite/analyses` (o, con parcela de otra organización, `POST /satellite/authorized-plots/:authId/analyses` tras `POST /plots/:plotId/satellite/authorizations`), con credencial por organización y `SATELLITE_LIVE_CALLS` | **Decisión del propietario** (D-09.B: autorizar el uso de Whisp sobre estas parcelas, no solo geometría artificial) y datos de cobertura; el código existe |
+| `LEGAL_PROFILE` | NOT_EVALUABLE | `evaluateRequirements` (`requirements.ts:224-262`): exige perfil jurídico adoptado, alcance COMPLETO y revisión jurídica `REVIEWED`, y evaluación por parcela sin obligaciones sin resolver | Plataforma: `POST /platform/legal-profile/reviews`; organización: `POST /organizations/:orgId/legal-profile/adoptions`; luego `legal-assessments` | **Decisión competente** (D-07.5/D-37: revisión jurídica de la lista de requisitos de Ecuador); no se registra ninguna ficticia como real |
+| `RISK_NO_BLOCKING_FINDINGS` | NOT_EVALUABLE | `requirements.ts:280-283`: pasa a MET solo si no quedan reglas no evaluables ni hallazgos. Hoy las **2 reglas de DEFORESTATION** están `NOT_ASSESSED` (dependen de `GEOLOCATION_PROFILE`/D-05.B y del análisis D-09) y las categorías LEGALITY, EVASION, HUMAN_RIGHTS no tienen reglas | Se resuelve al cumplir los dos requisitos anteriores y reevaluar | **Decisión** (D-05.B, D-09.B) y **fuente normativa** para categorías sin reglas («requiere perfil aprobado»): hoy no hay reglas redactadas ni aprobadas; no falta una pantalla |
+| `RISK_REVIEW_RESOLVED` | PENDING | `requirements.ts:284`: `review_process === 'RESOLVED'` | `POST /risk/evaluations/:id/reviews` (EUDR_MANAGER) | **Acto humano fundado** posterior a la evaluación vigente; ningún guion lo registra para completar el recorrido |
+| `RISK_CATALOG_APPROVED` | NOT_EVALUABLE | `requirements.ts:288-297` + `catalogUnderProfile` (`:149`): el catálogo debe estar adoptado (ya lo está) **y** aprobado bajo un perfil jurídico (`regulatory_profile`, hoy `null`) | `POST /platform/risk-catalog/profile-links` (vínculo catálogo–perfil, D-07.5b) | Depende de `LEGAL_PROFILE` aprobado: **decisión competente** |
+| `REGULATORY_CONCLUSION` | NOT_EVALUABLE | `requirements.ts:298-304`: solo cuenta una conclusión humana **NEGLIGIBLE vigente** (NON_NEGLIGIBLE da INVALID) sobre la evaluación vigente | `POST /risk/evaluations/:id/conclusions` (EUDR_MANAGER) | Persona autorizada con evidencia por carencia; exige antes catálogo/perfil aprobados para ser fundada. Se probó con fixtures en integración (`risk-conclusion.int-spec`), **no** en el DEMO |
+Clasificación: **faltan decisiones no adoptadas** (D-05.B, D-09.B, D-07.5/D-37) y **actos humanos competentes**; no falta código para los mecanismos ni se elimina compuerta alguna. Lo que sí es dato real y no existe es la fuente normativa de las categorías sin reglas.
+
+## 5. Separación de las demostraciones
+| Demostración | Qué prueba | Qué NO prueba |
+| --- | --- | --- |
+| **Expediente bloqueado consultable** (R1, instantáneas `BLOCKED`) | Se captura, se consulta y se explica cada requisito; el comprador accede por concesión a lo que se le concede (T14) | Que exista paquete final ni `READY` |
+| **Revisión interna** | Mecanismos de revisión y aprobación (`dd.int-spec`, `cadena-tecnica-completa`, R3) | Que R1 la alcance: en R1 no hay `READY` que revisar |
+| **Paquete final** | Generación, hash, manifiesto y descarga **solo desde un estado preparado** (R3, `READY` forzado en base desechable) | Que el sistema genere `READY` por el recorrido normal |
+| **Concesiones** | Lectura/descarga por versión exacta, vencimiento y revocación (`access-grants*` 51 pruebas) | Que el comprador reciba un paquete final generado normalmente: en el DEMO recibe la proyección de una instantánea bloqueada |
+
+## 6. Etiquetas de pendientes corregidas
+- **Traspasos entre organizaciones (A-03): implementación PARCIAL, con la salida real BLOQUEADA**, no «inexistente». Existen: vínculo bilateral, oferta con **reserva** en el libro del emisor, aceptación (la receptora fija producto y centro), recepción, faltante, rechazo en tránsito, discrepancias y su resolución, y linaje (`custody-transfers.ts`, 15 pruebas de integración). Bloqueada: la **salida** (`TRANSFER_DISPATCH_GATE`) por D-34 y la decisión D4; la receptora sigue sin heredar riesgo ni `READY`. T15 del recorrido normal quedó como «no definido» porque la Exportadora no recibe lotes **sin un traspaso aceptado**: no por falta de módulo.
+- **EUDR-IS: conexión ≠ presentación DDS.** Implementado (P1-007 tramo 1): credenciales cifradas por organización y entorno, cargador local y comprobación Echo en ACCEPTANCE con transporte controlado. **No implementado**: construcción y envío de `submitDds`, consulta del resultado, recibos auténticos y conciliación; el expediente permanece `NOT_SUBMITTED`. Echo `OK` no acredita operador ni presentación.
+- **Móvil:** teléfono físico y GPS real fuera de esta etapa; el emulador es evidencia reutilizada.
+
+## Matriz: filas actualizadas
+| Etapa | Antes | Ahora |
+| --- | --- | --- |
+| E04 | I + Productor web | + soporte ENSAYO exacto de ENT-2026-00008 vinculado, sin aprobar (V, 10/10) |
+| E14 | P: verificación por segunda persona | **I + V**: mitigación `DOCUMENT_EXPIRED` con versión vigente ficticia, autoverificación rechazada, verificada por otra cuenta |
+| E16 | V | + `DELIVERY_SUPPORTS` y `MITIGATIONS_VERIFIED` en MET; 7 requisitos bloqueados identificados con regla y acto |
+| E20 | R1 compuerta; traspaso sin implementar | traspaso **parcial** con salida bloqueada (A-03/D4), 15 pruebas de integración |
+| E21 | P: casos de desactualización | **V 12/12** en el caso ficticio; I (`dd.int-spec`, `history`) |
+Los porcentajes de aceptación **no cambian**: ningún criterio original queda satisfecho por esta evidencia local ficticia.
