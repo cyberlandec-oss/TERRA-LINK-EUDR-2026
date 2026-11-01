@@ -1,0 +1,34 @@
+# Paquete de decisiones para desbloquear `READY` (2026-11-01)
+
+Base: expediente ficticio DD-2026-00006 (instantánea 5), código `61c931d`, análisis en `docs/qa/EJECUCION_PROTOCOLO_VALIDACION_LOCAL_2026-11-01.md`. Nada de lo siguiente se registra ni se simula desde Terra Link: son actos de personas con el permiso indicado. Registrar una revisión ficticia como real **no** desbloquea nada legítimamente.
+
+## Corrección a la segunda ronda
+La segunda ronda dijo que `RISK_NO_BLOCKING_FINDINGS` dependía también de las categorías sin reglas. **Es inexacto.** Lo bloquean solo **dos factores** `NOT_EVALUABLE`, leídos de la evaluación vigente:
+
+| Factor | Estado | Depende de |
+| --- | --- | --- |
+| `GEOLOCATION_PROFILE` | `NOT_ASSESSED` | configuración de geolocalización revisada (D-05.B) |
+| `SATELLITE_COVERAGE_UNKNOWN` | `NOT_ASSESSED` | un análisis real del proveedor seleccionado con cobertura (D-09) |
+
+Las cuatro categorías sin reglas (`LEGALITY`, `EVASION`, `HUMAN_RIGHTS`, `INDIGENOUS_RIGHTS`) **no** bloquean ese requisito: se tratan en la conclusión humana mediante resoluciones por carencia (`scope: CATEGORY`, `NOT_APPLICABLE` con evidencia o `ASSESSED_BY_HUMAN` con una versión de documento), ya implementadas en `risk-conclusion.ts`. **No falta contenido normativo para ellas ni se inventan reglas**: falta que una persona resuelva cada una con su justificación y su evidencia cuando concluya.
+
+## Las siete compuertas
+| # | Requisito | Dato, configuración o decisión exacta | Quién puede registrarla | Efecto al registrarla |
+| --- | --- | --- | --- | --- |
+| 1 | `GEOLOCATION_PROFILE` | **Decisión D-05.B**: criterio de «satisfecho» de la geolocalización para el receptor. Acto: versión de configuración (`POST /platform/geolocation-config/versions`) con reglas activas, **revisión favorable** que la declare aplicable a la organización (`POST /platform/geolocation-config/reviews`) y **adopción** (`POST /organizations/:orgId/geolocation-config/adoptions`) | Plataforma: `SUPER_ADMIN` (`geo_config:manage`). Organización: `ORG_ADMIN` (`risk:approve_rules`) | `GEOLOCATION_PROFILE` evalúa por parcela (MET o INVALID, ya no NOT_EVALUABLE) y el factor homónimo deja de ser no evaluable tras reevaluar |
+| 2 | `DEFORESTATION_ANALYSIS` | **Decisión D-09.B**: autorizar el uso de Whisp sobre las parcelas reales concretas (organización/parcelas, individual o automático, duración) y fijar `SATELLITE_LIVE_CALLS`. Dato: un resultado real del proveedor seleccionado con cobertura `COVERED` sobre la **versión vigente** de cada parcela | Autorización: `ORG_ADMIN` (`satellite:authorize`). Encargo: `EUDR_MANAGER` o `EXPORT_MANAGER` (`satellite:request`). Decisión de uso real: propietario | Si la cobertura es completa: MET y el factor `SATELLITE_COVERAGE_UNKNOWN` se evalúa. Un resultado parcial o sintético **no** cuenta |
+| 3 | `LEGAL_PROFILE` | **Decisión D-07.5/D-37**: revisión jurídica competente del perfil de legalidad de Ecuador, con alcance completo (hoy el perfil es parcial). Luego, adopción y una evaluación jurídica por parcela sin obligaciones sin resolver | Plataforma: `SUPER_ADMIN` (`legal_profile:record_review`). Organización: `ORG_ADMIN` (`risk:approve_rules`) adopta; `legal-assessments` por quien tenga `dd:manage` | Pasa a MET si el perfil es completo, revisado y cada parcela resuelta; si no, PENDING/INVALID con el motivo |
+| 4 | `RISK_NO_BLOCKING_FINDINGS` | No tiene decisión propia hoy: se cumple al resolver **1** y **2** y reevaluar. **Decisión nueva D-41 propuesta** (abajo) si se quisiera que una resolución humana por carencia la satisfaga sin cumplir 1 y 2 | Propietario (D-41); no requiere acto por parte de otro rol | Con 1 y 2 resueltos: MET. Con la opción B de D-41: MET cuando las carencias de factor estén resueltas por la conclusión vigente |
+| 5 | `RISK_REVIEW_RESOLVED` | Acto: abrir y resolver la revisión humana de la **evaluación vigente** con motivo (`POST /risk/evaluations/:id/reviews`). Debe hacerse **después** de reevaluar, porque una evaluación nueva reinicia el proceso | `EUDR_MANAGER` (`risk:review`) | `PENDING` → MET; no vuelve favorable el riesgo |
+| 6 | `RISK_CATALOG_APPROVED` | Acto: **vínculo catálogo–perfil** que haga que `regulatory_profile` de las reglas 1.0.0 resuelva contra el perfil jurídico adoptado, completo y revisado (`POST /platform/risk-catalog/profile-links`). Hoy `regulatory_profile` es `null` (`PROFILE_REFERENCE_MISSING`) | Plataforma: `SUPER_ADMIN` (`risk_catalog:link_profile`) | MET solo si el perfil de **3** está aprobado; sin él, el vínculo no basta |
+| 7 | `REGULATORY_CONCLUSION` | Acto: conclusión humana **NEGLIGIBLE vigente** sobre la evaluación vigente, con una resolución por carencia, justificación propia y evidencia concreta. Carencias actuales de esa evaluación: categorías `EVASION`, `HUMAN_RIGHTS`, `INDIGENOUS_RIGHTS`, `LEGALITY` y factores `GEOLOCATION_PROFILE`, `SATELLITE_COVERAGE_UNKNOWN`. Debe registrarla **otra persona distinta de quien evaluó** (hoy `RECORDER_IS_EVALUATOR`) y exige antes **6** (`PROFILE_REFERENCE_MISSING`) | `EUDR_MANAGER` (`risk:conclude`), distinto del evaluador | MET; `NON_NEGLIGIBLE` da INVALID y bloquea. No habilita `READY` por sí sola |
+
+**Orden de resolución** (lo que depende de qué): 3 → 6 → (1 y 2 en paralelo) → reevaluar → 5 → 7. El requisito 4 se resuelve solo al hacer 1 y 2 y reevaluar.
+
+## Decisión nueva propuesta (D-41): ¿una resolución humana por carencia satisface `RISK_NO_BLOCKING_FINDINGS`?
+Hoy (`apps/api/src/dd/requirements.ts:282`) un factor `NOT_EVALUABLE` deja el requisito en `NOT_EVALUABLE` **aunque** la conclusión humana vigente haya resuelto esa carencia (`ASSESSED_BY_HUMAN` con un documento). Los mecanismos están desconectados: la conclusión admite resolver `GEOLOCATION_PROFILE` y `SATELLITE_COVERAGE_UNKNOWN` por persona, pero el expediente sigue sin tratarlos como resueltos.
+- **Opción A (recomendada, no cambiar):** mantener el criterio. Una evaluación incompleta no se vuelve completa por una declaración humana; se exige el dato real (1 y 2). Consecuencia: `READY` depende de configuración geográfica revisada y de un análisis real con cobertura. Coherente con «lo desconocido sigue desconocido».
+- **Opción B:** aceptar una resolución `ASSESSED_BY_HUMAN` vigente (con versión de documento del sistema) como satisfactoria **solo para factores no evaluables** y nunca para hallazgos. Consecuencia: `READY` sería alcanzable sin análisis satelital real; mueve la carga de evidencia a una persona. Riesgo: contradice «un score o un certificado no prueban cumplimiento» si la persona no tiene un análisis detrás. No se implementa sin su decisión.
+
+## Qué puede hacer Terra Link ahora sin ninguna decisión
+Nada de lo anterior se destraba con código. Lo que **sí** queda por construir, independiente de estas decisiones, es la presentación DDS (P1-007), que continúa en este mismo ciclo.
