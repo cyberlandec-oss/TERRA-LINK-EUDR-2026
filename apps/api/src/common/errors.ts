@@ -58,9 +58,21 @@ export class ErrorFilter implements ExceptionFilter {
       });
       return;
     }
-    this.logger.error(`request_id=${requestId} ${exception instanceof Error ? exception.stack : String(exception)}`);
+    this.logger.error(`request_id=${requestId} ${describeForLog(exception)}`);
     res.status(500).json({
       error: { code: 'INTERNAL_ERROR', message: 'Error interno. Reintenta o contacta soporte.', request_id: requestId, details: [] },
     });
   }
+}
+
+/**
+ * Texto de registro sin datos: los errores de PostgreSQL/PostGIS (mensaje, detalle, ubicación) pueden
+ * llevar coordenadas o valores de negocio; solo se registra el SQLSTATE y la rutina.
+ */
+export function describeForLog(exception: unknown): string {
+  const e = exception as { code?: unknown; severity?: unknown; routine?: unknown; name?: unknown; stack?: string };
+  if (e && typeof e === 'object' && typeof e.code === 'string' && /^[0-9A-Z]{5}$/.test(e.code) && typeof e.severity === 'string') {
+    return `db_error sqlstate=${e.code}${typeof e.routine === 'string' ? ` routine=${e.routine}` : ''}`;
+  }
+  return exception instanceof Error ? (exception.stack ?? exception.name) : 'unknown_error';
 }

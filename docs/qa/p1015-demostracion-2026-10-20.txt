@@ -1,0 +1,23 @@
+OK    1.1 sin tarifa declarada: lista vacía (no hay tarifas precargadas)             tarifas=0
+OK    1.2 estimar sin tarifa → SIN_TARIFA, total nulo (NO cero), sin importes        status=SIN_TARIFA total=null
+OK    1.3 tarifa SINTÉTICA identificada → estimación exacta de 3 meses = 30.0000 USD total=30.0000 USD
+OK    1.4 meses fuera de vigencia quedan SIN PRECIO (PARCIAL), no en cero            status=PARCIAL total=10.0000
+OK    1.5 reproducible con las entradas guardadas, aunque se declare después otra tarifa reproducible=true
+OK    1.6 la otra organización (DEMO) no ve estas tarifas ni estimaciones (404)      tarifas=404 estimación=404
+OK    1.7 pantalla de coste en español y en inglés (importe, tarifa sintética, conceptos sin valorar) es=true en=true
+OK    2.0 el despliegue declara el acceso federado habilitado                        enabled=true etiqueta=Keycloak (ensayo local)
+OK    2.1 la autorización lleva PKCE S256, state y nonce                             S256=S256
+OK    2.2 SIN PKCE el proveedor rechaza la autorización                              formulario=false devuelto-a-la-app=true sin-testigo=true
+OK    2.3 un destino de retorno no permitido lo rechaza la API (422) y el proveedor  api=422 proveedor-sin-formulario=true
+OK    2.4 IDENTIDAD SIN VÍNCULO (mismo correo que una cuenta local): no entra        SSO_IDENTITY_NOT_LINKED y sin testigo
+OK    2.5 vincular desde la sesión propia (Mi cuenta) con KEYCLOAK real              vínculos=1 emisor=http://localhost:8180/realms/terra-link-dev
+OK    2.6 acceso con la identidad vinculada: mismo testigo, SU organización y no la ajena orgs=1 propia=200 ajena=404
+OK    2.7 el acceso con contraseña sigue disponible                                  login local OK
+OK    2.8 CIERRE DE SESIÓN: cierra la sesión local y la del proveedor (pide contraseña otra vez) testigo tras cerrar=401; cierre en el proveedor=true; el proveedor pide credenciales de nuevo
+OK    2.9 USUARIO DESHABILITADO en el proveedor: no entra                            el proveedor rechaza el acceso y no hay testigo
+OK    2.10 limpieza: la identidad de ensayo se desvincula (la historia queda en la auditoría) vínculos activos=0
+OK    3.1 limites en espanol y en ingles: mismos codigos y valores, textos traducidos igual=true traducido=true idiomas=es,en
+OK    3.2 superar un limite se RECHAZA con explicacion (422) y no genera ningun cargo estado=422 codigo=FILE_TOO_LARGE; estimaciones sin cambio de importes=true
+OK    3.3 error de acceso en ingles en el navegador (el correo escrito se conserva)  mensaje="Incorrect email or password." correo-conservado=true
+
+21/21 comprobaciones OK

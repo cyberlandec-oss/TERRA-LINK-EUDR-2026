@@ -1,0 +1,87 @@
+# REFERENCIA INACTIVA (2026-10-10): GitHub Actions no es obligatorio en la etapa de desarrollo local.
+# Este archivo está fuera de .github/workflows a propósito, así que no se ejecuta. La validación vigente
+# es `npm run validate` (scripts/validate-local.mjs). Para reactivarlo, devolverlo a .github/workflows/.
+# CI de Terra Link: instalación reproducible (lockfile), typecheck, lint, build, migraciones sobre
+# bases exclusivas de CI, unitarias + integración (PostgreSQL/PostGIS y Redis reales) y E2E en Chromium.
+# Sin credenciales reales: la contraseña de PostgreSQL es exclusiva de este contenedor efímero y el
+# JWT_SECRET se genera en cada corrida.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: typecheck · lint · build · pruebas · e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: terra_link
+          POSTGRES_PASSWORD: ci-only-ephemeral
+          POSTGRES_DB: terra_link_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U terra_link -d terra_link_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgres://terra_link:ci-only-ephemeral@localhost:5432/terra_link_ci
+      TEST_DATABASE_URL: postgres://terra_link:ci-only-ephemeral@localhost:5432/terra_link_test
+      E2E_DATABASE_URL: postgres://terra_link:ci-only-ephemeral@localhost:5432/terra_link_e2e
+      REDIS_URL: redis://localhost:6379
+      WEB_ORIGIN: http://localhost:3000
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Generar secreto JWT efímero
+        run: echo "JWT_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      - name: Instalar dependencias (lockfile)
+        run: npm ci
+      - name: Crear base exclusiva de integración
+        run: PGPASSWORD=ci-only-ephemeral psql -h localhost -U terra_link -d terra_link_ci -c "CREATE DATABASE terra_link_test"
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+      - name: Migraciones sobre base de CI desde cero
+        run: npm run db:migrate
+      - name: Pruebas unitarias e integración
+        run: npm test
+      - name: Instalar Chromium para E2E
+        run: npx -w e2e playwright install --with-deps chromium
+      - name: E2E en navegador
+        run: npm run test:e2e
+      - name: Reporte E2E
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 7

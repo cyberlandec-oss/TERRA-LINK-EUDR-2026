@@ -1,0 +1,40 @@
+{
+  "entorno": "EMULADOR Android (no teléfono físico)",
+  "pasos": [
+    {
+      "paso": "preparar",
+      "en": "2026-10-11T17:43:26.680Z",
+      "ok": true,
+      "detalle": "Permisos de ubicación y cámara concedidos por adb; posición EMULADA -0.8479, -80.1601; proxy en modo pass",
+      "captura": null
+    },
+    {
+      "paso": "login",
+      "en": "2026-10-11T17:44:16.218Z",
+      "ok": true,
+      "detalle": "Inicio de sesión online como tecnico1 (DEMO) y organización DEMO · Cooperativa",
+      "captura": "docs/qa/capturas/movil-emulador/01-mi-jornada.png"
+    },
+    {
+      "paso": "descargar-asignaciones",
+      "en": "2026-10-11T17:44:28.738Z",
+      "ok": true,
+      "detalle": "5 parcela(s) autorizadas descargadas",
+      "captura": "docs/qa/capturas/movil-emulador/02-descarga.png"
+    },
+    {
+      "paso": "capturar",
+      "en": "2026-10-11T17:45:42.240Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Ubicación guardada en el borrador/ en 40000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/04-fallo-capturar.png"
+    },
+    {
+      "paso": "foto",
+      "en": "2026-10-11T17:52:12.383Z",
+      "ok": false,
+      "detalle": "excepción: No apareció /Foto copiada al almacenamiento/ en 20000 ms",
+      "captura": "docs/qa/capturas/movil-emulador/05-fallo-foto.png"
+    }
+  ]
+}
