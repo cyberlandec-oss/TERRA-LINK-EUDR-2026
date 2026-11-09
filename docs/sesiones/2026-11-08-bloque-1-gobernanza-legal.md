@@ -90,3 +90,23 @@ Se implementó el mecanismo técnico versionado para aplicabilidad EUDR, retenci
 - Las responsabilidades concretas permanecen `PENDING`.
 - Esta entrega no declara conformidad EUDR, no emite conclusiones regulatorias y no habilita `READY`.
 - La aprobación jurídica y la validación posterior en piloto/servidores reales permanecen como fases separadas.
+## Corte técnico posterior — 2026-11-09
+
+### Validación y despliegue
+
+La corrida original `validation-results/2026-11-09T18-53-10-760Z` se conserva intacta. Sus totales reales son:
+
+- API: **114 suites aprobadas de 116**, **1.197 pruebas aprobadas de 1.252**; 2 suites y 55 pruebas quedaron omitidas por las exclusiones configuradas en el arnés. Evidencia detallada: `pruebas-unitarias-integracion.log` y `api-test-timings/`.
+- Web/build/OpenAPI: pasos `typecheck`, `lint`, `build` y `openapi-validado` con código 0; artefactos `typecheck.log`, `lint.log`, `build.log` y `openapi-validado.log`.
+- E2E original: **29 pasaron, 23 fallaron y 126 no se ejecutaron** por ausencia del Chromium de Playwright; no fue un fallo funcional acreditado. Evidencia original: `e2e-navegador.log`.
+- E2E de continuación sobre el mismo código funcional `0996464`: código 0 y estado Playwright `passed`. La continuación está separada en `validation-results/2026-11-09T18-53-10-760Z/e2e-reparacion-2026-11-09.md`; no sustituye el resumen original fallido.
+
+La validación completa histórica queda clasificada como **FALLIDA por el entorno E2E original**, con la E2E posteriormente repetida y aprobada de forma independiente. No se convierten los 126 casos no ejecutados originales en una aprobación retroactiva.
+
+El artefacto funcional se reconstruyó con `APP_COMMIT=0996464` mediante el mecanismo existente en `scripts/desplegar.mjs`/`docker-compose.yml`. `/version` ahora devuelve `commit: 0996464`, `commit_source: BUILD_ARG` y esquema aplicado `0078_marco_gobernanza_legal`; API live/ready y web responden 200. El commit documental `6d6f04b` no se atribuye al artefacto funcional.
+
+### Bloque legal y comienzo del bloque DD
+
+El recorrido DD ya demuestra localmente: captura de instantánea append-only, hash y manifiesto, generación de paquete `INTERNAL_REVIEW`, separación de `DD_PACKAGE`, revisión autorizada, auditoría, aislamiento de tenant, redacción por permiso y transición a `STALE` ante cambios relevantes sin reescribir instantáneas históricas. La gobernanza ausente, no vigente o pendiente mantiene `READY` y la aprobación bloqueados; una gobernanza válida no satisface evidencia, riesgo, geolocalización ni demás requisitos.
+
+Se mantiene pendiente la aprobación jurídica de `P1-005`, `D-05.B`, `D-07.5/D-07.6` y la activación de proveedores/canales externos. `READY` sigue siendo interno y no equivale a DDS presentado o aceptado.
