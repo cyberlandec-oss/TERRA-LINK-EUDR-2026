@@ -60,6 +60,10 @@ async function openDb(name: string, secrets: SecretStore): Promise<SqlDb> {
   await db.execAsync(`PRAGMA key = "x'${key}'"`);
   const cipher = await db.getFirstAsync<{ cipher_version?: string }>('PRAGMA cipher_version').catch(() => null);
   encryption = cipher?.cipher_version ? 'SQLCIPHER_ACTIVE' : 'NOT_AVAILABLE_IN_THIS_BUILD';
+  if (runtimeEnvironment === 'NATIVE_BUILD' && encryption !== 'SQLCIPHER_ACTIVE') {
+    await db.closeAsync().catch(() => undefined);
+    throw new Error('SQLCipher requerido: este build nativo no puede abrir almacenamiento sin cifrar');
+  }
   await db.execAsync('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
   return wrap(db, encryption === 'SQLCIPHER_ACTIVE');
 }
