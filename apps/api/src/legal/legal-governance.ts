@@ -29,8 +29,8 @@ class GovernanceControlDto {
 
 class CreateGovernanceDto {
   @IsString() @Matches(/^\d+\.\d+\.\d+$/) version!: string;
-  @IsString() @Matches(/^\\d{4}-\\d{2}-\\d{2}$/) effective_from!: string;
-  @IsOptional() @IsString() @Matches(/^\\d{4}-\\d{2}-\\d{2}$/) effective_to?: string;
+  @IsString() @Matches(/^\d{4}-\d{2}-\d{2}$/) effective_from!: string;
+  @IsOptional() @IsString() @Matches(/^\d{4}-\d{2}-\d{2}$/) effective_to?: string;
   @IsString() @Matches(/^https:\/\/\S+$/) source_url!: string;
   @IsOptional() @IsString() @Matches(/^[0-9a-f]{64}$/) source_sha256?: string;
   @IsString() @Length(10, 2000) purpose!: string;
