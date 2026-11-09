@@ -105,6 +105,16 @@ La clasificación exacta de las omisiones API es ambiental y está localizada en
 
 El intento dirigido posterior `npm run test -w apps/api -- --runInBand test/dd.int-spec.ts test/d07-mecanismos.int-spec.ts` terminó con código 1 antes de ejecutar pruebas: Jest no pudo resolver `ts-jest` desde el resolver Windows (`Module ts-jest in the transform option was not found`). Se conserva como intento fallido separado; no altera la evidencia API reproducible previa ni se presenta como aprobado.
 
+### Bloque satelital: TLS controlado
+
+Se añadió [`infra/qa/Dockerfile.tests`](../../infra/qa/Dockerfile.tests) como entorno versionado de pruebas. Instala `openssl` y `ca-certificates`, y la validación `--tests-container` comprueba `openssl version` antes de iniciar Jest. No se desactiva la verificación TLS ni se modifican las listas de destinos: solo se habilitan los fixtures efímeros controlados del repositorio.
+
+Ejecución dirigida en Linux sobre la base `*_test`, con el script del workspace API:
+
+`npm run test -w apps/api -- --runInBand src/satellite/egress-transporte.spec.ts src/satellite/whisp.spec.ts test/satellite.int-spec.ts`
+
+Resultado de Jest: **3 suites, 84 pruebas aprobadas, 0 fallidas, 0 omitidas**. Las 55 omisiones previas quedan resueltas en el entorno reproducible. El código del proceso de pruebas fue 0; un wrapper PowerShell posterior devolvió 1 por tratar un warning de `docker logs` durante la limpieza como error, por lo que ese código del wrapper no se usa como resultado de Jest.
+
 La validación completa histórica queda clasificada como **FALLIDA por el entorno E2E original**, con la E2E posteriormente repetida y aprobada de forma independiente. No se convierten los 126 casos no ejecutados originales en una aprobación retroactiva.
 
 El artefacto funcional se reconstruyó con `APP_COMMIT=0996464` mediante el mecanismo existente en `scripts/desplegar.mjs`/`docker-compose.yml`. `/version` ahora devuelve `commit: 0996464`, `commit_source: BUILD_ARG` y esquema aplicado `0078_marco_gobernanza_legal`; API live/ready y web responden 200. El commit documental `6d6f04b` no se atribuye al artefacto funcional.

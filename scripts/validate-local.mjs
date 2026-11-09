@@ -66,7 +66,7 @@ function runTestsContainer() {
     const log = createWriteStream(logPath);
     const volume = `tl-validation-node-modules-${stamp.replace(/[^a-zA-Z0-9]/g, '-')}`;
     const container = `tl-validation-tests-${stamp.replace(/[^a-zA-Z0-9]/g, '-')}`;
-    const image = 'node:24-bookworm-slim';
+    const image = 'terra-link-tests:local';
     const database = dbName(env.TEST_DATABASE_URL);
     const testEnv = [
       ['TEST_DATABASE_URL', env.TEST_DATABASE_URL],
@@ -74,6 +74,25 @@ function runTestsContainer() {
       ['S3_ACCESS_KEY', env.S3_ACCESS_KEY],
       ['S3_SECRET_KEY', env.S3_SECRET_KEY],
     ].filter(([, value]) => value);
+    const build = spawnSync('docker', ['build', '--file', 'infra/qa/Dockerfile.tests', '--tag', image, '.'], { cwd: root, env, encoding: 'utf8' });
+    if (build.stdout) log.write(`Construcción del entorno de pruebas:\n${build.stdout}`);
+    if (build.stderr) log.write(`Errores de construcción del entorno:\n${build.stderr}`);
+    if (build.status !== 0) {
+      log.write(`\nOpenSSL no disponible en el entorno reproducible; código de construcción: ${build.status ?? 'NO_DISPONIBLE'}\n`);
+      log.end();
+      process.stdout.write(`FALLA (código ${build.status ?? 1})\n`);
+      resolvePromise({ name, command: `docker build --file infra/qa/Dockerfile.tests --tag ${image} .`, code: build.status ?? 1, seconds: Math.round((Date.now() - started) / 100) / 10, log: logPath });
+      return;
+    }
+    const openssl = spawnSync('docker', ['run', '--rm', image, 'openssl', 'version'], { cwd: root, env, encoding: 'utf8' });
+    log.write(`Comprobación OpenSSL:\n${openssl.stdout ?? ''}${openssl.stderr ?? ''}`);
+    if (openssl.status !== 0) {
+      log.write(`\nOpenSSL no disponible después de construir el entorno; código: ${openssl.status ?? 'NO_DISPONIBLE'}\n`);
+      log.end();
+      process.stdout.write(`FALLA (código ${openssl.status ?? 1})\n`);
+      resolvePromise({ name, command: `docker run --rm ${image} openssl version`, code: openssl.status ?? 1, seconds: Math.round((Date.now() - started) / 100) / 10, log: logPath });
+      return;
+    }
     const dockerArgs = [
       // El contenedor queda retenido hasta que se captura el código y los logs. Si el
       // proceso padre se interrumpe, Docker conserva la evidencia para recuperación manual.
@@ -110,7 +129,7 @@ function runTestsContainer() {
       process.stdout.write(`${code === 0 ? 'OK' : `FALLA (código ${code})`} ${seconds}s\n`);
       resolvePromise({
         name,
-        command: `docker run --rm --network host --memory 6g ${image} npm ci --ignore-scripts --no-audit --no-fund && npm test`,
+        command: `docker run --name ${container} --network host --memory 6g ${image} npm ci --ignore-scripts --no-audit --no-fund && npm test`,
         code,
         seconds,
         log: logPath,

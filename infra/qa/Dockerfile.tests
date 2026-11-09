@@ -1,0 +1,9 @@
+# Entorno reproducible para las pruebas API/integración.
+# OpenSSL es obligatorio para las suites TLS controladas de P0-028; si falta,
+# esas suites no deben convertirse silenciosamente en skipped.
+FROM node:24-bookworm-slim
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && openssl version \
+  && rm -rf /var/lib/apt/lists/*

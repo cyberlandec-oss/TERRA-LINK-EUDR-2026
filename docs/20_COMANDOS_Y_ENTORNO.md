@@ -621,3 +621,10 @@ El proyecto y el disco de Docker están en un disco USB mecánico (`D:`) con lat
 - `npm run map:embed` (apps/mobile) genera `src/ui/mapa-embebido.generated.ts` (no versionado; corre solo en postinstall/typecheck/test).
 - Recorrido: `node e2e/movil/recorrido-emulador.mjs <pasos>`; nuevos: relogin, altasPreparar, altasSinParcelas, altasCaptura, altasReaperturaYSync, mapaPreparar, mapaOffline, ubicacionDenegada, adjuntoInterrumpido. La sesión del servidor dura 1 h: repetir `relogin` en tandas largas. Revisión visual de Altas: `node e2e/review/movil-altas-web.mjs` (con `web:preview` en 3001).
 - Cartografía local generada el 2026-10-28 con `node infra/maps/preparar-mapa.mjs` (volumen `map-data` estaba vacío): `ecuador.pmtiles` 150 MB.
+### Suites TLS satelitales en el entorno reproducible
+
+La imagen `infra/qa/Dockerfile.tests` instala OpenSSL explícitamente. El modo `npm run validate -- --tests-container` la construye, comprueba `openssl version` y solo después lanza las pruebas en Linux; si OpenSSL no está disponible, el paso falla y no convierte las suites en `skipped`. Las suites dirigidas se ejecutan con el script del workspace API, no con Jest desde la raíz:
+
+```text
+npm run test -w apps/api -- --runInBand src/satellite/egress-transporte.spec.ts src/satellite/whisp.spec.ts test/satellite.int-spec.ts
+```
