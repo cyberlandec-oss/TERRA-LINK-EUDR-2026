@@ -124,6 +124,11 @@ describeDb('cadena técnica completa: de los soportes al acceso del destinatario
       gap_resolutions: gaps.map((g) => ({ scope: g.scope, code: g.code, kind: 'NOT_APPLICABLE', support_index: 0, justification: `Justificación SINTÉTICA propia de la carencia ${g.scope}:${g.code}: no aplica a esta operación de ensayo.` })) }).expect(201);
 
     caseId = (await http().post(`${base(orgA)}/dd-cases`).set(as(EUDR)).send({ operation_id: randomUUID(), lot_id: lot, scope_note: 'Expediente SINTÉTICO de la cadena técnica completa' }).expect(201)).body.case.id;
+    // La gobernanza satisface solo LEGAL_GOVERNANCE; no fuerza READY, riesgo, evidencia ni una presentación.
+    const governance = '9.9.9';
+    const controls = ['APPLICABILITY', 'RETENTION', 'LEGAL_BASIS', 'RESPONSIBILITY'].map((kind) => ({ code: `CHAIN_${kind}`, kind, title: `Control sintético ${kind}`, status: 'ACTIVE', source_reference: 'Prueba controlada de cadena técnica', notes: 'Fixture sintético; no es aprobación jurídica real.' }));
+    await http().post(`${P}/legal-governance/versions`).set(as(SUPER)).send({ version: governance, effective_from: today, source_url: 'https://eur-lex.europa.eu/eli/reg/2023/1115/2026-09-18/eng/pdf', purpose: 'Marco sintético para probar la cadena técnica posterior a gobernanza.', controls }).expect(201);
+    await http().post(`${P}/legal-governance/versions/${governance}/decision`).set(as(SUPER)).send({ operation_id: randomUUID(), decision: 'APPROVE', basis: 'Aprobación sintética exclusiva del fixture controlado.' }).expect(201);
   }, 360_000);
   afterAll(async () => {
     await sql`UPDATE satellite_providers SET selection_status = 'PROPOSED', selected_by = NULL, decision_reference = NULL WHERE selection_status = 'SELECTED'`.execute(h.db).catch(() => undefined);

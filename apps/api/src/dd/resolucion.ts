@@ -15,6 +15,7 @@ export type NaturalezaResolucion = 'DATA' | 'ACTION' | 'DECISION' | 'EXTERNAL';
 interface Regla { action: string; permission: Permission | null; screen: Pantalla; kind: NaturalezaResolucion; limit?: string }
 
 const REGLAS: Record<string, Regla> = {
+  LEGAL_GOVERNANCE: { action: 'Completar y aprobar el marco legal vigente mediante la gobernanza autorizada; los controles pendientes siguen bloqueando el expediente.', permission: 'legal_governance:manage' as Permission, screen: 'LEGAL_PROFILE', kind: 'DECISION', limit: 'La aprobación es una decisión de gobernanza y no satisface evidencia, riesgo ni los demás requisitos del expediente.' },
   SUBJECT_QUANTITY: { action: 'Revisar el lote y su saldo físico en el libro de inventario.', permission: 'lot:read', screen: 'LOT', kind: 'DATA' },
   QUANTITIES_CONSISTENT: { action: 'Conciliar el libro de inventario con un ajuste auditado; no se edita un saldo.', permission: 'stock:move', screen: 'INVENTORY', kind: 'ACTION' },
   ORIGIN_DECLARED: { action: 'Una entrega ya registrada no admite añadir parcelas después: el origen incompleto sigue incompleto y no se inventa. Si el origen real se conoce, se registra una entrega nueva con su parcela.', permission: 'delivery:create', screen: 'DELIVERIES', kind: 'DATA', limit: 'No existe hoy una corrección de origen sobre una entrega registrada; es una decisión de diseño (D-39), no un olvido.' },
