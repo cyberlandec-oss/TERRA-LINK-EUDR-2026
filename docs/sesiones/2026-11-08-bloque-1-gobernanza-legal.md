@@ -124,3 +124,8 @@ El artefacto funcional se reconstruyó con `APP_COMMIT=0996464` mediante el meca
 El recorrido DD ya demuestra localmente: captura de instantánea append-only, hash y manifiesto, generación de paquete `INTERNAL_REVIEW`, separación de `DD_PACKAGE`, revisión autorizada, auditoría, aislamiento de tenant, redacción por permiso y transición a `STALE` ante cambios relevantes sin reescribir instantáneas históricas. La gobernanza ausente, no vigente o pendiente mantiene `READY` y la aprobación bloqueados; una gobernanza válida no satisface evidencia, riesgo, geolocalización ni demás requisitos.
 
 Se mantiene pendiente la aprobación jurídica de `P1-005`, `D-05.B`, `D-07.5/D-07.6` y la activación de proveedores/canales externos. `READY` sigue siendo interno y no equivale a DDS presentado o aceptado.
+## Movimientos y despacho — verificación 2026-11-09
+
+Se ejecutaron en Linux, sobre la base aislada `*_test`, `test/shipments.int-spec.ts` y `test/d34a-despacho.int-spec.ts`: **2 suites, 15 pruebas, 0 fallidas, código del contenedor 0**. El contenedor quedó `AutoRemove=false`, terminó `EXIT=0`, sus logs se recuperaron y se eliminó únicamente el contenedor/volumen exclusivos de esta ejecución. La prueba cubre reservas, liberación, cancelación, preflight, ledger, saldo insuficiente, concurrencia, idempotencia, tenant y revalidación en despacho.
+
+El resultado no cierra P0-029 operativo: el positivo de despacho depende de la fixture READY sintética ya rotulada en la suite; la vía normal sigue bloqueada por las compuertas DD/legalidad/calidad. Se conserva el recorrido negativo y no se fabrican datos favorables.
