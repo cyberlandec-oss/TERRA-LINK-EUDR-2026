@@ -62,6 +62,8 @@ Se implementó el mecanismo técnico versionado para aplicabilidad EUDR, retenci
 - La prueba unitaria nueva está en `apps/api/src/dd/requirements.spec.ts`.
 - La prueba de integración está en `apps/api/test/legal-governance.int-spec.ts`; queda pendiente por el resolver de `ts-jest` del entorno Windows hoisted, sin declararla aprobada.
 - Falta ejecutar el respaldo y su verificación aislada posterior a `0078` conforme a `docs/20_COMANDOS_Y_ENTORNO.md`, sin repetir respaldos ya acreditados.
+- Se generó el respaldo de base, objetos, claves restringidas, estado y huellas en una carpeta temporal externa al repositorio porque `D:` devolvió “dispositivo no está listo”. La restauración aislada se intentó y falló por terminación abrupta del PostgreSQL de ensayo durante `pg_restore`; el ensayo fue retirado y no se declara verificado.
+- El candidato `65c099671897a7c0727091e604e66604e312c2ea` fue reconstruido y desplegado localmente con `APP_COMMIT=65c0996`: `/health/ready` respondió 200 y `/version` confirmó commit `65c0996` y esquema `0078_marco_gobernanza_legal`. Los servicios quedaron saludables.
 
 ## Bloqueos honestos
 
