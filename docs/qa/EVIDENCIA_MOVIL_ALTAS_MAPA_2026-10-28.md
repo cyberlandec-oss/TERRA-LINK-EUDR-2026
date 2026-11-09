@@ -1,0 +1,70 @@
+# Evidencia: Altas completas, mapa móvil y APK en emulador (2026-10-28)
+
+Alcance: DONE_LOCAL **no** otorgado; P0-023 y P0-024 siguen **ABIERTAS**. Emulador Android 15 (x86_64, `TL_Pixel_35`), **no** teléfono físico (`.claude/rules/40-mobile-offline.md`: el emulador no cierra el gate).
+
+## Código, validación, despliegue y APK
+| Qué | Valor |
+| --- | --- |
+| Código del candidato | `dd0f92d` (Altas, mapa, referencia de productores) y `b995aa3` (arneses e2e) |
+| Validación raíz (una sola vez, árbol congelado) | **APROBADA** sobre `b995aa3`: `validation-results/2026-10-28T19-23-40-309Z` (typecheck, lint, build, OpenAPI, unitarias+integración 916,8 s, E2E 280,8 s) |
+| Despliegue | `/version` = `b995aa3`, esquema `0071` (sin migración nueva, sin respaldo) |
+| Pruebas móviles (aparte: la validación raíz no incluye `apps/mobile`) | `tsc --noEmit` y `jest --ci`: 60 pasaron, 1 omitida (humo opcional contra API) |
+| APK vigente | `apps/mobile/dist-apk/CANDIDATO-mapa-altas-0f68196.apk`, commit **`0f68196`** (solo móvil + arneses sobre `b995aa3`), SHA-256 **`bb9cea2fba3f24f65b5440d8b89f691e122c1106fac1427c3aab3cc416998095`**, release x86_64 |
+| APK previo del mismo recorrido de Altas | compilado de `dd0f92d` (misma lógica de Altas; `0f68196` solo quitó una atribución duplicada y fijó `minzoom` 6 de teselas) |
+
+## Entorno Android (sin alterar nada ajeno)
+JDK 17.0.20.1, SDK 36 + build-tools 36.0.0 + NDK 27.1.12297006 + imagen `google_apis` API 35 en `C:\Users\mario\Android` (variables solo por sesión). WHPX utilizable. Se aceptaron las licencias del SDK de Android para instalarlo. Cartografía: `node infra/maps/preparar-mapa.mjs` generó `ecuador.pmtiles` (150 MB, extracto Geofabrik 2026-10-27) porque el volumen `map-data` estaba vacío.
+
+## Mapa móvil (decisión técnica)
+WebView (`react-native-webview` 13.16.1) con MapLibre GL JS 6.15.0 **embebido** (misma versión que la web; sin CDN), estilo `infra/maps/estilo.json` sin capas de texto (no hay tipografías en el dispositivo). Las teselas salen de la base cifrada de la cuenta (`map_tiles`, migración local 7), preparadas con conexión por lecturas de rango del PMTiles del servicio `maps` del propio despliegue (puerto 8090). Ningún proveedor nuevo; no se envían parcelas ni capturas. Dibuja vértices (verde/ámbar/rojo según precisión y `mocked`), ubicación guardada y la lectura de «Mi ubicación» con su círculo de precisión; **nada se guarda al localizarse**. Estados explícitos: sin cartografía preparada / fuera de la zona preparada / lista.
+
+## Resultados en emulador (último resultado por paso; `docs/qa/movil-emulador/recorrido.json`)
+| Paso | Resultado | APK |
+| --- | --- | --- |
+| Productor autorizado sin parcelas visible tras la descarga | OK | dd0f92d |
+| Primera parcela sin conexión → capturas (ubicación + 3 vértices) → cierre forzado → reapertura conserva la cola | OK | dd0f92d |
+| Sincronización en dependencia: parcela definitiva con el productor correcto, 3 vértices, 1 muestra; reintento sin duplicar | OK | dd0f92d |
+| Mapa sin cartografía lo dice; lectura mostrada sin guardar; revisión de vértices | OK | dd0f92d / 0f68196 |
+| Preparar cartografía (50 teselas, 0,7 MB) y mapa **sin red ni servicio de mapas** | OK (captura `93-mapa-offline.png`) | 0f68196 |
+| Adjunto interrumpido (respuesta de subida cortada) queda «archivo pendiente de subir» y el reintento no duplica | OK | 0f68196 |
+| Conflicto visible → reenviar sobre la versión actual → resuelto con historial | OK | 0f68196 |
+| Cambio de cuenta: otra cuenta no ve capturas; cerrar sesión avisa de pendientes | OK | 0f68196 |
+| Reloj atrasado bloquea; dispositivo revocado | OK | 0f68196 |
+| SQLCipher activo y autoprueba | OK (`cipher_version=4.7.0`, cabecera no legible, clave incorrecta falla) | 0f68196 |
+| Respuesta perdida tras commit (`cortarTrasCommit`) | la interrupción se produjo (1 muestra creada); el paso de reintento **no se completó** por la deriva del arnés | 0f68196 |
+
+**No re-demostrado con este APK** (el arnés quedó desalineado con el estado acumulado del dispositivo —decenas de borradores locales—, no se atribuye a un defecto de la app sin probarlo): persistencia tras cierre forzado de la captura clásica, reintento sin duplicar tras respuesta perdida, foto con análisis pendiente/disponible, ubicación denegada, sesión vencida, almacenamiento lleno. Estos seis se demostraron con el APK `9996a9b4` el 2026-10-11 (`docs/qa/EVIDENCIA_APK_9996a9b4_Y_NEGATIVA_2026-10-11.md`) y deben repetirse sobre `0f68196` desde un dispositivo limpio. El mapa en el emulador usa WebGL por software: la fluidez real se comprueba en el teléfono.
+
+## Revisión visual de «Altas» (vista previa web, servidor simulado)
+`node e2e/review/movil-altas-web.mjs` (10 pasos, 390 px): sin permisos (no pide descargar nada), vacío con permisos, productor sin parcelas elegible, primera parcela, productor rechazado → corrección → recuperación de dependientes (3 «Registrado en el servidor»), entrega rechazada corregible y de intervención externa, rol Productor solo con parcela. Capturas en `docs/qa/capturas/movil-altas/`. Defecto hallado y corregido: cinco pestañas recortaban «Diagnóstico» (+2 px de desborde).
+En emulador real también se vio y se registró: los deslizamientos sobre el mapa lo mueven en vez de desplazar la página (se deja el borde izquierdo libre; mejora de UX pendiente).
+
+## Recorridos por rol y cadena (web, despliegue `b995aa3`)
+`node e2e/review/web-por-rol.mjs`: **APROBADO** (22 combinaciones, 19 cuentas vigentes, sin crear usuarios). `node e2e/review/cadena-integral-web.mjs`: T1–T14 OK; **bloqueos esperados** conservados (riesgo D-05.B, expediente D-07.5/7.6, despacho con 3 comprobaciones bloqueantes); **T15 NO DEFINIDO** (traspaso entre organizaciones). Satélite: servidor controlado/fixture; **Whisp real no ejecutado** (`WHISP_API_KEY` vacía y sin autorización expresa de envío).
+
+## Repetición en emulador LIMPIO con el APK vigente `0f68196` (2026-10-28/29)
+Emulador recreado con `-wipe-data`, APK `0f68196` (SHA-256 `bb9cea2f…8095`), cuenta DEMO vigente `tecnico1.cooperativa`. Resultado por comprobación:
+| Comprobación | Resultado |
+| --- | --- |
+| Persistencia: guardar sin conexión → cierre forzado → reapertura (mismos identificadores de operación) | **OK** |
+| Respuesta perdida tras commit en el servidor → reintento sin duplicar (1 muestra, 2 filas de sincronización) | **OK** |
+| Foto: «archivo recibido, análisis pendiente» (no descargable) → «archivo disponible» tras el análisis | **OK** |
+| Sesión vencida (reloj +2 h) bloquea la captura sin borrar pendientes; reloj atrasado bloquea | **OK** |
+| «Mi ubicación» muestra la lectura sin guardar (flujo completo continuó con foto y cola) | el paso registró FALLA por una aserción atada al diseño anterior; el comportamiento se observó en las capturas, **no** cuenta como demostrado hasta reescribir la aserción |
+| Ubicación denegada | **NO demostrada**: la captura se tomó antes del mensaje; falta ajustar el paso (el diálogo del sistema) |
+| Almacenamiento lleno | **NO demostrada**: el paso no llegó a la pantalla de captura; falta repetirla |
+Pendiente real: ubicación denegada y almacenamiento lleno (y reescribir la aserción de «Mi ubicación») antes del teléfono físico.
+
+## Cierre de «ubicación denegada» y «almacenamiento lleno» (2026-10-29, APK `0f68196`, emulador)
+**Ubicación denegada — DEMOSTRADA** (`ubicacion-denegada-contenido`, 18:19 UTC, captura `226-ubicacion-denegada-contenido.png`): con el permiso revocado la app explica el motivo y que lo guardado se conserva; no muestra lectura; la captura nueva queda sin ubicación ni vértices; el trabajo previo (vértice `1:-0.848400,-80.160398` guardado antes de revocar) sigue en cola en Pendientes. Complementa el registro de las 02:59 UTC (mensaje y ausencia de ubicación inventada). Contenido comparado, no solo recuentos.
+
+**Almacenamiento lleno — DEMOSTRADO con una salvedad** (`almacenamiento-lleno-controlado`): relleno hasta **0 KB libres** (`df`), escritura de Terra Link = añadir un vértice.
+- Ejecución de las 18:05 UTC (`223-almacenamiento-controlado-fallo.png`): la app muestra «No se completó — No hay espacio libre en el dispositivo para guardar este cambio. Lo ya guardado se conserva: libera espacio y vuelve a intentarlo.»; contenido **antes** `[1:-0.847998,-80.159998]` = **tras el fallo** `[1:-0.847998,-80.159998]` (sin vértice a medias); tras liberar, la misma acción añade `2:-0.847600,-80.159598` sin alterar el 1 ni duplicar. El paso quedó marcado `ok:false` solo porque el arnés buscó el mensaje únicamente en la parte visible de la pantalla; el mensaje está en la captura.
+- Error real o simulación: el mensaje de la app solo se genera cuando su propia escritura devuelve un error de almacenamiento (`isStorageFull`: ENOSPC/SQLITE_FULL) y el relleno es real (fallocate hasta cero). Las líneas `ENOSPC` del registro de esa ejecución eran de procesos del sistema (SharedPreferences), no de la app.
+- **Límite exacto:** no es determinista. En la ejecución de las 18:26 UTC con 0 KB libres la escritura **tuvo éxito** (SQLite aprovechó espacio ya asignado y no hubo `ENOSPC` del proceso de la app). El fallo depende del estado del archivo de la base; no se fuerza de forma repetible sin una herramienta que limite la cuota de la app. Queda registrado como demostrado una vez, no como prueba repetible.
+
+## Adenda 2026-10-29: soportes documentales, mapa y APK de `70348c7`
+- **Código**: `70348c7` — `npm run validate` APROBADA (`validation-results/2026-10-29T22-07-43-825Z`); API desplegada una vez (la web no cambió). Prueba omitida: `session.api.test.ts` (solo con `TL_API_SMOKE=1`); no afecta a este alcance.
+- **APK** (en `apps/mobile/dist-apk/`, no versionados; los anteriores se conservan): emulador x86_64 `EMULADOR-soportes-70348c7.apk`, SHA-256 `e576a82e7b07862cfd4b8b93ca0434a934440f5f21f35b16e28b83126ac27e4e`; teléfono arm64-v8a `ARM64-soportes-70348c7.apk`, SHA-256 `6be2a0fddea778d6b8f94b052f94788f3db2448647a9b39bf2dfbc2e6d3dcd81`. Ambos del commit `70348c7`. **El arm64 está preparado y no probado: no es evidencia de teléfono.** El primer intento arm64 falló por rutas de más de 260 caracteres (`ninja`); se compiló desde una unidad corta mapeada (`subst`), sin cambiar ajustes del sistema. Los dos primeros intentos de ambos APK fallaron por `JAVA_HOME` sin definir (JDK en `C:\Users\mario\Android\jdk`, SDK en `C:\Users\mario\Android\sdk`).
+- **Emulador** (instalación `-r` sobre la base existente: la migración local 8 se aplicó sin pérdida; `docs/qa/movil-emulador/recorrido.json`): `capturar-ubicacion` (aserción por contenido), `mapa-desplazamiento-y-formulario`, `altas-primera-parcela-offline-en-cola` y `soporte-pdf-sobre-parcela-nueva`, los cuatro en OK. Fallos del arnés conservados antes del verde (no del producto): búsqueda por desplazamiento alterno que no alcanzaba la tarjeta de soportes; la expresión del archivo coincidía con el icono de vista previa del selector en lugar del título.
+- **Evidencia reutilizada** (código móvil no tocado en esas partes): persistencia tras cierre forzado, respuesta perdida, conflicto, separación de cuentas, SQLCipher, ubicación denegada y almacenamiento lleno del APK `0f68196`.

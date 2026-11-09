@@ -1,0 +1,22 @@
+{
+  "_nota": "PLANTILLA. Todo lo que está en null o vacío lo decide y declara quien ejecuta; el arnés no corre hasta completarlo. Ningún valor de esta plantilla es un objetivo aprobado ni un dato del piloto. Las rutas salen de apps/api/openapi.json. No ejecutar sobre el DEMO (puertos 3000/4000). Token: exportarlo en la variable de entorno indicada; nunca en este archivo.",
+  "entorno": { "etiqueta": null, "descripcion": null, "representativo_del_piloto": null },
+  "destino": { "base_url": null, "permitir_no_local": false },
+  "dataset": { "descripcion": null, "productores": null, "parcelas": null, "lotes": null },
+  "carga": { "concurrencia": null, "duracion_s": null, "calentamiento_s": null, "timeout_ms": null, "semilla": 1 },
+  "autenticacion": { "tipo": "bearer_env", "variable": "TL_CARGA_TOKEN" },
+  "permitir_mutaciones": false,
+  "variables": { "orgId": null, "plotId": null, "versionId": null, "deviceId": null, "ddCaseId": null, "documentId": null, "documentVersionId": null },
+  "operaciones": [
+    { "nombre": "listar-productores", "clase": "listar y abrir", "metodo": "GET", "ruta": "/api/v1/organizations/{orgId}/producers", "esperado": [200], "peso": 1 },
+    { "nombre": "listar-parcelas", "clase": "listar y abrir", "metodo": "GET", "ruta": "/api/v1/organizations/{orgId}/plots", "esperado": [200], "peso": 1 },
+    { "nombre": "listar-lotes", "clase": "listar y abrir", "metodo": "GET", "ruta": "/api/v1/organizations/{orgId}/lots", "esperado": [200], "peso": 1 },
+    { "nombre": "descarga-dataset-movil", "clase": "sincronización", "metodo": "GET", "ruta": "/api/v1/organizations/{orgId}/sync/pull?device_id={deviceId}", "esperado": [200], "peso": 1 },
+    { "nombre": "exportar-geojson", "clase": "GeoJSON", "metodo": "GET", "ruta": "/api/v1/organizations/{orgId}/plots/{plotId}/geometry-versions/{versionId}/geojson", "esperado": [200], "peso": 1 },
+    { "nombre": "consultar-evaluaciones-gis", "clase": "evaluación GIS", "metodo": "GET", "ruta": "/api/v1/organizations/{orgId}/plots/{plotId}/gis-evaluations", "esperado": [200], "peso": 1 },
+    { "nombre": "abrir-expediente-dd", "clase": "expediente DD", "metodo": "GET", "ruta": "/api/v1/organizations/{orgId}/dd-cases/{ddCaseId}", "esperado": [200], "peso": 1 },
+    { "nombre": "descargar-documento", "clase": "documentos", "metodo": "GET", "ruta": "/api/v1/organizations/{orgId}/documents/{documentId}/versions/{documentVersionId}/content", "esperado": [200], "peso": 1 }
+  ],
+  "objetivos": {},
+  "guardar_muestras": false
+}

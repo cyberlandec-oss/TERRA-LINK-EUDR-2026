@@ -1,0 +1,56 @@
+// D-07.6 — tablas de texto de la pantalla de conclusión humana. Español = fuente; la API devuelve CÓDIGOS.
+
+export const CONCLUSION_TABLAS = {
+  RESULTADO: {
+    NEGLIGIBLE: 'Riesgo insignificante (NEGLIGIBLE)',
+    NON_NEGLIGIBLE: 'Riesgo no insignificante (NON_NEGLIGIBLE)',
+    UNDETERMINED: 'Sin conclusión vigente (indeterminada)',
+  } as Record<string, string>,
+  TECNICO: {
+    BLOCKED: 'Bloqueado por un hallazgo', REVIEW_REQUIRED: 'Requiere revisión', INCOMPLETE: 'Incompleto: reglas no evaluables o datos faltantes', NO_FINDINGS_IN_EVALUATED_RULES: 'Sin hallazgos en las reglas evaluadas',
+  } as Record<string, string>,
+  SEVERIDAD: { NOT_ASSESSED: 'Sin clasificar', LOW: 'Baja (de los hallazgos evaluados)', MEDIUM: 'Media (de los hallazgos evaluados)', HIGH: 'Alta (de los hallazgos evaluados)', CRITICAL: 'Crítica (de los hallazgos evaluados)' } as Record<string, string>,
+  PROCESO: { OPEN: 'Sin iniciar', UNDER_REVIEW: 'En curso', RESOLVED: 'Resuelta' } as Record<string, string>,
+  LIMITACION: {
+    ENGINE_NEVER_CONCLUDES: 'El motor no concluye: esta conclusión es de una persona autorizada.',
+    SEVERITY_IS_NOT_CONCLUSION: 'La severidad resume los hallazgos evaluados; no es una conclusión ni se deriva de ella.',
+    CATEGORIES_WITHOUT_RULES: 'Hay categorías sin ninguna regla en el catálogo: una categoría ausente no se considera superada.',
+    RULES_NOT_EVALUABLE: 'Hay reglas que no se pudieron evaluar: un dato ausente no produce un resultado favorable.',
+    HAS_FINDINGS: 'La evaluación tiene hallazgos.',
+    REVIEW_NOT_RESOLVED: 'La revisión humana de la evaluación no está resuelta.',
+  } as Record<string, string>,
+  FALTA: {
+    EVALUATION_STALE: 'La evaluación está desactualizada: reevalúa antes de concluir.',
+    EVALUATION_SUPERSEDED: 'Hay una evaluación más reciente del lote: concluye sobre esa.',
+    RECORDER_IS_EVALUATOR: 'Quien realizó la evaluación no puede concluirla: debe hacerlo otra persona.',
+    RULE_SET_NOT_ADOPTED: 'La organización no ha adoptado el catálogo de reglas con que se evaluó.',
+    PROFILE_REFERENCE_MISSING: 'El catálogo no declara ningún perfil jurídico (regulatory_profile vacío).',
+    PROFILE_REFERENCE_INVALID: 'El valor de regulatory_profile no es una referencia a una versión de perfil.',
+    PROFILE_NOT_ADOPTED: 'La organización no ha adoptado ningún perfil jurídico.',
+    PROFILE_VERSION_MISMATCH: 'El perfil que adoptó la organización no es el que declara el catálogo.',
+    PROFILE_SCOPE_PARTIAL: 'El perfil jurídico declarado tiene alcance PARCIAL.',
+    PROFILE_REVIEW_NOT_CURRENT: 'El perfil jurídico declarado no tiene una revisión favorable vigente.',
+    HAS_BLOCKING_FINDINGS: 'La evaluación tiene hallazgos bloqueantes: no se concluye favorablemente.',
+    FINDINGS_REVIEW_NOT_RESOLVED: 'Hay hallazgos que requieren revisión y la revisión humana no está resuelta.',
+  } as Record<string, string>,
+  SCOPE: { FACTOR: 'Regla no evaluable', CATEGORY: 'Categoría sin ninguna regla' } as Record<string, string>,
+  KIND_CARENCIA: { NOT_APPLICABLE: 'No aplica a esta operación', ASSESSED_BY_HUMAN: 'Evaluada por una persona (con un documento del sistema)' } as Record<string, string>,
+  CARENCIA: {
+    DOCUMENT_EXPIRED: 'Soportes documentales vigentes', GEOMETRY_INVALID: 'Geometría técnicamente válida', GEOLOCATION_PROFILE: 'Perfil de geolocalización', SATELLITE_COVERAGE_UNKNOWN: 'Cobertura satelital',
+    DATA_MISSING_ORIGIN: 'Origen declarado en las entregas', MASS_BALANCE_INCONSISTENT: 'Conciliación del ledger', MATERIAL_OF_UNKNOWN_ORIGIN: 'Material de origen desconocido', MITIGATION_UNVERIFIED: 'Mitigaciones verificadas',
+    DEFORESTATION: 'Deforestación', LEGALITY: 'Legalidad', MIXING: 'Mezcla', SUPPLY_CHAIN: 'Cadena de suministro', DOCUMENT_CREDIBILITY: 'Credibilidad documental', TRACEABILITY: 'Trazabilidad',
+    EVASION: 'Elusión', HUMAN_RIGHTS: 'Derechos humanos', INDIGENOUS_RIGHTS: 'Derechos de pueblos indígenas', DATA_QUALITY: 'Calidad de datos',
+  } as Record<string, string>,
+  VIGENCIA: {
+    EVALUATION_STALE: 'La evaluación quedó desactualizada.',
+    LOST_RULE_SET_NOT_ADOPTED: 'Se perdió la adopción del catálogo.',
+    LOST_PROFILE_REFERENCE_MISSING: 'El catálogo ya no declara un perfil jurídico.',
+    LOST_PROFILE_REFERENCE_INVALID: 'La referencia al perfil dejó de ser válida.',
+    LOST_PROFILE_NOT_ADOPTED: 'Se perdió la adopción del perfil jurídico.',
+    LOST_PROFILE_VERSION_MISMATCH: 'El perfil adoptado ya no es el que declara el catálogo.',
+    LOST_PROFILE_SCOPE_PARTIAL: 'El perfil jurídico pasó a ser parcial.',
+    LOST_PROFILE_REVIEW_NOT_CURRENT: 'La revisión favorable del perfil jurídico dejó de estar vigente.',
+    LOST_HAS_BLOCKING_FINDINGS: 'La evaluación tiene hallazgos bloqueantes.',
+    LOST_FINDINGS_REVIEW_NOT_RESOLVED: 'La revisión de hallazgos ya no está resuelta.',
+  } as Record<string, string>,
+};

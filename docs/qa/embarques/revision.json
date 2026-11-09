@@ -1,0 +1,73 @@
+{
+  "fecha": "2026-10-12T18:24:22.535Z",
+  "base": "http://localhost:3000",
+  "ok": true,
+  "casos": [
+    {
+      "caso": "menú: ORG_ADMIN ve «Embarques»",
+      "ok": true,
+      "detalle": "",
+      "captura": null
+    },
+    {
+      "caso": "nuevo embarque: formulario por teclado y etiquetas",
+      "ok": true,
+      "detalle": "centro DEMO-CA-01",
+      "captura": "docs/qa/capturas/embarques/nuevo-embarque.png"
+    },
+    {
+      "caso": "reserva: el disponible baja 1 kg y la existencia no cambia (ledger)",
+      "ok": true,
+      "detalle": "disponible 120 → 119; existencia 120",
+      "captura": null
+    },
+    {
+      "caso": "preflight: bloquea por calidad/expediente y por la compuerta D-34; «Despachar» deshabilitado",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/embarques/preflight-bloqueado.png"
+    },
+    {
+      "caso": "API: despachar con versión obsoleta o bloqueos → 409 sin efectos",
+      "ok": true,
+      "detalle": "",
+      "captura": null
+    },
+    {
+      "caso": "Lot Hub: «Embarques» muestra el embarque con efecto «reservado»",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/embarques/lot-hub-embarques.png"
+    },
+    {
+      "caso": "cancelar: libera la reserva (disponible restaurado)",
+      "ok": true,
+      "detalle": "disponible 120",
+      "captura": "docs/qa/capturas/embarques/cancelado.png"
+    },
+    {
+      "caso": "conciliación ledger ↔ dominio sin diferencias nuevas",
+      "ok": true,
+      "detalle": "diferencias 0 → 0",
+      "captura": null
+    },
+    {
+      "caso": "390 px: detalle de embarque sin desplazamiento horizontal",
+      "ok": true,
+      "detalle": "exceso 0px",
+      "captura": "docs/qa/capturas/embarques/detalle-390.png"
+    },
+    {
+      "caso": "recepcion.acopio: sin «Embarques» en el menú; la URL responde «Tu rol no permite…»",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/embarques/recepcion.acopio-embarques.png"
+    },
+    {
+      "caso": "auditor.cooperativa: ve Embarques en solo lectura (sin formularios de gestión)",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/embarques/auditor.cooperativa-embarques.png"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "fecha": "2026-10-12T15:41:54.583Z",
+  "base": "http://localhost:3000",
+  "entorno": "DESARROLLO local (contenedores), datos DEMO y archivos sintéticos",
+  "ok": true,
+  "casos": [
+    {
+      "caso": "admin: elige Parcelas, descarga su plantilla y ve que no se importa geometría",
+      "ok": true,
+      "detalle": "plantilla-parcelas_v1.xlsx",
+      "captura": "docs/qa/capturas/importacion/pa01-admin-plantilla-parcelas.png"
+    },
+    {
+      "caso": "admin: productor inexistente y de baja y coma decimal son errores de fila; la superficie sobre una parcela con geometría se acepta (la conserva); no confirmable",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/pa02-admin-errores-parcelas.png"
+    },
+    {
+      "caso": "admin: vista previa válida (sin guardar); la columna de coordenadas queda «No importar»",
+      "ok": true,
+      "detalle": "reimportación: 2 sin cambios",
+      "captura": "docs/qa/capturas/importacion/pa03-admin-vista-previa-parcelas.png"
+    },
+    {
+      "caso": "admin: confirmación con teclado (no aplicable: ya importado en una ejecución anterior)",
+      "ok": true,
+      "detalle": "ver reimportación",
+      "captura": null
+    },
+    {
+      "caso": "390 px: reimportación de parcelas = 2 sin cambios, nada que confirmar",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/pa05-390-reimportacion-parcelas.png"
+    },
+    {
+      "caso": "390 px: sin desplazamiento horizontal de la página",
+      "ok": true,
+      "detalle": "exceso 0px",
+      "captura": null
+    },
+    {
+      "caso": "supervisión (MANAGER): Parcelas habilitada y plantilla disponible",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/pa06-supervision-parcelas.png"
+    },
+    {
+      "caso": "técnico de campo: sin menú y denegación explicada en la URL directa",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/pa07-técnico-denegado.png"
+    },
+    {
+      "caso": "auditoría: sin menú y denegación explicada en la URL directa",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/pa08-auditoría-denegado.png"
+    }
+  ]
+}

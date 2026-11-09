@@ -1,0 +1,22 @@
+{
+  "en": "2026-10-30T02:45:25.567Z",
+  "comprobaciones": {
+    "tarjeta_visible": true,
+    "resultado_disponible": true,
+    "nuevos_analisis_deshabilitados_separado": true,
+    "cobertura_unknown": true,
+    "procedencia_y_fecha": true,
+    "limitaciones": true,
+    "no_conclusion_favorable": true,
+    "origen_consulta_real": true,
+    "parcela_rotulada_ensayo_artificial": true,
+    "botones_solicitar": 0,
+    "posts_a_satellite_durante_la_consulta": 0,
+    "descarga": {
+      "nombre": "analisis-dbf85424-14b8-489c-aa17-f512d3525faa.json",
+      "bytes": 5674,
+      "sha256": "34edb8c7616724fe15f6e1125bdae7a5e9dbb1604a02842f18317a9829f25939"
+    }
+  },
+  "texto_tarjeta": "Análisis satelital\n\nResultado disponible Adaptador en desarrollo: WHISP\n\nNuevos análisis deshabilitados: el servicio real no está autorizado ahora.\n\nWhisp está seleccionado solo como ADAPTADOR DE DESARROLLO (D-09 parte A). Llamar al servicio real y enviar geometrías exige la parte B, que sigue pendiente.\n\nLos resultados ya guardados siguen disponibles abajo para consultarlos y descargarlos; que se pueda consultar un resultado no habilita nuevos análisis.\n\n¿Qué es un mapa, un ensayo, una consulta real y un resultado guardado?\nResultados operativos\n\nDisponible Cobertura forestal · solicitado 29/10/2026, 8:49:35 p. m.\n\nResultado disponible con su procedencia. Es un insumo con límites declarados, no una conclusión.\n\nFuente\nWHISP · contrato TL_SAT_ADAPTER 0.1.0\nConjunto de datos\nNo informado\nVersión geométrica analizada\n279955cd… · huella a248c775cbaf…\nOrigen del resultado\nConsulta real al proveedor, guardada en Terra Link\nFecha del análisis\n29/10/2026, 8:49:42 p. m. (declarada por el proveedor)\nGuardado en Terra Link\n29/10/2026, 8:49:45 p. m.\nPeriodo solicitado\nNo se indicó periodo; el proveedor aplica el suyo\nResolución\nNo informada\nMétodo\nWhisp API 2.3.1 (contrato consultado 2026-10-23); openforis-whisp 3.0.0a22; versión de análisis declarada en el resultado: 3.0.0a22\nCobertura\nCobertura desconocida · El proveedor no declara cobertura en su respuesta. La ausencia de incidencias NO equivale a cobertura completa: se conserva como desconocida.\nConfianza\nEl proveedor no define confianza para este resultado; no se infiere.\nConclusión\nNo evaluada NOT_EVALUATED: el resultado de un proveedor externo no se convierte en conclusión regulatoria (S1 §41).\nLímites declarados\nResultado de un proveedor externo: no es conclusión regulatoria ni certificación («there is no certification involved», FAQ oficial). Los indicadores se conservan sin interpretar; qué significa cada uno es una decisión pendiente (D-07). Para cacao (cultivo perenne) la columna de riesgo del proveedor es risk_pcrop; «more_info_needed» significa evidencia insuficiente, no resultado favorable. El contrato no publica un campo de cobertura: no se presume completa.\nRespuesta original\nSHA-256 34edb8c7616724fe15f6e1125bdae7a5e9dbb1604a02842f18317a9829f25939 Descargar respuesta original (JSON)\nValores devueltos por el proveedor (sin interpretar)\nEl resultado de un proveedor externo no es una conclusión jurídica (S1 §41).\n«Sin alertas» no equivale a «sin deforestación» cuando no hay cobertura suficiente (docs/10).\nUn resultado solo es aplicable a la versión geométrica con la que se pidió.\nLos resultados de fixture sintética no acreditan nada y no satisfacen ningún requisito."
+}

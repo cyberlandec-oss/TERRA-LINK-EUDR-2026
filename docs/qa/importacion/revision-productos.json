@@ -1,0 +1,50 @@
+{
+  "fecha": "2026-10-12T15:41:45.020Z",
+  "base": "http://localhost:3000",
+  "entorno": "DESARROLLO local (contenedores), datos DEMO y archivos sintéticos",
+  "ok": true,
+  "casos": [
+    {
+      "caso": "admin: elige Productos y descarga su plantilla",
+      "ok": true,
+      "detalle": "plantilla-productos_v1.xlsx",
+      "captura": "docs/qa/capturas/importacion/p01-admin-plantilla-productos.png"
+    },
+    {
+      "caso": "admin: unidad LB, estado fuera de catálogo y #BORRAR en el nombre son errores de fila; no confirmable",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/p02-admin-errores-productos.png"
+    },
+    {
+      "caso": "admin: vista previa del archivo válido (sin guardar)",
+      "ok": true,
+      "detalle": "reimportación: 2 sin cambios",
+      "captura": "docs/qa/capturas/importacion/p03-admin-vista-previa-productos.png"
+    },
+    {
+      "caso": "admin: confirmación con teclado (no aplicable: ya importado en una ejecución anterior)",
+      "ok": true,
+      "detalle": "ver reimportación",
+      "captura": null
+    },
+    {
+      "caso": "390 px: reimportación de productos = 2 sin cambios, nada que confirmar",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/p05-390-reimportacion-productos.png"
+    },
+    {
+      "caso": "390 px: sin desplazamiento horizontal de la página",
+      "ok": true,
+      "detalle": "exceso 0px",
+      "captura": null
+    },
+    {
+      "caso": "supervisión: Productos deshabilitado con explicación y la API responde 403",
+      "ok": true,
+      "detalle": "radio deshabilitado=true, API=403",
+      "captura": "docs/qa/capturas/importacion/p06-supervision-sin-gestion-productos.png"
+    }
+  ]
+}

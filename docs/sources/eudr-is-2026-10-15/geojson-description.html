@@ -1,0 +1,1461 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="EUDR Information System API reference for operators, micro or small primary operators, and authorised representatives">
+      
+      
+        <meta name="author" content="DG ENV">
+      
+      
+      
+        <link rel="prev" href="change-log.html">
+      
+      
+        <link rel="next" href="validation-rules.html">
+      
+      
+        
+      
+      
+      <link rel="icon" href="assets/images/favicon.ico">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>GeoJSON File Description - EUDR Information System - Operator API Reference</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arial:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Arial";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="stylesheets/custom.css">
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+  <link rel="icon" href="assets/images/favicon.ico">
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#eudr-geojson-file-description" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="index.html" title="EUDR Information System - Operator API Reference" class="md-header__button md-logo" aria-label="EUDR Information System - Operator API Reference" data-md-component="logo">
+      
+  <img src="assets/logo-ec.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            EUDR Information System - Operator API Reference
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              GeoJSON File Description
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="index.html" title="EUDR Information System - Operator API Reference" class="md-nav__button md-logo" aria-label="EUDR Information System - Operator API Reference" data-md-component="logo">
+      
+  <img src="assets/logo-ec.svg" alt="logo">
+
+    </a>
+    EUDR Information System - Operator API Reference
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="acquiring-credentials.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Acquiring Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="echo-service.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Echo Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    V3 API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    V3 API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="api/due-diligence-statement-v3.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Due Diligence Statement
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="api/simplified-declaration-v3.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simplified Declaration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sample XML
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Sample XML
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="samples/dds-samples.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DDS Samples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="samples/sd-samples.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SD Samples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Migration Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="migration/v1-to-v3-migration.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DDS V1 to V3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="migration/v2-to-v3-migration.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DDS V2 to V3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Field-Level Mapping
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Field-Level Mapping
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="field-level-mapping/v1-to-v3-fields.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DDS V1→V3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="field-level-mapping/v2-to-v3-fields.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DDS V2→V3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="change-log.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoJSON File Description
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="geojson-description.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoJSON File Description
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Definitions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-variants-description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Variants Description
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="File Variants Description">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#type-i" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type I
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-ii" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type II
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#type-i-geocoordinates-list-single-producer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type I – geocoordinates list - single producer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-ii-geocoordinates-list-multiple-producers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type II – geocoordinates list - multiple producers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-geojson-file-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common GeoJSON file errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="validation-rules.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation Rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="troubleshooting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="faq.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Definitions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-variants-description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Variants Description
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="File Variants Description">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#type-i" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type I
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-ii" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type II
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#type-i-geocoordinates-list-single-producer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type I – geocoordinates list - single producer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-ii-geocoordinates-list-multiple-producers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type II – geocoordinates list - multiple producers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-geojson-file-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common GeoJSON file errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+              
+              <article class="md-content__inner md-typeset">
+                
+<div class="pdf-actions no-print">
+  <a href="./pdf/EUDR Operator API Reference v1.2.pdf" class="btn-download" title="Download complete documentation as PDF" target="_blank">
+    📥 Download as PDF
+  </a>
+</div>
+
+                  
+
+
+
+<h1 id="eudr-geojson-file-description">EUDR GeoJSON File Description<a class="headerlink" href="#eudr-geojson-file-description" title="Permanent link">&para;</a></h1>
+<p>Updated 17 August 2026</p>
+<p>Technical contacts: See the <a href="index.html#contact-information">Contact information</a> section.</p>
+<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
+<p>This document is intended for users (Economic Operators) of the European Commission's EUDR Information System (IS) and for parties interested in producing compatible geolocation files for use in the central EUDR information system.</p>
+<p>The EUDR Information System supports the import, processing, and export of GeoJSON files for defining production place coordinates for declared commodities in a Due Diligence Statement.</p>
+<p>GeoJSON is an Internet Engineering Task Force RFC: <a href="https://datatracker.ietf.org/doc/html/rfc7946">https://datatracker.ietf.org/doc/html/rfc7946</a>. It is a geospatial data interchange format based on JavaScript Object Notation (JSON). It defines several types of JSON objects and the way they are combined to represent data about geographic features, their properties, and their spatial extents. This standard implies a single option for the coordinate reference system (CRS).</p>
+<p>GeoJSON uses the World Geodetic System 1984 (WGS 84) [WGS84] datum, with longitude and latitude units of decimal degrees.</p>
+<p>Two variants of GeoJSON files can be produced and submitted depending on the application: Type I and Type II. The corresponding details can be found in section "File Variants Description" of this document.</p>
+<p><strong>EUDR IS users:</strong> Please note that the first production version of the EUDR Information System will support the above standard exclusively.</p>
+<p>If the geocoordinates available to the Economic Operator are in another coordinates system, these must be converted to the WGS84 (EPSG:4326) coordinate system with longitude and latitude units of decimal degrees. There are several tools available that can convert most other coordinate system formats to the EUDR IS supported system format.</p>
+<p>Support of additional coordinate system formats is deferred for future versions of the system.</p>
+<p>Please also note that the information in this document applies to both the User Interface (UI) and the web services (API) for importing geocoordinates files.</p>
+<h2 id="definitions">Definitions<a class="headerlink" href="#definitions" title="Permanent link">&para;</a></h2>
+<p>The GeoJSON file standard includes a number of mandatory and optional strings to define the various properties.</p>
+<p>A GeoJSON geometry object of any type other than "GeometryCollection" must have a member with the name "coordinates". The value of the coordinates member is always an array. The structure for the elements in this array is determined by the type of geometry.</p>
+<p>A position is the fundamental geometry construct. The "coordinates" member of a geometry object is composed of one position (in the case of a Point geometry), an array of positions (MultiPoint geometry), an array of arrays of positions (Polygons), or a multidimensional array of positions (MultiPolygon).</p>
+<p>A position is represented by an array of numbers. There must be at least two elements and may be more. The order of elements must follow longitude, latitude for coordinates in the EPSG:4326 geographic coordinate reference system.</p>
+<p>The terms "geometry" and "type" refer to the following case-sensitive strings:</p>
+<p><strong>Point:</strong> Point geometry types consist of two coordinate values.</p>
+<p><strong>MultiPoint:</strong> MultiPoint geometry types consist of two or more points (coordinate pairs).</p>
+<p><strong>Polygon:</strong> Polygon geometry types consist of at least four pairs of coordinates and represent an enclosed area by these coordinate points.</p>
+<p><strong>MultiPolygon:</strong> MultiPolygon geometry types contain two or more polygon definitions.</p>
+<p>Please note that the first and last point's coordinates of polygons are the same (they coincide geographically to close the shape).</p>
+<hr />
+<p><strong>Important note:</strong> Polygons with holes (i.e., doughnut shapes) and shapes with crossing lines (like a figure eight for example) are not supported and will not be processed. If a doughnut shape is needed, it can be defined by combining two half-doughnut shaped polygons.</p>
+<hr />
+<p><strong>Feature:</strong> A feature contains a single geometry object with the addition of properties. It will therefore be treated like described for the geometry types above. An example follows:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"> </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Feature"</span><span class="p">,</span><span class="w"> </span><span class="nt">"geometry"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Point"</span><span class="p">,</span><span class="w"> </span><span class="nt">"coordinates"</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="mf">-105.029865</span><span class="p">,</span><span class="w"> </span><span class="mf">40.622831</span><span class="p">]]</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p><strong>FeatureCollection:</strong> One or more features as in this example:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"FeatureCollection"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"features"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Feature"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"geometry"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Point"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"coordinates"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">102.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">]</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"prop0"</span><span class="p">:</span><span class="w"> </span><span class="s2">"value0"</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Feature"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"geometry"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Polygon"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"coordinates"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">          </span><span class="p">[</span>
+<span class="w">            </span><span class="p">[</span><span class="mf">100.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span>
+<span class="w">            </span><span class="p">[</span><span class="mf">101.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span>
+<span class="w">            </span><span class="p">[</span><span class="mf">101.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">],</span>
+<span class="w">            </span><span class="p">[</span><span class="mf">100.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">],</span>
+<span class="w">            </span><span class="p">[</span><span class="mf">100.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">]</span>
+<span class="w">          </span><span class="p">]</span>
+<span class="w">        </span><span class="p">]</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"prop0"</span><span class="p">:</span><span class="w"> </span><span class="s2">"value0"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"prop1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"this"</span><span class="p">:</span><span class="w"> </span><span class="s2">"that"</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong>GeometryCollection:</strong> Two or more geometries.</p>
+<p>Please note that geometry types of <strong>"LineString"</strong> and <strong>"MultiLineString"</strong> do not represent valid geocoordinate shapes for declaring production places and will not be accepted/processed.</p>
+<p>The system additionally accepts and will process the following optional properties:</p>
+<p><strong>ProducerName:</strong> An optional producer name for the corresponding geometry type.</p>
+<p><strong>ProducerCountry:</strong> The country of production ISO2 code.</p>
+<p><strong>ProductionPlace:</strong> An optional name for the corresponding geometry type.</p>
+<p><strong>Area:</strong> This represents the area in Hectares of the geometry element "Point" in the GeoJSON file.</p>
+<p>Any other properties that are syntactically valid but not included in the optional properties list above, will be ignored.</p>
+<h2 id="file-variants-description">File Variants Description<a class="headerlink" href="#file-variants-description" title="Permanent link">&para;</a></h2>
+<p>For both variants described below, the file structure is the same. The only differences are in some of the properties provided.</p>
+<h3 id="type-i">Type I<a class="headerlink" href="#type-i" title="Permanent link">&para;</a></h3>
+<p>This file variant is for use by the web services interface (API) and via the application's UI import utility at producer level and has the following characteristics:</p>
+<ol>
+<li>Includes any required features listed in the "Definitions" section (such as point, polygon).</li>
+<li>May include any of the optional properties.</li>
+</ol>
+<h3 id="type-ii">Type II<a class="headerlink" href="#type-ii" title="Permanent link">&para;</a></h3>
+<p>This file variant is for use via the application's UI file import utility at commodity level. It contains multiple producers grouped by the "ProducerName" and "ProducerCountry" and has the following additional characteristics:</p>
+<ol>
+<li>Includes any required features listed in the "Definitions" section (such as point, multipoint, polygon, multipolygon).</li>
+<li>Includes the "ProducerCountry" property per "Feature".</li>
+<li>May include any of the optional properties.</li>
+</ol>
+<p><strong>Important notes for users of the EUDR IS:</strong></p>
+<ol>
+<li>It is recommended to provide the optional GeoJSON property "ProductionPlace" in the generated geocoordinates files for importing into the system. This optional property is used to describe the production place name. The information system will truncate coordinate points to 6 decimal places before storing. It is superfluous/wasteful to send a higher resolution, and may, in extreme cases, even result in invalid geometries where the original is valid.</li>
+<li>The property "Area" for points is optional. If it is not provided, then it will be set by default to "4" (four) hectares when processed by the EUDR system.</li>
+</ol>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<h3 id="type-i-geocoordinates-list-single-producer">Type I – geocoordinates list - single producer<a class="headerlink" href="#type-i-geocoordinates-list-single-producer" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"FeatureCollection"</span><span class="p">,</span><span class="nt">"features"</span><span class="p">:[{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"Feature"</span><span class="p">,</span><span class="nt">"properties"</span><span class="p">:{</span><span class="nt">"ProductionPlace"</span><span class="p">:</span><span class="s2">"FAZENDA TABOAO I"</span><span class="p">,</span><span class="nt">"Area"</span><span class="p">:</span><span class="mf">23.72</span><span class="p">,</span><span class="nt">"ProducerCountry"</span><span class="p">:</span><span class="s2">"BR"</span><span class="p">},</span><span class="nt">"geometry"</span><span class="p">:{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"Polygon"</span><span class="p">,</span><span class="nt">"coordinates"</span><span class="p">:[[[</span><span class="mf">-49.004616</span><span class="p">,</span><span class="mf">-22.734322</span><span class="p">],[</span><span class="mf">-49.004675</span><span class="p">,</span><span class="mf">-22.734318</span><span class="p">],[</span><span class="mf">-49.00683</span><span class="p">,</span><span class="mf">-22.73526</span><span class="p">],[</span><span class="mf">-49.00909</span><span class="p">,</span><span class="mf">-22.736299</span><span class="p">],[</span><span class="mf">-49.009249</span><span class="p">,</span><span class="mf">-22.740009</span><span class="p">],[</span><span class="mf">-49.009222</span><span class="p">,</span><span class="mf">-22.74001</span><span class="p">],[</span><span class="mf">-49.00901</span><span class="p">,</span><span class="mf">-22.740068</span><span class="p">],[</span><span class="mf">-49.007133</span><span class="p">,</span><span class="mf">-22.740146</span><span class="p">],[</span><span class="mf">-49.005412</span><span class="p">,</span><span class="mf">-22.740232</span><span class="p">],[</span><span class="mf">-49.004941</span><span class="p">,</span><span class="mf">-22.740254</span><span class="p">],[</span><span class="mf">-49.004873</span><span class="p">,</span><span class="mf">-22.740185</span><span class="p">],[</span><span class="mf">-49.004855</span><span class="p">,</span><span class="mf">-22.740185</span><span class="p">],[</span><span class="mf">-49.004855</span><span class="p">,</span><span class="mf">-22.740179</span><span class="p">],[</span><span class="mf">-49.004811</span><span class="p">,</span><span class="mf">-22.740181</span><span class="p">],[</span><span class="mf">-49.004758</span><span class="p">,</span><span class="mf">-22.740166</span><span class="p">],[</span><span class="mf">-49.004722</span><span class="p">,</span><span class="mf">-22.739385</span><span class="p">],[</span><span class="mf">-49.004968</span><span class="p">,</span><span class="mf">-22.739492</span><span class="p">],[</span><span class="mf">-49.005333</span><span class="p">,</span><span class="mf">-22.739625</span><span class="p">],[</span><span class="mf">-49.005474</span><span class="p">,</span><span class="mf">-22.739651</span><span class="p">],[</span><span class="mf">-49.005552</span><span class="p">,</span><span class="mf">-22.739628</span><span class="p">],[</span><span class="mf">-49.00562</span><span class="p">,</span><span class="mf">-22.739575</span><span class="p">],[</span><span class="mf">-49.005653</span><span class="p">,</span><span class="mf">-22.739531</span><span class="p">],[</span><span class="mf">-49.005655</span><span class="p">,</span><span class="mf">-22.739477</span><span class="p">],[</span><span class="mf">-49.005627</span><span class="p">,</span><span class="mf">-22.739379</span><span class="p">],[</span><span class="mf">-49.005577</span><span class="p">,</span><span class="mf">-22.739193</span><span class="p">],[</span><span class="mf">-49.005505</span><span class="p">,</span><span class="mf">-22.738907</span><span class="p">],[</span><span class="mf">-49.005313</span><span class="p">,</span><span class="mf">-22.7387</span><span class="p">],[</span><span class="mf">-49.005248</span><span class="p">,</span><span class="mf">-22.738522</span><span class="p">],[</span><span class="mf">-49.005198</span><span class="p">,</span><span class="mf">-22.738186</span><span class="p">],[</span><span class="mf">-49.005113</span><span class="p">,</span><span class="mf">-22.738079</span><span class="p">],[</span><span class="mf">-49.004984</span><span class="p">,</span><span class="mf">-22.738001</span><span class="p">],[</span><span class="mf">-49.004763</span><span class="p">,</span><span class="mf">-22.737887</span><span class="p">],[</span><span class="mf">-49.004712</span><span class="p">,</span><span class="mf">-22.737884</span><span class="p">],[</span><span class="mf">-49.004541</span><span class="p">,</span><span class="mf">-22.734322</span><span class="p">],[</span><span class="mf">-49.004588</span><span class="p">,</span><span class="mf">-22.734324</span><span class="p">],[</span><span class="mf">-49.004616</span><span class="p">,</span><span class="mf">-22.734322</span><span class="p">]]]}},{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"Feature"</span><span class="p">,</span><span class="nt">"properties"</span><span class="p">:{</span><span class="nt">"ProductionPlace"</span><span class="p">:</span><span class="s2">"FAZENDA TABOAO II"</span><span class="p">,</span><span class="nt">"Area"</span><span class="p">:</span><span class="mf">2.39</span><span class="p">,</span><span class="nt">"ProducerCountry"</span><span class="p">:</span><span class="s2">"BR"</span><span class="p">},</span><span class="nt">"geometry"</span><span class="p">:{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"Polygon"</span><span class="p">,</span><span class="nt">"coordinates"</span><span class="p">:[[[</span><span class="mf">-48.186023</span><span class="p">,</span><span class="mf">-22.880156</span><span class="p">],[</span><span class="mf">-48.186128</span><span class="p">,</span><span class="mf">-22.880023</span><span class="p">],[</span><span class="mf">-48.186271</span><span class="p">,</span><span class="mf">-22.879937</span><span class="p">],[</span><span class="mf">-48.186509</span><span class="p">,</span><span class="mf">-22.879844</span><span class="p">],[</span><span class="mf">-48.186677</span><span class="p">,</span><span class="mf">-22.879827</span><span class="p">],[</span><span class="mf">-48.186853</span><span class="p">,</span><span class="mf">-22.879906</span><span class="p">],[</span><span class="mf">-48.187031</span><span class="p">,</span><span class="mf">-22.880049</span><span class="p">],[</span><span class="mf">-48.187185</span><span class="p">,</span><span class="mf">-22.88015</span><span class="p">],[</span><span class="mf">-48.187214</span><span class="p">,</span><span class="mf">-22.880164</span><span class="p">],[</span><span class="mf">-48.187169</span><span class="p">,</span><span class="mf">-22.880216</span><span class="p">],[</span><span class="mf">-48.187148</span><span class="p">,</span><span class="mf">-22.880317</span><span class="p">],[</span><span class="mf">-48.187223</span><span class="p">,</span><span class="mf">-22.880431</span><span class="p">],[</span><span class="mf">-48.187365</span><span class="p">,</span><span class="mf">-22.880416</span><span class="p">],[</span><span class="mf">-48.187428</span><span class="p">,</span><span class="mf">-22.880321</span><span class="p">],[</span><span class="mf">-48.187456</span><span class="p">,</span><span class="mf">-22.88036</span><span class="p">],[</span><span class="mf">-48.187496</span><span class="p">,</span><span class="mf">-22.88055</span><span class="p">],[</span><span class="mf">-48.187491</span><span class="p">,</span><span class="mf">-22.88091</span><span class="p">],[</span><span class="mf">-48.187622</span><span class="p">,</span><span class="mf">-22.881404</span><span class="p">],[</span><span class="mf">-48.187712</span><span class="p">,</span><span class="mf">-22.881757</span><span class="p">],[</span><span class="mf">-48.187831</span><span class="p">,</span><span class="mf">-22.88206</span><span class="p">],[</span><span class="mf">-48.187887</span><span class="p">,</span><span class="mf">-22.88214</span><span class="p">],[</span><span class="mf">-48.187745</span><span class="p">,</span><span class="mf">-22.882094</span><span class="p">],[</span><span class="mf">-48.187763</span><span class="p">,</span><span class="mf">-22.882069</span><span class="p">],[</span><span class="mf">-48.18777</span><span class="p">,</span><span class="mf">-22.882054</span><span class="p">],[</span><span class="mf">-48.187776</span><span class="p">,</span><span class="mf">-22.882034</span><span class="p">],[</span><span class="mf">-48.187779</span><span class="p">,</span><span class="mf">-22.882013</span><span class="p">],[</span><span class="mf">-48.187779</span><span class="p">,</span><span class="mf">-22.881992</span><span class="p">],[</span><span class="mf">-48.187775</span><span class="p">,</span><span class="mf">-22.881971</span><span class="p">],[</span><span class="mf">-48.187768</span><span class="p">,</span><span class="mf">-22.881951</span><span class="p">],[</span><span class="mf">-48.187758</span><span class="p">,</span><span class="mf">-22.881932</span><span class="p">],[</span><span class="mf">-48.187745</span><span class="p">,</span><span class="mf">-22.881916</span><span class="p">],[</span><span class="mf">-48.187729</span><span class="p">,</span><span class="mf">-22.881901</span><span class="p">],[</span><span class="mf">-48.187711</span><span class="p">,</span><span class="mf">-22.88189</span><span class="p">],[</span><span class="mf">-48.187692</span><span class="p">,</span><span class="mf">-22.881881</span><span class="p">],[</span><span class="mf">-48.187671</span><span class="p">,</span><span class="mf">-22.881875</span><span class="p">],[</span><span class="mf">-48.187399</span><span class="p">,</span><span class="mf">-22.881809</span><span class="p">],[</span><span class="mf">-48.186554</span><span class="p">,</span><span class="mf">-22.881342</span><span class="p">],[</span><span class="mf">-48.186573</span><span class="p">,</span><span class="mf">-22.881321</span><span class="p">],[</span><span class="mf">-48.186581</span><span class="p">,</span><span class="mf">-22.881262</span><span class="p">],[</span><span class="mf">-48.186504</span><span class="p">,</span><span class="mf">-22.881222</span><span class="p">],[</span><span class="mf">-48.186498</span><span class="p">,</span><span class="mf">-22.881225</span><span class="p">],[</span><span class="mf">-48.18644</span><span class="p">,</span><span class="mf">-22.881271</span><span class="p">],[</span><span class="mf">-48.186319</span><span class="p">,</span><span class="mf">-22.881194</span><span class="p">],[</span><span class="mf">-48.186338</span><span class="p">,</span><span class="mf">-22.881162</span><span class="p">],[</span><span class="mf">-48.18631</span><span class="p">,</span><span class="mf">-22.881087</span><span class="p">],[</span><span class="mf">-48.186335</span><span class="p">,</span><span class="mf">-22.881001</span><span class="p">],[</span><span class="mf">-48.186286</span><span class="p">,</span><span class="mf">-22.880875</span><span class="p">],[</span><span class="mf">-48.186036</span><span class="p">,</span><span class="mf">-22.88084</span><span class="p">],[</span><span class="mf">-48.186046</span><span class="p">,</span><span class="mf">-22.880804</span><span class="p">],[</span><span class="mf">-48.186046</span><span class="p">,</span><span class="mf">-22.880447</span><span class="p">],[</span><span class="mf">-48.186023</span><span class="p">,</span><span class="mf">-22.880156</span><span class="p">]]]}}]}</span>
+</code></pre></div>
+<h3 id="type-ii-geocoordinates-list-multiple-producers">Type II – geocoordinates list - multiple producers<a class="headerlink" href="#type-ii-geocoordinates-list-multiple-producers" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"FeatureCollection"</span><span class="p">,</span><span class="nt">"features"</span><span class="p">:[{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"Feature"</span><span class="p">,</span><span class="nt">"properties"</span><span class="p">:{</span><span class="nt">"ProductionPlace"</span><span class="p">:</span><span class="s2">"Cocoa Farm 01"</span><span class="p">,</span><span class="nt">"Area"</span><span class="p">:</span><span class="mf">20813.59</span><span class="p">,</span><span class="nt">"ProducerCountry"</span><span class="p">:</span><span class="s2">"AO"</span><span class="p">},</span><span class="nt">"geometry"</span><span class="p">:{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"Polygon"</span><span class="p">,</span><span class="nt">"coordinates"</span><span class="p">:[[[</span><span class="mf">17.10022</span><span class="p">,</span><span class="mf">-12.364149</span><span class="p">],[</span><span class="mf">17.065887</span><span class="p">,</span><span class="mf">-12.427189</span><span class="p">],[</span><span class="mf">17.133179</span><span class="p">,</span><span class="mf">-12.487532</span><span class="p">],[</span><span class="mf">17.185364</span><span class="p">,</span><span class="mf">-12.479487</span><span class="p">],[</span><span class="mf">17.234802</span><span class="p">,</span><span class="mf">-12.382928</span><span class="p">],[</span><span class="mf">17.160645</span><span class="p">,</span><span class="mf">-12.317194</span><span class="p">],[</span><span class="mf">17.10022</span><span class="p">,</span><span class="mf">-12.364149</span><span class="p">]]]}},{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"Feature"</span><span class="p">,</span><span class="nt">"properties"</span><span class="p">:{</span><span class="nt">"ProductionPlace"</span><span class="p">:</span><span class="s2">"Cocoa Farm 02"</span><span class="p">,</span><span class="nt">"Area"</span><span class="p">:</span><span class="mf">20670.76</span><span class="p">,</span><span class="nt">"ProducerCountry"</span><span class="p">:</span><span class="s2">"AO"</span><span class="p">},</span><span class="nt">"geometry"</span><span class="p">:{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"Polygon"</span><span class="p">,</span><span class="nt">"coordinates"</span><span class="p">:[[[</span><span class="mf">17.155151</span><span class="p">,</span><span class="mf">-12.534456</span><span class="p">],[</span><span class="mf">17.216949</span><span class="p">,</span><span class="mf">-12.526412</span><span class="p">],[</span><span class="mf">17.285614</span><span class="p">,</span><span class="mf">-12.612197</span><span class="p">],[</span><span class="mf">17.219696</span><span class="p">,</span><span class="mf">-12.633638</span><span class="p">],[</span><span class="mf">17.107086</span><span class="p">,</span><span class="mf">-12.656418</span><span class="p">],[</span><span class="mf">17.078247</span><span class="p">,</span><span class="mf">-12.567968</span><span class="p">],[</span><span class="mf">17.155151</span><span class="p">,</span><span class="mf">-12.534456</span><span class="p">]]]}},{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"Feature"</span><span class="p">,</span><span class="nt">"properties"</span><span class="p">:{</span><span class="nt">"ProductionPlace"</span><span class="p">:</span><span class="s2">"Cocoa Farm 03"</span><span class="p">,</span><span class="nt">"Area"</span><span class="p">:</span><span class="mf">9551.97</span><span class="p">,</span><span class="nt">"ProducerCountry"</span><span class="p">:</span><span class="s2">"CM"</span><span class="p">},</span><span class="nt">"geometry"</span><span class="p">:{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"Polygon"</span><span class="p">,</span><span class="nt">"coordinates"</span><span class="p">:[[[</span><span class="mf">12.032089</span><span class="p">,</span><span class="mf">4.817997</span><span class="p">],[</span><span class="mf">12.023163</span><span class="p">,</span><span class="mf">4.756414</span><span class="p">],[</span><span class="mf">12.056122</span><span class="p">,</span><span class="mf">4.733832</span><span class="p">],[</span><span class="mf">12.10144</span><span class="p">,</span><span class="mf">4.730411</span><span class="p">],[</span><span class="mf">12.13028</span><span class="p">,</span><span class="mf">4.783785</span><span class="p">],[</span><span class="mf">12.117233</span><span class="p">,</span><span class="mf">4.817312</span><span class="p">],[</span><span class="mf">12.069855</span><span class="p">,</span><span class="mf">4.822786</span><span class="p">],[</span><span class="mf">12.032089</span><span class="p">,</span><span class="mf">4.817997</span><span class="p">]]]}},{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"Feature"</span><span class="p">,</span><span class="nt">"properties"</span><span class="p">:{</span><span class="nt">"ProductionPlace"</span><span class="p">:</span><span class="s2">"Cocoa Farm 04"</span><span class="p">,</span><span class="nt">"Area"</span><span class="p">:</span><span class="mf">6950.29</span><span class="p">,</span><span class="nt">"ProducerCountry"</span><span class="p">:</span><span class="s2">"CM"</span><span class="p">},</span><span class="nt">"geometry"</span><span class="p">:{</span><span class="nt">"type"</span><span class="p">:</span><span class="s2">"Polygon"</span><span class="p">,</span><span class="nt">"coordinates"</span><span class="p">:[[[</span><span class="mf">12.137146</span><span class="p">,</span><span class="mf">4.827576</span><span class="p">],[</span><span class="mf">12.151566</span><span class="p">,</span><span class="mf">4.791311</span><span class="p">],[</span><span class="mf">12.205811</span><span class="p">,</span><span class="mf">4.804312</span><span class="p">],[</span><span class="mf">12.229156</span><span class="p">,</span><span class="mf">4.874784</span><span class="p">],[</span><span class="mf">12.184525</span><span class="p">,</span><span class="mf">4.878889</span><span class="p">],[</span><span class="mf">12.144012</span><span class="p">,</span><span class="mf">4.861101</span><span class="p">],[</span><span class="mf">12.137146</span><span class="p">,</span><span class="mf">4.827576</span><span class="p">]]]}}]}</span>
+</code></pre></div>
+<h2 id="common-geojson-file-errors">Common GeoJSON file errors<a class="headerlink" href="#common-geojson-file-errors" title="Permanent link">&para;</a></h2>
+<p><strong>1. Coordinate lines crossing (i.e. figure eight shapes or intersecting polygon lines):</strong></p>
+<p><img src="assets/images/geojson-coordinate-lines-crossing.png" alt="Coordinate lines crossing" width="400"></p>
+<p><strong>2. Overlapping sides:</strong></p>
+<p>Internal overlap or holes where part of the polygon folds inward, creating a concave shape within the boundary are not accepted by the system:</p>
+<p><img src="assets/images/geojson-overlapping-sides.png" alt="Overlapping sides" width="400"></p>
+<p><strong>3. Coordinate shapes with holes (i.e. doughnut shapes)</strong></p>
+<p><img src="assets/images/geojson-doughnut-shapes.png" alt="Doughnut shapes" width="400"></p>
+<p>Workaround: Two half-moon shapes:</p>
+<p><strong>4. "Open" polygons.</strong> All polygons must represent closed shapes (i.e. the 1st coordinate pair same as the last):</p>
+<p><img src="assets/images/geojson-Open-polygons.png" alt="Open polygons" width="400"></p>
+<p><strong>5. Invalid geometry types (i.e. LineString).</strong></p>
+<p><strong>6. Coordinates representing straight lines.</strong></p>
+<p><strong>7. Duplicate coordinates due to truncation to 6 decimals in the system</strong> (For example the 2 following points with 10 decimals become the same after truncation):</p>
+<div class="highlight"><pre><span></span><code> 2.348800000,48.8534345673 -&gt; 2.3488,48.853434
+-5.8227391234 ,144.2567071234 -&gt; -5.822739,144.256707
+-5.8227394567,144.2567074567 -&gt; -5.822739,144.256707
+</code></pre></div>
+<p><strong>8. File syntax errors</strong> (e.g. missing ")" or "}").</p>
+<p><strong>9. Invalid property names</strong> (e.g. "geometry" or incorrect property keyword case – "productionplace" instead of "ProductionPlace").</p>
+<p><strong>10. Invalid file format</strong> (e.g. PDF, txt).</p>
+<p><strong>11. Invalid coordinate range</strong> (outside the value ranges 90/-90 or 180/-180).</p>
+<p><strong>12. Invalid producer country ISO2 code.</strong></p>
+<p><strong>13. Password-protected files.</strong></p>
+<p><strong>14. Data representation issues:</strong></p>
+<ul>
+<li>For example, <code>"Area": "3"</code> instead of <code>"Area": 3</code> will result in area = 0 because the value 3 in quotes is not recognized as a number which is what is expected.</li>
+</ul>
+<p><strong>15. Polygons with holes inside:</strong></p>
+<p>The system does not take into accept polygons containing holes. The user will be shown an error message in this case.</p>
+<p><img src="assets/images/geojson-polygons-with-holes-inside.png" alt="Polygons with holes inside" width="300" style="display:inline-block; vertical-align:middle;"></p>
+<p><strong>16. GeoJSON files exceeding 25 Mb size limit</strong></p>
+<p>Operators are required to obtain geolocation data that is as granular as possible.</p>
+<p>The system has a file size limit of 25 Mb for individual DDS submissions, which includes the total size of uploaded GeoJSON files.</p>
+<p>Workarounds:</p>
+<p>To ensure successful uploads, users are recommended to optimize their file sizes by:</p>
+<ul>
+<li>
+<p>Reducing the number of points used to describe straight lines, using only two points to define a line instead of adding coordinates at frequent intervals (e.g., every 5-10 meters) (see Figure 1);</p>
+</li>
+<li>
+<p>Using single geolocation points to represent plots under 4 hectares, rather than creating polygons (see Figure 2). </p>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.sections", "navigation.expand", "navigation.top", "navigation.instant", "navigation.path", "search.suggest", "search.highlight"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": "1.2"}</script>
+    
+    
+      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

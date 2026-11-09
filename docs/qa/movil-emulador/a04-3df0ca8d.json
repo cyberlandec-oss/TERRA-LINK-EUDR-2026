@@ -1,0 +1,59 @@
+{
+  "entorno": "EMULADOR Android tl-api30g (google_apis, API 30) — NO es un teléfono físico; posición EMULADA",
+  "apk": {
+    "archivo": "apps/mobile/dist-apk/A04-mi-ubicacion-3df0ca8d.apk",
+    "sha256": "3df0ca8d423637301f021584056ce9c5eb285885f25cac96a111d02b0edea41b",
+    "commit": "056d298"
+  },
+  "nota": "Solo los pasos de esta ejecución final (preparar, login, descargar, capturar). Intentos previos de infraestructura: ver docs/qa/EVIDENCIA_A04_MI_UBICACION_2026-10-23.md",
+  "pasos": [
+    {
+      "paso": "preparar",
+      "en": "2026-10-23T04:56:07.615Z",
+      "ok": true,
+      "detalle": "Permisos de ubicación y cámara concedidos por adb; posición EMULADA -0.8479, -80.1601; proxy en modo pass",
+      "captura": "docs/qa/capturas/movil-emulador/24-inicio.png",
+      "script": {
+        "sha256": "b73a252d188221ac615603ac7596eb1bc09ee2d04e1d374c5697bec26833315a",
+        "commit": "056d298",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "login",
+      "en": "2026-10-23T04:56:59.698Z",
+      "ok": true,
+      "detalle": "Inicio de sesión online como tecnico1 (DEMO) y organización DEMO · Cooperativa",
+      "captura": "docs/qa/capturas/movil-emulador/25-mi-jornada.png",
+      "script": {
+        "sha256": "b73a252d188221ac615603ac7596eb1bc09ee2d04e1d374c5697bec26833315a",
+        "commit": "056d298",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "descargar-asignaciones",
+      "en": "2026-10-23T04:57:06.262Z",
+      "ok": true,
+      "detalle": "15 parcela(s) autorizadas descargadas",
+      "captura": "docs/qa/capturas/movil-emulador/26-descarga.png",
+      "script": {
+        "sha256": "b73a252d188221ac615603ac7596eb1bc09ee2d04e1d374c5697bec26833315a",
+        "commit": "056d298",
+        "modificado_sin_commit": true
+      }
+    },
+    {
+      "paso": "capturar-ubicacion",
+      "en": "2026-10-23T04:57:52.462Z",
+      "ok": true,
+      "detalle": "Mi ubicación EMULADA en CAD-10210050: la lectura se mostró SIN guardar (el borrador seguía «Sin ubicación.») y solo se guardó con «Usar esta ubicación en el borrador»",
+      "captura": "docs/qa/capturas/movil-emulador/27-ubicacion.png",
+      "script": {
+        "sha256": "b73a252d188221ac615603ac7596eb1bc09ee2d04e1d374c5697bec26833315a",
+        "commit": "056d298",
+        "modificado_sin_commit": true
+      }
+    }
+  ]
+}

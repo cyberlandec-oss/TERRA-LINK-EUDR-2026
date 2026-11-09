@@ -1,0 +1,43 @@
+{
+  "fecha": "2026-10-18T23:39:46.854Z",
+  "base": "http://localhost:3000",
+  "ok": true,
+  "casos": [
+    {
+      "caso": "carga: «Mi trabajo» muestra estado de carga accesible (role=status) sin cifras",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/web-por-rol/estado-carga.png"
+    },
+    {
+      "caso": "error: «Mi trabajo» muestra error accesible (role=alert) con reintento, distinto de vacío",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/web-por-rol/estado-error.png"
+    },
+    {
+      "caso": "reintento: la sección se recupera sin recargar la página",
+      "ok": true,
+      "detalle": "",
+      "captura": null
+    },
+    {
+      "caso": "Lot Hub: un error en Mitigaciones se muestra en esa sección; el resumen y las demás siguen visibles",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/web-por-rol/estado-error-seccion-hub.png"
+    },
+    {
+      "caso": "vacío: el auditor ve «No tienes pendientes», no un error ni cifras",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/web-por-rol/estado-vacio.png"
+    },
+    {
+      "caso": "sin permiso: la importación responde «Tu rol no permite…» (no «sin registros»)",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/web-por-rol/estado-sin-permiso.png"
+    }
+  ]
+}

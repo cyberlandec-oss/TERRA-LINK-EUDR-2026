@@ -1,0 +1,240 @@
+{
+  "url": "http://localhost:3001",
+  "fecha": "2026-10-11T19:47:45.874Z",
+  "ambito": "Vista previa web de la app móvil: servidor SIMULADO, datos sintéticos, sin cifrado. No acredita Android ni el ensayo físico.",
+  "resultados": [
+    {
+      "tag": "m390",
+      "paso": "acceso",
+      "ok": true,
+      "desborde_px": 0,
+      "boton_deshabilitado_sin_contrasena": true,
+      "foco_tras_tab": "Contraseña",
+      "captura": "docs/qa/capturas/movil-web/01-m390-acceso.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "error-de-acceso",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/02-m390-error-acceso.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "organizacion",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/03-m390-organizacion.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "inicio-vacio",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/04-m390-inicio-sin-parcelas.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "parcelas",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/05-m390-parcelas-descargadas.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "captura",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/06-m390-elegir-parcela.png",
+      "captura_ubicacion": "docs/qa/capturas/movil-web/07-m390-captura-ubicacion.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "fotos",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/08-m390-captura-foto-nota.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "pendientes",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/09-m390-pendientes-en-cola.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "sincronizacion-sin-conexion",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/10-m390-sync-sin-conexion.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "sincronizacion-simulada",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/11-m390-sync-simulada.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "conflicto",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/12-m390-conflicto.png",
+      "captura_resuelto": "docs/qa/capturas/movil-web/13-m390-conflicto-resuelto-pendiente-envio.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "almacenamiento-lleno",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/14-m390-almacenamiento-lleno.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "dispositivo-revocado",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/15-m390-dispositivo-revocado.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "diagnostico",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/16-m390-diagnostico.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "autoprueba-no-aplica",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/17-m390-autoprueba-no-aplica.png"
+    },
+    {
+      "tag": "m390",
+      "paso": "sesion-vencida",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/18-m390-sesion-vencida.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "acceso",
+      "ok": true,
+      "desborde_px": 0,
+      "boton_deshabilitado_sin_contrasena": true,
+      "foco_tras_tab": "Contraseña",
+      "captura": "docs/qa/capturas/movil-web/19-escritorio-acceso.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "error-de-acceso",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/20-escritorio-error-acceso.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "organizacion",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/21-escritorio-organizacion.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "inicio-vacio",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/22-escritorio-inicio-sin-parcelas.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "parcelas",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/23-escritorio-parcelas-descargadas.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "captura",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/24-escritorio-elegir-parcela.png",
+      "captura_ubicacion": "docs/qa/capturas/movil-web/25-escritorio-captura-ubicacion.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "fotos",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/26-escritorio-captura-foto-nota.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "pendientes",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/27-escritorio-pendientes-en-cola.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "sincronizacion-sin-conexion",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/28-escritorio-sync-sin-conexion.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "sincronizacion-simulada",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/29-escritorio-sync-simulada.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "conflicto",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/30-escritorio-conflicto.png",
+      "captura_resuelto": "docs/qa/capturas/movil-web/31-escritorio-conflicto-resuelto-pendiente-envio.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "almacenamiento-lleno",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/32-escritorio-almacenamiento-lleno.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "dispositivo-revocado",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/33-escritorio-dispositivo-revocado.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "diagnostico",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/34-escritorio-diagnostico.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "autoprueba-no-aplica",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/35-escritorio-autoprueba-no-aplica.png"
+    },
+    {
+      "tag": "escritorio",
+      "paso": "sesion-vencida",
+      "ok": true,
+      "desborde_px": 0,
+      "captura": "docs/qa/capturas/movil-web/36-escritorio-sesion-vencida.png"
+    }
+  ],
+  "errores_consola": []
+}

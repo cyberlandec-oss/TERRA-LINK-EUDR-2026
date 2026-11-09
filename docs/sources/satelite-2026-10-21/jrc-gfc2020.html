@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+
+        <title>Forest Observations</title>
+
+        
+        <script>
+            let baseURL = 'https://forobs.jrc.ec.europa.eu/';
+            let iconURL = 'https://forobs.jrc.ec.europa.eu//assets/icons/';
+        </script>
+
+        <meta charset="utf-8" />
+        <meta content="width=device-width,initial-scale=1" name="viewport" />
+        <meta content="IE=edge" http-equiv="X-UA-Compatible" />
+        <link rel="shortcut icon" href="/assets/favicon.ico" />
+
+        <meta name="Title" content="FOROBS - Forest Observations" />
+        <meta name="Creator" content="FOROBS" />
+        <meta name="Language" content="en" />
+        <meta name="Classification" content="DG JRC H03" />
+        <meta name="Keywords" content=" jrc, joint research centre, environment, european commission, european union, eu" />
+        <meta name="Description" content="European Commission - Joint Research Centre - Forest Resources and Climate Unit" />
+
+
+        
+        
+                        <script defer src="https://webtools.europa.eu/load.js?globan=1110" type="text/javascript"></script>
+
+                        <script type="application/json">
+                {
+                    "utility": "cck"
+                }
+            </script>
+
+                        <script type="application/json">
+                {
+                    "utility": "analytics",
+                    "siteID": "5fcf315a-a911-47f0-bb28-6853adf889cc"
+                }
+            </script>
+
+                
+<!-- vite build  -->
+<script type="module" src="/dist/assets/index-CzacBO3l.js"></script><link rel="stylesheet" href="/dist/assets/index-C-QvW33W.css">
+    </head>
+
+    <body class="page">
+
+        <!--  ######  EC header  ######  -->
+        <header data-ecl-auto-init="SiteHeaderStandardised" class="ecl-site-header-standardised">
+    <div class="ecl-site-header-standardised__container ecl-container">
+        <div class="ecl-site-header-standardised__top">
+
+            <a class="ecl-link ecl-link--standalone ecl-site-header-standardised__logo-link"
+               href="https://ec.europa.eu/info/index_en"
+               aria-label="European Commission">
+                <img alt="European Commission logo" title="European Commission"
+                     class="ecl-site-header-standardised__logo-image"
+                     src="/assets/ec-media/logo--en.svg"/>
+            </a>
+
+            <div class="ecl-site-header-standardised__action">
+
+                <div class="ecl-site-header-standardised__search-container">
+                    <a class="ecl-link ecl-link--standalone ecl-site-header-standardised__search-toggle" href="/https://ec.europa.eu/search/?"
+                       data-ecl-search-toggle="true" aria-controls="search-form-id" aria-expanded="false">
+                        <svg focusable="false" aria-hidden="true" class="ecl-icon ecl-icon--s">
+                            <use xlink:href="assets/ec-media/icons.svg#general--search"></use>
+                        </svg>
+                        Search
+                    </a>
+                    <form id="search-form-id" data-ecl-search-form="true" action="https://ec.europa.eu/search/?"
+                          class="ecl-site-header-standardised__search ecl-search-form" role="search">
+                        <div class="ecl-form-group ecl-form-group--text-input">
+                            <label class="ecl-search-form__label ecl-form-label" for="search-input-id">Search</label>
+                            <input type="search" id="search-input-id"
+                                   class="ecl-search-form__text-input ecl-text-input"/>
+                        </div>
+                        <button aria-label="Search" type="submit"
+                                class="ecl-search-form__button ecl-button ecl-button--search">
+                            <span class="ecl-button__container">
+                                <span class="ecl-button__label" data-ecl-label="true">Search</span>
+                                <svg focusable="false" aria-hidden="true"
+                                     data-ecl-icon="true"
+                                     class="ecl-button__icon ecl-button__icon--after ecl-icon ecl-icon--xs">
+                                    <use xlink:href="assets/ec-media/icons.svg#general--search"></use>
+                                </svg>
+                            </span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="ecl-site-header-harmonised__banner-top">
+        <div class="ecl-container"><a href="https://ec.europa.eu/jrc/en" target="_blank"
+                                      class="ecl-link ecl-link--standalone">EU SCIENCE HUB
+            </a></div>
+    </div>
+
+    <div class="ecl-site-header-standardised__banner">
+        <div class="ecl-container"><a class="ecl-link ecl-link--standalone ecl-site-header-standardised__menu-toggle"
+                                      href="#">
+                <svg focusable="false" aria-hidden="true" class="ecl-icon ecl-icon--s">
+                    <use xlink:href="assets/ec-media/icons.svg#general--hamburger"></use>
+                </svg>
+                Menu</a>Global Forest Monitoring
+        </div>
+    </div>
+
+</header>        
+<div class="ecl-page-header-standardised">
+    <div class="ecl-container">
+        <nav class="ecl-page-header-standardised__breadcrumb ecl-breadcrumb-standardised" aria-label="You are here:"
+             data-ecl-breadcrumb-standardised="true">
+            <ol class="ecl-breadcrumb-standardised__container">
+
+                <li class="ecl-breadcrumb-standardised__segment" data-ecl-breadcrumb-standardised-item="static"
+                    aria-hidden="false">
+                    <a href="/" class="ecl-breadcrumb-standardised__link ecl-link ecl-link--standalone">
+                        Home
+                    </a>
+                    <svg focusable="false" aria-hidden="true" role="presentation"
+                         class="ecl-breadcrumb-standardised__icon ecl-icon ecl-icon--2xs ecl-icon--rotate-90">
+                        <use xlink:href="assets/ec-media/icons.svg#ui--corner-arrow"></use>
+                    </svg>
+                </li>
+
+                                <li class="ecl-breadcrumb-standardised__segment" data-ecl-breadcrumb-standardised-item="expandable"
+                    aria-hidden="false">
+                    <div class="ecl-breadcrumb-standardised__link">
+                        GFC
+                    </div>
+                    <svg focusable="false" aria-hidden="true" role="presentation"
+                         class="ecl-breadcrumb-standardised__icon ecl-icon ecl-icon--2xs ecl-icon--rotate-90">
+                        <use xlink:href="assets/ec-media/icons.svg#ui--corner-arrow"></use>
+                    </svg>
+                </li>
+                
+                                <li class="ecl-breadcrumb-standardised__segment ecl-breadcrumb-standardised__current-page" aria-current="page"
+                    data-ecl-breadcrumb-standardised-item="static" aria-hidden="false">
+                    Global forest cover 2020 - Data Access
+                </li>
+                            </ol>
+        </nav>
+        <h1 class="ecl-page-header-standardised__title">Global forest cover 2020 - Data Access</h1>
+    </div>
+</div>
+
+        <div class="container">
+
+            <!--  ### menu ###  -->
+                <div class="container__left">
+
+    <div class="ecl-inpage-navigation__body">
+        <ul class="ecl-inpage-navigation__list"
+            aria-labelledby="ecl-inpage-navigation-trigger"
+            data-ecl-inpage-navigation-list="true">
+
+                            <li class="ecl-inpage-navigation__item
+                    ecl-inpage-navigation__item--active
+                "
+>
+    
+    
+        <a data-ecl-inpage-navigation-link="true"
+           class="ecl-inpage-navigation__link ecl-link ecl-link--standalone "
+           href="/GFC"
+        >
+            Data Access
+        </a>
+
+    
+</li>
+            
+            <li class="ecl-inpage-navigation__item
+                "
+>
+    
+    
+        <a data-ecl-inpage-navigation-link="true"
+           class="ecl-inpage-navigation__link ecl-link ecl-link--standalone ecl-link--level2"
+           href="#about_data"
+        >
+            About the data
+        </a>
+
+    
+</li>            <li class="ecl-inpage-navigation__item
+                "
+>
+    
+    
+        <a data-ecl-inpage-navigation-link="true"
+           class="ecl-inpage-navigation__link ecl-link ecl-link--standalone ecl-link--level2"
+           href="#know_issues"
+        >
+            Known issues
+        </a>
+
+    
+</li>            <li class="ecl-inpage-navigation__item
+                "
+>
+    
+    
+        <a data-ecl-inpage-navigation-link="true"
+           class="ecl-inpage-navigation__link ecl-link ecl-link--standalone ecl-link--level2"
+           href="#data_download"
+        >
+            Data download
+        </a>
+
+    
+</li>            <li class="ecl-inpage-navigation__item
+                "
+>
+    
+    
+        <a data-ecl-inpage-navigation-link="true"
+           class="ecl-inpage-navigation__link ecl-link ecl-link--standalone ecl-link--level2"
+           href="#disclaimer"
+        >
+            Disclaimer
+        </a>
+
+    
+</li>
+        </ul>
+    </div>
+
+</div>
+
+            <!--  ### content ###  -->
+            <div class="container__content">
+                    <div class="gfc-data">
+
+        <div id="about_data"></div>
+        <div class="md_content"><h2>About the data</h2>
+<p>The global map of forest cover (GFC 2020) was created by combining available global datasets (wall-to-wall or
+global in their scope) on tree cover, tree height, land cover and land use into a single harmonized
+globally-consistent representation of where forests existed in 2020.</p>
+<p>In a first step, the workflow identifies the maximum potential extent of forest cover circa 2020 by
+integrating global tree- and mangrove cover data for the year 2020 (e.g.
+<a href="https://land.copernicus.eu/en/products/global-dynamic-land-cover/land-cover-2020-raster-10-m-global-annual">Copernicus global land cover map</a>).
+In addition, this delineation uses historical time-series of tree cover, loss and tree height dynamics to identify areas
+of potentially unstocked forest due to e.g., natural disturbances or forest management practices. In a second
+step, this maximum potential forest extent is intersected with various other data layers on tree height,
+deforestation, cropland, agroforestry, and other land uses. The application of a series of complex Boolean
+decision rules excludes areas that are not forest according to the definition of the FAO-FRA and EUDR.</p>
+<p>The global input layers, mapping approach, and accuracy of GFC 2020 version 4 will be described in a separate technical
+report, expected to be released by December 2026. The mapping approach of version 1, 2 and 3 are described in
+(<a href="https://data.europa.eu/doi/10.2760/262532">Bourgoin et al 2024</a>), 2025 and 2026 respectively.
+<a href="https://op.europa.eu/en/publication-detail/-/publication/e86f56dd-15b5-11f0-b1a3-01aa75ed71a1/language-en">Colditz et al. (2025)</a> describe the accuracy assessment protocol and
+results for GFC 2020 version 2. The global input layers, mapping approach, and accuracy of GFC 2020 version 4 will be
+described in a separate technical report expected to be released by December 2026. Comparative studies between GFC 2020
+and national maps were carried out over Ivory Coast (<a href="https://data.europa.eu/doi/10.2760/7042220">Verhegghen et al, 2024</a>) and Thailand (Khiripet et al, 2026). A user
+guide explains how to visualize and interact with GFC2020 to support the EUDR risk assessment (<a href="https://op.europa.eu/en/publication-detail/-/publication/a9ec1c5d-3780-11f0-8a44-01aa75ed71a1/language-en">Simonetti et al. 2025</a>).
+The GFC 2020 map may be revised if new information, additional large-scale data layers or revised global spatial data
+layers will be made available for year 2020.</p></div>
+
+        <div id="know_issues"></div>
+        <h2>Known issues</h2>
+        <p class="error">Soon available...</p>
+
+        <div id="data_download"></div>
+        <div class="md_content"><h2>Data Download</h2>
+<p>The global forest cover map of 2020 version 4 is available for download by 10°x10° tiles. The tiling starts
+at 180°W and 80°N with tile ID "N80" and "W180", respectively. Tiles over the ocean are not provided. The
+file format is GEOTIFF.</p>
+<p>The naming convention is as follows <strong><em>JRC_GFC2020<em>V4</em>[lat]_[lon].tif</em></strong>, where:</p>
+<ul>
+<li><strong><em>[lat]</em></strong>: latitude of the tile's top-left corner</li>
+<li><strong><em>[lon]</em></strong>: longitude of the tile's top left corner</li>
+</ul>
+<p>Map coordinates are in latitude and longitude, referenced to the WGS84 datum.</p>
+<p>The previous versions of the global forest cover map of 2020 are available here:</p>
+<ul>
+<li><a href="/GFC/v3">Version 3</a></li>
+<li><a href="/GFC/v2">Version 2</a></li>
+<li><a href="/GFC/v1">Version 1</a></li>
+</ul>
+<p>Click on the tile in the image below to start the download.</p></div>
+        <div id="map">
+
+    <gfc-download-map
+        download-url="https://ies-ows.jrc.ec.europa.eu/iforce/gfc2020/download.py?version=v4&type=tile"
+        :tile_grid={"36":{"tile":"N80_W180","lat":80,"lon":-180,"ulx":1,"uly":-1,"width":20,"height":93},"37":{"tile":"N80_W170","lat":80,"lon":-170,"ulx":22,"uly":-1,"width":23,"height":93},"38":{"tile":"N80_W160","lat":80,"lon":-160,"ulx":46,"uly":-1,"width":23,"height":93},"39":{"tile":"N80_W150","lat":80,"lon":-150,"ulx":70,"uly":-1,"width":22,"height":93},"40":{"tile":"N80_W140","lat":80,"lon":-140,"ulx":93,"uly":-1,"width":23,"height":93},"41":{"tile":"N80_W130","lat":80,"lon":-130,"ulx":117,"uly":-1,"width":23,"height":93},"42":{"tile":"N80_W120","lat":80,"lon":-120,"ulx":141,"uly":-1,"width":22,"height":93},"43":{"tile":"N80_W110","lat":80,"lon":-110,"ulx":164,"uly":-1,"width":23,"height":93},"44":{"tile":"N80_W100","lat":80,"lon":-100,"ulx":188,"uly":-1,"width":23,"height":93},"45":{"tile":"N80_W90","lat":80,"lon":-90,"ulx":212,"uly":-1,"width":22,"height":93},"46":{"tile":"N80_W80","lat":80,"lon":-80,"ulx":235,"uly":-1,"width":23,"height":93},"47":{"tile":"N80_W70","lat":80,"lon":-70,"ulx":259,"uly":-1,"width":23,"height":93},"48":{"tile":"N80_W60","lat":80,"lon":-60,"ulx":283,"uly":-1,"width":22,"height":93},"49":{"tile":"N80_W50","lat":80,"lon":-50,"ulx":306,"uly":-1,"width":23,"height":93},"50":{"tile":"N80_W40","lat":80,"lon":-40,"ulx":330,"uly":-1,"width":23,"height":93},"51":{"tile":"N80_W30","lat":80,"lon":-30,"ulx":354,"uly":-1,"width":22,"height":93},"52":{"tile":"N80_W20","lat":80,"lon":-20,"ulx":377,"uly":-1,"width":23,"height":93},"53":{"tile":"N80_W10","lat":80,"lon":-10,"ulx":401,"uly":-1,"width":23,"height":93},"55":{"tile":"N80_E10","lat":80,"lon":10,"ulx":448,"uly":-1,"width":23,"height":93},"56":{"tile":"N80_E20","lat":80,"lon":20,"ulx":472,"uly":-1,"width":22,"height":93},"57":{"tile":"N80_E30","lat":80,"lon":30,"ulx":495,"uly":-1,"width":23,"height":93},"58":{"tile":"N80_E40","lat":80,"lon":40,"ulx":519,"uly":-1,"width":23,"height":93},"59":{"tile":"N80_E50","lat":80,"lon":50,"ulx":543,"uly":-1,"width":22,"height":93},"60":{"tile":"N80_E60","lat":80,"lon":60,"ulx":566,"uly":-1,"width":23,"height":93},"61":{"tile":"N80_E70","lat":80,"lon":70,"ulx":590,"uly":-1,"width":23,"height":93},"62":{"tile":"N80_E80","lat":80,"lon":80,"ulx":614,"uly":-1,"width":22,"height":93},"63":{"tile":"N80_E90","lat":80,"lon":90,"ulx":637,"uly":-1,"width":23,"height":93},"64":{"tile":"N80_E100","lat":80,"lon":100,"ulx":661,"uly":-1,"width":23,"height":93},"65":{"tile":"N80_E110","lat":80,"lon":110,"ulx":685,"uly":-1,"width":22,"height":93},"66":{"tile":"N80_E120","lat":80,"lon":120,"ulx":708,"uly":-1,"width":23,"height":93},"67":{"tile":"N80_E130","lat":80,"lon":130,"ulx":732,"uly":-1,"width":23,"height":93},"68":{"tile":"N80_E140","lat":80,"lon":140,"ulx":756,"uly":-1,"width":22,"height":93},"69":{"tile":"N80_E150","lat":80,"lon":150,"ulx":779,"uly":-1,"width":23,"height":93},"70":{"tile":"N80_E160","lat":80,"lon":160,"ulx":803,"uly":-1,"width":23,"height":93},"71":{"tile":"N80_E170","lat":80,"lon":170,"ulx":827,"uly":-1,"width":20,"height":93},"72":{"tile":"N70_W180","lat":70,"lon":-180,"ulx":1,"uly":93,"width":20,"height":56},"73":{"tile":"N70_W170","lat":70,"lon":-170,"ulx":22,"uly":93,"width":23,"height":56},"74":{"tile":"N70_W160","lat":70,"lon":-160,"ulx":46,"uly":93,"width":23,"height":56},"75":{"tile":"N70_W150","lat":70,"lon":-150,"ulx":70,"uly":93,"width":22,"height":56},"76":{"tile":"N70_W140","lat":70,"lon":-140,"ulx":93,"uly":93,"width":23,"height":56},"77":{"tile":"N70_W130","lat":70,"lon":-130,"ulx":117,"uly":93,"width":23,"height":56},"78":{"tile":"N70_W120","lat":70,"lon":-120,"ulx":141,"uly":93,"width":22,"height":56},"79":{"tile":"N70_W110","lat":70,"lon":-110,"ulx":164,"uly":93,"width":23,"height":56},"80":{"tile":"N70_W100","lat":70,"lon":-100,"ulx":188,"uly":93,"width":23,"height":56},"81":{"tile":"N70_W90","lat":70,"lon":-90,"ulx":212,"uly":93,"width":22,"height":56},"82":{"tile":"N70_W80","lat":70,"lon":-80,"ulx":235,"uly":93,"width":23,"height":56},"83":{"tile":"N70_W70","lat":70,"lon":-70,"ulx":259,"uly":93,"width":23,"height":56},"84":{"tile":"N70_W60","lat":70,"lon":-60,"ulx":283,"uly":93,"width":22,"height":56},"85":{"tile":"N70_W50","lat":70,"lon":-50,"ulx":306,"uly":93,"width":23,"height":56},"86":{"tile":"N70_W40","lat":70,"lon":-40,"ulx":330,"uly":93,"width":23,"height":56},"87":{"tile":"N70_W30","lat":70,"lon":-30,"ulx":354,"uly":93,"width":22,"height":56},"88":{"tile":"N70_W20","lat":70,"lon":-20,"ulx":377,"uly":93,"width":23,"height":56},"89":{"tile":"N70_W10","lat":70,"lon":-10,"ulx":401,"uly":93,"width":23,"height":56},"90":{"tile":"N70_E0","lat":70,"lon":0,"ulx":425,"uly":93,"width":22,"height":56},"91":{"tile":"N70_E10","lat":70,"lon":10,"ulx":448,"uly":93,"width":23,"height":56},"92":{"tile":"N70_E20","lat":70,"lon":20,"ulx":472,"uly":93,"width":22,"height":56},"93":{"tile":"N70_E30","lat":70,"lon":30,"ulx":495,"uly":93,"width":23,"height":56},"94":{"tile":"N70_E40","lat":70,"lon":40,"ulx":519,"uly":93,"width":23,"height":56},"95":{"tile":"N70_E50","lat":70,"lon":50,"ulx":543,"uly":93,"width":22,"height":56},"96":{"tile":"N70_E60","lat":70,"lon":60,"ulx":566,"uly":93,"width":23,"height":56},"97":{"tile":"N70_E70","lat":70,"lon":70,"ulx":590,"uly":93,"width":23,"height":56},"98":{"tile":"N70_E80","lat":70,"lon":80,"ulx":614,"uly":93,"width":22,"height":56},"99":{"tile":"N70_E90","lat":70,"lon":90,"ulx":637,"uly":93,"width":23,"height":56},"100":{"tile":"N70_E100","lat":70,"lon":100,"ulx":661,"uly":93,"width":23,"height":56},"101":{"tile":"N70_E110","lat":70,"lon":110,"ulx":685,"uly":93,"width":22,"height":56},"102":{"tile":"N70_E120","lat":70,"lon":120,"ulx":708,"uly":93,"width":23,"height":56},"103":{"tile":"N70_E130","lat":70,"lon":130,"ulx":732,"uly":93,"width":23,"height":56},"104":{"tile":"N70_E140","lat":70,"lon":140,"ulx":756,"uly":93,"width":22,"height":56},"105":{"tile":"N70_E150","lat":70,"lon":150,"ulx":779,"uly":93,"width":23,"height":56},"106":{"tile":"N70_E160","lat":70,"lon":160,"ulx":803,"uly":93,"width":23,"height":56},"107":{"tile":"N70_E170","lat":70,"lon":170,"ulx":827,"uly":93,"width":20,"height":56},"108":{"tile":"N60_W180","lat":60,"lon":-180,"ulx":1,"uly":150,"width":20,"height":40},"109":{"tile":"N60_W170","lat":60,"lon":-170,"ulx":22,"uly":150,"width":23,"height":40},"110":{"tile":"N60_W160","lat":60,"lon":-160,"ulx":46,"uly":150,"width":23,"height":40},"111":{"tile":"N60_W150","lat":60,"lon":-150,"ulx":70,"uly":150,"width":22,"height":40},"112":{"tile":"N60_W140","lat":60,"lon":-140,"ulx":93,"uly":150,"width":23,"height":40},"113":{"tile":"N60_W130","lat":60,"lon":-130,"ulx":117,"uly":150,"width":23,"height":40},"114":{"tile":"N60_W120","lat":60,"lon":-120,"ulx":141,"uly":150,"width":22,"height":40},"115":{"tile":"N60_W110","lat":60,"lon":-110,"ulx":164,"uly":150,"width":23,"height":40},"116":{"tile":"N60_W100","lat":60,"lon":-100,"ulx":188,"uly":150,"width":23,"height":40},"117":{"tile":"N60_W90","lat":60,"lon":-90,"ulx":212,"uly":150,"width":22,"height":40},"118":{"tile":"N60_W80","lat":60,"lon":-80,"ulx":235,"uly":150,"width":23,"height":40},"119":{"tile":"N60_W70","lat":60,"lon":-70,"ulx":259,"uly":150,"width":23,"height":40},"120":{"tile":"N60_W60","lat":60,"lon":-60,"ulx":283,"uly":150,"width":22,"height":40},"121":{"tile":"N60_W50","lat":60,"lon":-50,"ulx":306,"uly":150,"width":23,"height":40},"124":{"tile":"N60_W20","lat":60,"lon":-20,"ulx":377,"uly":150,"width":23,"height":40},"125":{"tile":"N60_W10","lat":60,"lon":-10,"ulx":401,"uly":150,"width":23,"height":40},"126":{"tile":"N60_E0","lat":60,"lon":0,"ulx":425,"uly":150,"width":22,"height":40},"127":{"tile":"N60_E10","lat":60,"lon":10,"ulx":448,"uly":150,"width":23,"height":40},"128":{"tile":"N60_E20","lat":60,"lon":20,"ulx":472,"uly":150,"width":22,"height":40},"129":{"tile":"N60_E30","lat":60,"lon":30,"ulx":495,"uly":150,"width":23,"height":40},"130":{"tile":"N60_E40","lat":60,"lon":40,"ulx":519,"uly":150,"width":23,"height":40},"131":{"tile":"N60_E50","lat":60,"lon":50,"ulx":543,"uly":150,"width":22,"height":40},"132":{"tile":"N60_E60","lat":60,"lon":60,"ulx":566,"uly":150,"width":23,"height":40},"133":{"tile":"N60_E70","lat":60,"lon":70,"ulx":590,"uly":150,"width":23,"height":40},"134":{"tile":"N60_E80","lat":60,"lon":80,"ulx":614,"uly":150,"width":22,"height":40},"135":{"tile":"N60_E90","lat":60,"lon":90,"ulx":637,"uly":150,"width":23,"height":40},"136":{"tile":"N60_E100","lat":60,"lon":100,"ulx":661,"uly":150,"width":23,"height":40},"137":{"tile":"N60_E110","lat":60,"lon":110,"ulx":685,"uly":150,"width":22,"height":40},"138":{"tile":"N60_E120","lat":60,"lon":120,"ulx":708,"uly":150,"width":23,"height":40},"139":{"tile":"N60_E130","lat":60,"lon":130,"ulx":732,"uly":150,"width":23,"height":40},"140":{"tile":"N60_E140","lat":60,"lon":140,"ulx":756,"uly":150,"width":22,"height":40},"141":{"tile":"N60_E150","lat":60,"lon":150,"ulx":779,"uly":150,"width":23,"height":40},"142":{"tile":"N60_E160","lat":60,"lon":160,"ulx":803,"uly":150,"width":23,"height":40},"143":{"tile":"N60_E170","lat":60,"lon":170,"ulx":827,"uly":150,"width":20,"height":40},"149":{"tile":"N50_W130","lat":50,"lon":-130,"ulx":117,"uly":191,"width":23,"height":33},"150":{"tile":"N50_W120","lat":50,"lon":-120,"ulx":141,"uly":191,"width":22,"height":33},"151":{"tile":"N50_W110","lat":50,"lon":-110,"ulx":164,"uly":191,"width":23,"height":33},"152":{"tile":"N50_W100","lat":50,"lon":-100,"ulx":188,"uly":191,"width":23,"height":33},"153":{"tile":"N50_W90","lat":50,"lon":-90,"ulx":212,"uly":191,"width":22,"height":33},"154":{"tile":"N50_W80","lat":50,"lon":-80,"ulx":235,"uly":191,"width":23,"height":33},"155":{"tile":"N50_W70","lat":50,"lon":-70,"ulx":259,"uly":191,"width":23,"height":33},"156":{"tile":"N50_W60","lat":50,"lon":-60,"ulx":283,"uly":191,"width":22,"height":33},"161":{"tile":"N50_W10","lat":50,"lon":-10,"ulx":401,"uly":191,"width":23,"height":33},"162":{"tile":"N50_E0","lat":50,"lon":0,"ulx":425,"uly":191,"width":22,"height":33},"163":{"tile":"N50_E10","lat":50,"lon":10,"ulx":448,"uly":191,"width":23,"height":33},"164":{"tile":"N50_E20","lat":50,"lon":20,"ulx":472,"uly":191,"width":22,"height":33},"165":{"tile":"N50_E30","lat":50,"lon":30,"ulx":495,"uly":191,"width":23,"height":33},"166":{"tile":"N50_E40","lat":50,"lon":40,"ulx":519,"uly":191,"width":23,"height":33},"167":{"tile":"N50_E50","lat":50,"lon":50,"ulx":543,"uly":191,"width":22,"height":33},"168":{"tile":"N50_E60","lat":50,"lon":60,"ulx":566,"uly":191,"width":23,"height":33},"169":{"tile":"N50_E70","lat":50,"lon":70,"ulx":590,"uly":191,"width":23,"height":33},"170":{"tile":"N50_E80","lat":50,"lon":80,"ulx":614,"uly":191,"width":22,"height":33},"171":{"tile":"N50_E90","lat":50,"lon":90,"ulx":637,"uly":191,"width":23,"height":33},"172":{"tile":"N50_E100","lat":50,"lon":100,"ulx":661,"uly":191,"width":23,"height":33},"173":{"tile":"N50_E110","lat":50,"lon":110,"ulx":685,"uly":191,"width":22,"height":33},"174":{"tile":"N50_E120","lat":50,"lon":120,"ulx":708,"uly":191,"width":23,"height":33},"175":{"tile":"N50_E130","lat":50,"lon":130,"ulx":732,"uly":191,"width":23,"height":33},"176":{"tile":"N50_E140","lat":50,"lon":140,"ulx":756,"uly":191,"width":22,"height":33},"177":{"tile":"N50_E150","lat":50,"lon":150,"ulx":779,"uly":191,"width":23,"height":33},"185":{"tile":"N40_W130","lat":40,"lon":-130,"ulx":117,"uly":225,"width":23,"height":28},"186":{"tile":"N40_W120","lat":40,"lon":-120,"ulx":141,"uly":225,"width":22,"height":28},"187":{"tile":"N40_W110","lat":40,"lon":-110,"ulx":164,"uly":225,"width":23,"height":28},"188":{"tile":"N40_W100","lat":40,"lon":-100,"ulx":188,"uly":225,"width":23,"height":28},"189":{"tile":"N40_W90","lat":40,"lon":-90,"ulx":212,"uly":225,"width":22,"height":28},"190":{"tile":"N40_W80","lat":40,"lon":-80,"ulx":235,"uly":225,"width":23,"height":28},"191":{"tile":"N40_W70","lat":40,"lon":-70,"ulx":259,"uly":225,"width":23,"height":28},"194":{"tile":"N40_W40","lat":40,"lon":-40,"ulx":330,"uly":225,"width":23,"height":28},"195":{"tile":"N40_W30","lat":40,"lon":-30,"ulx":354,"uly":225,"width":22,"height":28},"196":{"tile":"N40_W20","lat":40,"lon":-20,"ulx":377,"uly":225,"width":23,"height":28},"197":{"tile":"N40_W10","lat":40,"lon":-10,"ulx":401,"uly":225,"width":23,"height":28},"198":{"tile":"N40_E0","lat":40,"lon":0,"ulx":425,"uly":225,"width":22,"height":28},"199":{"tile":"N40_E10","lat":40,"lon":10,"ulx":448,"uly":225,"width":23,"height":28},"200":{"tile":"N40_E20","lat":40,"lon":20,"ulx":472,"uly":225,"width":22,"height":28},"201":{"tile":"N40_E30","lat":40,"lon":30,"ulx":495,"uly":225,"width":23,"height":28},"202":{"tile":"N40_E40","lat":40,"lon":40,"ulx":519,"uly":225,"width":23,"height":28},"203":{"tile":"N40_E50","lat":40,"lon":50,"ulx":543,"uly":225,"width":22,"height":28},"204":{"tile":"N40_E60","lat":40,"lon":60,"ulx":566,"uly":225,"width":23,"height":28},"205":{"tile":"N40_E70","lat":40,"lon":70,"ulx":590,"uly":225,"width":23,"height":28},"206":{"tile":"N40_E80","lat":40,"lon":80,"ulx":614,"uly":225,"width":22,"height":28},"207":{"tile":"N40_E90","lat":40,"lon":90,"ulx":637,"uly":225,"width":23,"height":28},"208":{"tile":"N40_E100","lat":40,"lon":100,"ulx":661,"uly":225,"width":23,"height":28},"209":{"tile":"N40_E110","lat":40,"lon":110,"ulx":685,"uly":225,"width":22,"height":28},"210":{"tile":"N40_E120","lat":40,"lon":120,"ulx":708,"uly":225,"width":23,"height":28},"211":{"tile":"N40_E130","lat":40,"lon":130,"ulx":732,"uly":225,"width":23,"height":28},"212":{"tile":"N40_E140","lat":40,"lon":140,"ulx":756,"uly":225,"width":22,"height":28},"216":{"tile":"N30_W180","lat":30,"lon":-180,"ulx":1,"uly":254,"width":20,"height":25},"217":{"tile":"N30_W170","lat":30,"lon":-170,"ulx":22,"uly":254,"width":23,"height":25},"218":{"tile":"N30_W160","lat":30,"lon":-160,"ulx":46,"uly":254,"width":23,"height":25},"222":{"tile":"N30_W120","lat":30,"lon":-120,"ulx":141,"uly":254,"width":22,"height":25},"223":{"tile":"N30_W110","lat":30,"lon":-110,"ulx":164,"uly":254,"width":23,"height":25},"224":{"tile":"N30_W100","lat":30,"lon":-100,"ulx":188,"uly":254,"width":23,"height":25},"225":{"tile":"N30_W90","lat":30,"lon":-90,"ulx":212,"uly":254,"width":22,"height":25},"226":{"tile":"N30_W80","lat":30,"lon":-80,"ulx":235,"uly":254,"width":23,"height":25},"232":{"tile":"N30_W20","lat":30,"lon":-20,"ulx":377,"uly":254,"width":23,"height":25},"233":{"tile":"N30_W10","lat":30,"lon":-10,"ulx":401,"uly":254,"width":23,"height":25},"234":{"tile":"N30_E0","lat":30,"lon":0,"ulx":425,"uly":254,"width":22,"height":25},"235":{"tile":"N30_E10","lat":30,"lon":10,"ulx":448,"uly":254,"width":23,"height":25},"236":{"tile":"N30_E20","lat":30,"lon":20,"ulx":472,"uly":254,"width":22,"height":25},"237":{"tile":"N30_E30","lat":30,"lon":30,"ulx":495,"uly":254,"width":23,"height":25},"238":{"tile":"N30_E40","lat":30,"lon":40,"ulx":519,"uly":254,"width":23,"height":25},"239":{"tile":"N30_E50","lat":30,"lon":50,"ulx":543,"uly":254,"width":22,"height":25},"240":{"tile":"N30_E60","lat":30,"lon":60,"ulx":566,"uly":254,"width":23,"height":25},"241":{"tile":"N30_E70","lat":30,"lon":70,"ulx":590,"uly":254,"width":23,"height":25},"242":{"tile":"N30_E80","lat":30,"lon":80,"ulx":614,"uly":254,"width":22,"height":25},"243":{"tile":"N30_E90","lat":30,"lon":90,"ulx":637,"uly":254,"width":23,"height":25},"244":{"tile":"N30_E100","lat":30,"lon":100,"ulx":661,"uly":254,"width":23,"height":25},"245":{"tile":"N30_E110","lat":30,"lon":110,"ulx":685,"uly":254,"width":22,"height":25},"246":{"tile":"N30_E120","lat":30,"lon":120,"ulx":708,"uly":254,"width":23,"height":25},"247":{"tile":"N30_E130","lat":30,"lon":130,"ulx":732,"uly":254,"width":23,"height":25},"248":{"tile":"N30_E140","lat":30,"lon":140,"ulx":756,"uly":254,"width":22,"height":25},"249":{"tile":"N30_E150","lat":30,"lon":150,"ulx":779,"uly":254,"width":23,"height":25},"253":{"tile":"N20_W170","lat":20,"lon":-170,"ulx":22,"uly":280,"width":23,"height":24},"254":{"tile":"N20_W160","lat":20,"lon":-160,"ulx":46,"uly":280,"width":23,"height":24},"258":{"tile":"N20_W120","lat":20,"lon":-120,"ulx":141,"uly":280,"width":22,"height":24},"259":{"tile":"N20_W110","lat":20,"lon":-110,"ulx":164,"uly":280,"width":23,"height":24},"260":{"tile":"N20_W100","lat":20,"lon":-100,"ulx":188,"uly":280,"width":23,"height":24},"261":{"tile":"N20_W90","lat":20,"lon":-90,"ulx":212,"uly":280,"width":22,"height":24},"262":{"tile":"N20_W80","lat":20,"lon":-80,"ulx":235,"uly":280,"width":23,"height":24},"263":{"tile":"N20_W70","lat":20,"lon":-70,"ulx":259,"uly":280,"width":23,"height":24},"264":{"tile":"N20_W60","lat":20,"lon":-60,"ulx":283,"uly":280,"width":22,"height":24},"267":{"tile":"N20_W30","lat":20,"lon":-30,"ulx":354,"uly":280,"width":22,"height":24},"268":{"tile":"N20_W20","lat":20,"lon":-20,"ulx":377,"uly":280,"width":23,"height":24},"269":{"tile":"N20_W10","lat":20,"lon":-10,"ulx":401,"uly":280,"width":23,"height":24},"270":{"tile":"N20_E0","lat":20,"lon":0,"ulx":425,"uly":280,"width":22,"height":24},"271":{"tile":"N20_E10","lat":20,"lon":10,"ulx":448,"uly":280,"width":23,"height":24},"272":{"tile":"N20_E20","lat":20,"lon":20,"ulx":472,"uly":280,"width":22,"height":24},"273":{"tile":"N20_E30","lat":20,"lon":30,"ulx":495,"uly":280,"width":23,"height":24},"274":{"tile":"N20_E40","lat":20,"lon":40,"ulx":519,"uly":280,"width":23,"height":24},"275":{"tile":"N20_E50","lat":20,"lon":50,"ulx":543,"uly":280,"width":22,"height":24},"277":{"tile":"N20_E70","lat":20,"lon":70,"ulx":590,"uly":280,"width":23,"height":24},"278":{"tile":"N20_E80","lat":20,"lon":80,"ulx":614,"uly":280,"width":22,"height":24},"279":{"tile":"N20_E90","lat":20,"lon":90,"ulx":637,"uly":280,"width":23,"height":24},"280":{"tile":"N20_E100","lat":20,"lon":100,"ulx":661,"uly":280,"width":23,"height":24},"281":{"tile":"N20_E110","lat":20,"lon":110,"ulx":685,"uly":280,"width":22,"height":24},"282":{"tile":"N20_E120","lat":20,"lon":120,"ulx":708,"uly":280,"width":23,"height":24},"283":{"tile":"N20_E130","lat":20,"lon":130,"ulx":732,"uly":280,"width":23,"height":24},"284":{"tile":"N20_E140","lat":20,"lon":140,"ulx":756,"uly":280,"width":22,"height":24},"286":{"tile":"N20_E160","lat":20,"lon":160,"ulx":803,"uly":280,"width":23,"height":24},"287":{"tile":"N20_E170","lat":20,"lon":170,"ulx":827,"uly":280,"width":20,"height":24},"288":{"tile":"N10_W180","lat":10,"lon":-180,"ulx":1,"uly":305,"width":20,"height":22},"289":{"tile":"N10_W170","lat":10,"lon":-170,"ulx":22,"uly":305,"width":23,"height":22},"290":{"tile":"N10_W160","lat":10,"lon":-160,"ulx":46,"uly":305,"width":23,"height":22},"296":{"tile":"N10_W100","lat":10,"lon":-100,"ulx":188,"uly":305,"width":23,"height":22},"297":{"tile":"N10_W90","lat":10,"lon":-90,"ulx":212,"uly":305,"width":22,"height":22},"298":{"tile":"N10_W80","lat":10,"lon":-80,"ulx":235,"uly":305,"width":23,"height":22},"299":{"tile":"N10_W70","lat":10,"lon":-70,"ulx":259,"uly":305,"width":23,"height":22},"300":{"tile":"N10_W60","lat":10,"lon":-60,"ulx":283,"uly":305,"width":22,"height":22},"301":{"tile":"N10_W50","lat":10,"lon":-50,"ulx":306,"uly":305,"width":23,"height":22},"303":{"tile":"N10_W30","lat":10,"lon":-30,"ulx":354,"uly":305,"width":22,"height":22},"304":{"tile":"N10_W20","lat":10,"lon":-20,"ulx":377,"uly":305,"width":23,"height":22},"305":{"tile":"N10_W10","lat":10,"lon":-10,"ulx":401,"uly":305,"width":23,"height":22},"306":{"tile":"N10_E0","lat":10,"lon":0,"ulx":425,"uly":305,"width":22,"height":22},"307":{"tile":"N10_E10","lat":10,"lon":10,"ulx":448,"uly":305,"width":23,"height":22},"308":{"tile":"N10_E20","lat":10,"lon":20,"ulx":472,"uly":305,"width":22,"height":22},"309":{"tile":"N10_E30","lat":10,"lon":30,"ulx":495,"uly":305,"width":23,"height":22},"310":{"tile":"N10_E40","lat":10,"lon":40,"ulx":519,"uly":305,"width":23,"height":22},"311":{"tile":"N10_E50","lat":10,"lon":50,"ulx":543,"uly":305,"width":22,"height":22},"313":{"tile":"N10_E70","lat":10,"lon":70,"ulx":590,"uly":305,"width":23,"height":22},"314":{"tile":"N10_E80","lat":10,"lon":80,"ulx":614,"uly":305,"width":22,"height":22},"315":{"tile":"N10_E90","lat":10,"lon":90,"ulx":637,"uly":305,"width":23,"height":22},"316":{"tile":"N10_E100","lat":10,"lon":100,"ulx":661,"uly":305,"width":23,"height":22},"317":{"tile":"N10_E110","lat":10,"lon":110,"ulx":685,"uly":305,"width":22,"height":22},"318":{"tile":"N10_E120","lat":10,"lon":120,"ulx":708,"uly":305,"width":23,"height":22},"319":{"tile":"N10_E130","lat":10,"lon":130,"ulx":732,"uly":305,"width":23,"height":22},"320":{"tile":"N10_E140","lat":10,"lon":140,"ulx":756,"uly":305,"width":22,"height":22},"321":{"tile":"N10_E150","lat":10,"lon":150,"ulx":779,"uly":305,"width":23,"height":22},"322":{"tile":"N10_E160","lat":10,"lon":160,"ulx":803,"uly":305,"width":23,"height":22},"323":{"tile":"N10_E170","lat":10,"lon":170,"ulx":827,"uly":305,"width":20,"height":22},"324":{"tile":"N0_W180","lat":0,"lon":-180,"ulx":1,"uly":328,"width":20,"height":23},"325":{"tile":"N0_W170","lat":0,"lon":-170,"ulx":22,"uly":328,"width":23,"height":23},"326":{"tile":"N0_W160","lat":0,"lon":-160,"ulx":46,"uly":328,"width":23,"height":23},"327":{"tile":"N0_W150","lat":0,"lon":-150,"ulx":70,"uly":328,"width":22,"height":23},"328":{"tile":"N0_W140","lat":0,"lon":-140,"ulx":93,"uly":328,"width":23,"height":23},"332":{"tile":"N0_W100","lat":0,"lon":-100,"ulx":188,"uly":328,"width":23,"height":23},"333":{"tile":"N0_W90","lat":0,"lon":-90,"ulx":212,"uly":328,"width":22,"height":23},"334":{"tile":"N0_W80","lat":0,"lon":-80,"ulx":235,"uly":328,"width":23,"height":23},"335":{"tile":"N0_W70","lat":0,"lon":-70,"ulx":259,"uly":328,"width":23,"height":23},"336":{"tile":"N0_W60","lat":0,"lon":-60,"ulx":283,"uly":328,"width":22,"height":23},"337":{"tile":"N0_W50","lat":0,"lon":-50,"ulx":306,"uly":328,"width":23,"height":23},"338":{"tile":"N0_W40","lat":0,"lon":-40,"ulx":330,"uly":328,"width":23,"height":23},"340":{"tile":"N0_W20","lat":0,"lon":-20,"ulx":377,"uly":328,"width":23,"height":23},"342":{"tile":"N0_E0","lat":0,"lon":0,"ulx":425,"uly":328,"width":22,"height":23},"343":{"tile":"N0_E10","lat":0,"lon":10,"ulx":448,"uly":328,"width":23,"height":23},"344":{"tile":"N0_E20","lat":0,"lon":20,"ulx":472,"uly":328,"width":22,"height":23},"345":{"tile":"N0_E30","lat":0,"lon":30,"ulx":495,"uly":328,"width":23,"height":23},"346":{"tile":"N0_E40","lat":0,"lon":40,"ulx":519,"uly":328,"width":23,"height":23},"347":{"tile":"N0_E50","lat":0,"lon":50,"ulx":543,"uly":328,"width":22,"height":23},"349":{"tile":"N0_E70","lat":0,"lon":70,"ulx":590,"uly":328,"width":23,"height":23},"351":{"tile":"N0_E90","lat":0,"lon":90,"ulx":637,"uly":328,"width":23,"height":23},"352":{"tile":"N0_E100","lat":0,"lon":100,"ulx":661,"uly":328,"width":23,"height":23},"353":{"tile":"N0_E110","lat":0,"lon":110,"ulx":685,"uly":328,"width":22,"height":23},"354":{"tile":"N0_E120","lat":0,"lon":120,"ulx":708,"uly":328,"width":23,"height":23},"355":{"tile":"N0_E130","lat":0,"lon":130,"ulx":732,"uly":328,"width":23,"height":23},"356":{"tile":"N0_E140","lat":0,"lon":140,"ulx":756,"uly":328,"width":22,"height":23},"357":{"tile":"N0_E150","lat":0,"lon":150,"ulx":779,"uly":328,"width":23,"height":23},"358":{"tile":"N0_E160","lat":0,"lon":160,"ulx":803,"uly":328,"width":23,"height":23},"359":{"tile":"N0_E170","lat":0,"lon":170,"ulx":827,"uly":328,"width":20,"height":23},"360":{"tile":"S10_W180","lat":-10,"lon":-180,"ulx":1,"uly":352,"width":20,"height":24},"361":{"tile":"S10_W170","lat":-10,"lon":-170,"ulx":22,"uly":352,"width":23,"height":24},"362":{"tile":"S10_W160","lat":-10,"lon":-160,"ulx":46,"uly":352,"width":23,"height":24},"363":{"tile":"S10_W150","lat":-10,"lon":-150,"ulx":70,"uly":352,"width":22,"height":24},"364":{"tile":"S10_W140","lat":-10,"lon":-140,"ulx":93,"uly":352,"width":23,"height":24},"370":{"tile":"S10_W80","lat":-10,"lon":-80,"ulx":235,"uly":352,"width":23,"height":24},"371":{"tile":"S10_W70","lat":-10,"lon":-70,"ulx":259,"uly":352,"width":23,"height":24},"372":{"tile":"S10_W60","lat":-10,"lon":-60,"ulx":283,"uly":352,"width":22,"height":24},"373":{"tile":"S10_W50","lat":-10,"lon":-50,"ulx":306,"uly":352,"width":23,"height":24},"374":{"tile":"S10_W40","lat":-10,"lon":-40,"ulx":330,"uly":352,"width":23,"height":24},"377":{"tile":"S10_W10","lat":-10,"lon":-10,"ulx":401,"uly":352,"width":23,"height":24},"379":{"tile":"S10_E10","lat":-10,"lon":10,"ulx":448,"uly":352,"width":23,"height":24},"380":{"tile":"S10_E20","lat":-10,"lon":20,"ulx":472,"uly":352,"width":22,"height":24},"381":{"tile":"S10_E30","lat":-10,"lon":30,"ulx":495,"uly":352,"width":23,"height":24},"382":{"tile":"S10_E40","lat":-10,"lon":40,"ulx":519,"uly":352,"width":23,"height":24},"383":{"tile":"S10_E50","lat":-10,"lon":50,"ulx":543,"uly":352,"width":22,"height":24},"384":{"tile":"S10_E60","lat":-10,"lon":60,"ulx":566,"uly":352,"width":23,"height":24},"387":{"tile":"S10_E90","lat":-10,"lon":90,"ulx":637,"uly":352,"width":23,"height":24},"388":{"tile":"S10_E100","lat":-10,"lon":100,"ulx":661,"uly":352,"width":23,"height":24},"389":{"tile":"S10_E110","lat":-10,"lon":110,"ulx":685,"uly":352,"width":22,"height":24},"390":{"tile":"S10_E120","lat":-10,"lon":120,"ulx":708,"uly":352,"width":23,"height":24},"391":{"tile":"S10_E130","lat":-10,"lon":130,"ulx":732,"uly":352,"width":23,"height":24},"392":{"tile":"S10_E140","lat":-10,"lon":140,"ulx":756,"uly":352,"width":22,"height":24},"393":{"tile":"S10_E150","lat":-10,"lon":150,"ulx":779,"uly":352,"width":23,"height":24},"394":{"tile":"S10_E160","lat":-10,"lon":160,"ulx":803,"uly":352,"width":23,"height":24},"395":{"tile":"S10_E170","lat":-10,"lon":170,"ulx":827,"uly":352,"width":20,"height":24},"396":{"tile":"S20_W180","lat":-20,"lon":-180,"ulx":1,"uly":377,"width":20,"height":25},"398":{"tile":"S20_W160","lat":-20,"lon":-160,"ulx":46,"uly":377,"width":23,"height":25},"399":{"tile":"S20_W150","lat":-20,"lon":-150,"ulx":70,"uly":377,"width":22,"height":25},"400":{"tile":"S20_W140","lat":-20,"lon":-140,"ulx":93,"uly":377,"width":23,"height":25},"401":{"tile":"S20_W130","lat":-20,"lon":-130,"ulx":117,"uly":377,"width":23,"height":25},"403":{"tile":"S20_W110","lat":-20,"lon":-110,"ulx":164,"uly":377,"width":23,"height":25},"405":{"tile":"S20_W90","lat":-20,"lon":-90,"ulx":212,"uly":377,"width":22,"height":25},"406":{"tile":"S20_W80","lat":-20,"lon":-80,"ulx":235,"uly":377,"width":23,"height":25},"407":{"tile":"S20_W70","lat":-20,"lon":-70,"ulx":259,"uly":377,"width":23,"height":25},"408":{"tile":"S20_W60","lat":-20,"lon":-60,"ulx":283,"uly":377,"width":22,"height":25},"409":{"tile":"S20_W50","lat":-20,"lon":-50,"ulx":306,"uly":377,"width":23,"height":25},"411":{"tile":"S20_W30","lat":-20,"lon":-30,"ulx":354,"uly":377,"width":22,"height":25},"415":{"tile":"S20_E10","lat":-20,"lon":10,"ulx":448,"uly":377,"width":23,"height":25},"416":{"tile":"S20_E20","lat":-20,"lon":20,"ulx":472,"uly":377,"width":22,"height":25},"417":{"tile":"S20_E30","lat":-20,"lon":30,"ulx":495,"uly":377,"width":23,"height":25},"418":{"tile":"S20_E40","lat":-20,"lon":40,"ulx":519,"uly":377,"width":23,"height":25},"419":{"tile":"S20_E50","lat":-20,"lon":50,"ulx":543,"uly":377,"width":22,"height":25},"425":{"tile":"S20_E110","lat":-20,"lon":110,"ulx":685,"uly":377,"width":22,"height":25},"426":{"tile":"S20_E120","lat":-20,"lon":120,"ulx":708,"uly":377,"width":23,"height":25},"427":{"tile":"S20_E130","lat":-20,"lon":130,"ulx":732,"uly":377,"width":23,"height":25},"428":{"tile":"S20_E140","lat":-20,"lon":140,"ulx":756,"uly":377,"width":22,"height":25},"429":{"tile":"S20_E150","lat":-20,"lon":150,"ulx":779,"uly":377,"width":23,"height":25},"430":{"tile":"S20_E160","lat":-20,"lon":160,"ulx":803,"uly":377,"width":23,"height":25},"431":{"tile":"S20_E170","lat":-20,"lon":170,"ulx":827,"uly":377,"width":20,"height":25},"432":{"tile":"S30_W180","lat":-30,"lon":-180,"ulx":1,"uly":403,"width":20,"height":28},"441":{"tile":"S30_W90","lat":-30,"lon":-90,"ulx":212,"uly":403,"width":22,"height":28},"442":{"tile":"S30_W80","lat":-30,"lon":-80,"ulx":235,"uly":403,"width":23,"height":28},"443":{"tile":"S30_W70","lat":-30,"lon":-70,"ulx":259,"uly":403,"width":23,"height":28},"444":{"tile":"S30_W60","lat":-30,"lon":-60,"ulx":283,"uly":403,"width":22,"height":28},"448":{"tile":"S30_W20","lat":-30,"lon":-20,"ulx":377,"uly":403,"width":23,"height":28},"451":{"tile":"S30_E10","lat":-30,"lon":10,"ulx":448,"uly":403,"width":23,"height":28},"452":{"tile":"S30_E20","lat":-30,"lon":20,"ulx":472,"uly":403,"width":22,"height":28},"453":{"tile":"S30_E30","lat":-30,"lon":30,"ulx":495,"uly":403,"width":23,"height":28},"457":{"tile":"S30_E70","lat":-30,"lon":70,"ulx":590,"uly":403,"width":23,"height":28},"461":{"tile":"S30_E110","lat":-30,"lon":110,"ulx":685,"uly":403,"width":22,"height":28},"462":{"tile":"S30_E120","lat":-30,"lon":120,"ulx":708,"uly":403,"width":23,"height":28},"463":{"tile":"S30_E130","lat":-30,"lon":130,"ulx":732,"uly":403,"width":23,"height":28},"464":{"tile":"S30_E140","lat":-30,"lon":140,"ulx":756,"uly":403,"width":22,"height":28},"465":{"tile":"S30_E150","lat":-30,"lon":150,"ulx":779,"uly":403,"width":23,"height":28},"467":{"tile":"S30_E170","lat":-30,"lon":170,"ulx":827,"uly":403,"width":20,"height":28},"468":{"tile":"S40_W180","lat":-40,"lon":-180,"ulx":1,"uly":432,"width":20,"height":32},"478":{"tile":"S40_W80","lat":-40,"lon":-80,"ulx":235,"uly":432,"width":23,"height":32},"479":{"tile":"S40_W70","lat":-40,"lon":-70,"ulx":259,"uly":432,"width":23,"height":32},"484":{"tile":"S40_W20","lat":-40,"lon":-20,"ulx":377,"uly":432,"width":23,"height":32},"485":{"tile":"S40_W10","lat":-40,"lon":-10,"ulx":401,"uly":432,"width":23,"height":32},"489":{"tile":"S40_E30","lat":-40,"lon":30,"ulx":495,"uly":432,"width":23,"height":32},"491":{"tile":"S40_E50","lat":-40,"lon":50,"ulx":543,"uly":432,"width":22,"height":32},"492":{"tile":"S40_E60","lat":-40,"lon":60,"ulx":566,"uly":432,"width":23,"height":32},"493":{"tile":"S40_E70","lat":-40,"lon":70,"ulx":590,"uly":432,"width":23,"height":32},"500":{"tile":"S40_E140","lat":-40,"lon":140,"ulx":756,"uly":432,"width":22,"height":32},"502":{"tile":"S40_E160","lat":-40,"lon":160,"ulx":803,"uly":432,"width":23,"height":32},"503":{"tile":"S40_E170","lat":-40,"lon":170,"ulx":827,"uly":432,"width":20,"height":32},"514":{"tile":"S50_W80","lat":-50,"lon":-80,"ulx":235,"uly":465,"width":23,"height":41},"515":{"tile":"S50_W70","lat":-50,"lon":-70,"ulx":259,"uly":465,"width":23,"height":41},"516":{"tile":"S50_W60","lat":-50,"lon":-60,"ulx":283,"uly":465,"width":22,"height":41},"517":{"tile":"S50_W50","lat":-50,"lon":-50,"ulx":306,"uly":465,"width":23,"height":41},"518":{"tile":"S50_W40","lat":-50,"lon":-40,"ulx":330,"uly":465,"width":23,"height":41},"519":{"tile":"S50_W30","lat":-50,"lon":-30,"ulx":354,"uly":465,"width":22,"height":41},"522":{"tile":"S50_E0","lat":-50,"lon":0,"ulx":425,"uly":465,"width":22,"height":41},"529":{"tile":"S50_E70","lat":-50,"lon":70,"ulx":590,"uly":465,"width":23,"height":41},"538":{"tile":"S50_E160","lat":-50,"lon":160,"ulx":803,"uly":465,"width":23,"height":41}}
+        :height=510
+        :width=850
+        img-url="/static/global_map.png"
+    ></gfc-download-map>
+
+</div>
+
+<script type="module">
+    (new window.Forobs.Apps.GfcApp())
+        .mount('#map');
+</script>
+
+        <div id="supporting_files"></div>
+        <div class="md_content"><h2>Supporting files</h2>
+<h3>Symbology</h3>
+<p>Each of the downloadable files can be displayed in desktop GIS tools. The table below contains
+symbology files to display the colourmap and labels for the values in QGIS and ArcGIS.</p>
+<table>
+<thead>
+<tr>
+<th>Dataset</th>
+<th>QGIS</th>
+<th>ArcGIS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Global forest cover map 2020, Version 4</td>
+<td><a href="/GFC/download?version=v4&amp;type=symbology&amp;output=qgis">JRC_GFC2020_V4.qml</a></td>
+<td><a href="/GFC/download?version=v4&amp;type=symbology&amp;output=arcgis">JRC_GFC2020_V4.lyr</a></td>
+</tr>
+</tbody>
+</table></div>
+
+        <div class="md_content"><h3>Metadata</h3>
+<p>The files for download are geolocated (latitude and longitude with WGS84 datum) but do not
+contain any metadata information. Please right-click in the table below to download the metadata
+file.</p>
+<table>
+<thead>
+<tr>
+<th>Dataset</th>
+<th>ISO 19139 Metadata file</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Global forest cover map 2020, Version 4</td>
+<td><a href="/GFC/download?version=v4&amp;type=metadata">JRC_GFC2020_V4.xml</a></td>
+</tr>
+</tbody>
+</table></div>
+
+        <div class="md_content"><h2>Other data access</h2>
+<p>Interactive visualization of the global forest cover map along with frequently asked questions and
+other information can be found at the <a href="https://forest-observatory.ec.europa.eu/">EU Observatory on deforestation and forest degradation website</a>.</p>
+<h3>Web Map Service</h3>
+<p>The global forest cover map of 2020 can also be viewed in other websites or GIS clients as WMS
+(Web Map Service). They are not suitable for analysis as the data are represented only as RGB
+images. The WMS URL is:
+<a href="https://ies-ows.jrc.ec.europa.eu/iforce/gfc2020/wms.py?">https://ies-ows.jrc.ec.europa.eu/iforce/gfc2020/wms.py?</a></p>
+<p><em><strong>Note</strong>: link will not open correctly in a web browser. For guidance on adding WMS services to a
+GIS software, see <a href="https://publications.jrc.ec.europa.eu/repository/handle/JRC141229">this report</a></em></p>
+<h3>Google Earth Engine</h3>
+<p>The Global forest cover map 2020 (Version 4) can also be accessed and used in the Google Earth Engine platform:
+<a href="https://developers.google.com/earth-engine/datasets/catalog/JRC_GFC2020_V4">https://developers.google.com/earth-engine/datasets/catalog/JRC_GFC2020_V4</a></p>
+<h3>JRC Big Data Analytics Platform</h3>
+<p>The Global Forest Cover Map 2020 (Version 4) is also available for download as a single global mosaic in TIFF format
+from the Big Data Analytics Platform: <a href="https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/FOREST/GFC2020/LATEST/">https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/FOREST/GFC2020/LATEST/</a></p>
+<p><em><strong>Note</strong>: This is a service for advanced users. The file is large (circa 50-GB compressed TIFF) and intended
+for global-scale forest studies. Users should be in possession of specialized software to read and analyse large
+data volumes. The JRC will not provide further support or advice.</em></p></div>
+
+        <div id="licence"></div>
+        <div class="md_content"><h2>Licence</h2>
+<p>All data here are produced under studies funded by the Directorate-General for Environment
+of the European Commission through the Dev-ForObs project. All data are provided free-of-charge, without
+restriction of use. For the full license information see the Copernicus Regulation of the European Commission.</p>
+<p>Publications, models and data products that make use of this dataset must include proper
+acknowledgement, including citing dataset as in the following citation:</p>
+<p>Bourgoin, Clement; Achard, Frederic; Beuchle, Rene; Carboni, Silvia; Carreiras, Joao; Marinelli, Daniele; 
+Rotllan-Puig, Xavier; Simonetti, Dario; Colditz, Rene (2026): Global map of forest cover 2020 - version 4. European Commission, 
+Joint Research Centre 
+[Dataset] doi: 10.2905/JRC.3KATEH8 PID: <a href="http://data.europa.eu/89h/cf7c49ea-8f00-4c5a-bd40-6f25dc341580">http://data.europa.eu/89h/cf7c49ea-8f00-4c5a-bd40-6f25dc341580</a></p></div>
+
+        <div id="disclaimer"></div>
+        <div class="md_content"><h2>Disclaimer</h2>
+<p>The designations employed and the presentation of material on this map do not imply the
+expression of any opinion whatsoever on the part of the European Union concerning the legal status
+of any country, territory, city or area or of its authorities, or concerning the delimitation of its
+frontiers or boundaries.</p></div>
+
+    </div>
+
+            </div>
+
+        </div>
+
+        <!--  ######  EC footer  ######  -->
+        <footer class="ecl-footer-standardised">
+    <div class="ecl-container ecl-footer-standardised__container">
+        <div class="ecl-footer-standardised__section ecl-footer-standardised__section1">
+            <a href="/example" class="ecl-footer-standardised__title ecl-link ecl-link--standalone">
+                Tropical Forest Monitoring
+            </a>
+            <div class="ecl-footer-standardised__description">
+                This site is managed by the Directorate-General for Joint Research Centre
+            </div>
+        </div>
+        <div class="ecl-footer-standardised__section ecl-footer-standardised__section2">
+            <div class="ecl-footer-standardised__title ecl-footer-standardised__title--separator">Contact us</div>
+            <ul class="ecl-footer-standardised__list">
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="https://ec.europa.eu/jrc/en/contact/form"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone">
+                        Contact information of the DG
+                    </a>
+                </li>
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="/accessibility-statement"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone">
+                        Accessibility
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="ecl-footer-standardised__section ecl-footer-standardised__section3">
+            <div class="ecl-footer-standardised__title ecl-footer-standardised__title--separator">About us</div>
+            <ul class="ecl-footer-standardised__list">
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="https://ec.europa.eu/jrc/en"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone">Information about the DG</a>
+                </li>
+            </ul>
+        </div>
+        <div class="ecl-footer-standardised__section ecl-footer-standardised__section4">
+            <div class="ecl-footer-standardised__title ecl-footer-standardised__title--separator">Follow us on</div>
+            <ul class="ecl-footer-standardised__list ecl-footer-standardised__list--inline">
+
+                <!-- Bluesky -->
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="https://bsky.app/profile/scienceinnovation.ec.europa.eu"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone ecl-link--icon ecl-link--icon-before">
+                        <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false" xmlns="xmlns=&quot;http://www.w3.org/2000/svg" class="wt-icon--inverted ecl-icon ecl-icon--s ecl-link__icon ecl-social-media-follow__icon ecl-icon-networks--bluesky" width="48" height="48"><g fill="none" fill-rule="evenodd"><path fill="currentColor" d="M12.1 8.473c4.818 3.59 9.99 10.865 11.893 14.78v10.324c0-.216-.082.027-.273.57-1 2.899-4.872 14.198-13.727 5.161-4.667-4.755-2.504-9.51 5.994-10.947-4.858.827-10.318-.542-11.824-5.852C3.725 20.978 3 11.549 3 10.275c0-6.395 5.625-4.403 9.1-1.802m23.8 0c-4.818 3.59-9.99 10.865-11.893 14.78v10.324c0-.216.082.027.273.57 1 2.899 4.872 14.198 13.727 5.161 4.666-4.755 2.504-9.51-5.994-10.947 4.858.827 10.318-.542 11.824-5.852C44.275 20.978 45 11.549 45 10.275c0-6.395-5.625-4.403-9.1-1.802"></path></g></svg>
+                    </a>
+                </li>
+
+                <!-- Facebook -->
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="https://www.facebook.com/EUsciencehub"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone ecl-link--icon ecl-link--icon-before">
+                        <svg focusable="false" aria-hidden="true" class="ecl-link__icon ecl-icon ecl-icon--xs">
+                            <use xlink:href="assets/ec-media/icons.svg#branded--facebook"></use>
+                        </svg>
+                    </a>
+                </li>
+
+                <!-- Youtube -->
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="https://www.youtube.com/user/JRCaudiovisuals"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone ecl-link--icon ecl-link--icon-before">
+                        <svg viewBox="0 0 461 461" aria-hidden="true" focusable="false" xmlns="xmlns=&quot;http://www.w3.org/2000/svg" class="wt-icon--inverted ecl-icon ecl-icon--s ecl-link__icon ecl-social-media-follow__icon ecl-icon-networks--youtube" width="48" height="48"><g><path fill="currentColor" d="M365.257,67.393H95.744C42.866,67.393,0,110.259,0,163.137v134.728 c0,52.878,42.866,95.744,95.744,95.744h269.513c52.878,0,95.744-42.866,95.744-95.744V163.137 C461.001,110.259,418.135,67.393,365.257,67.393z M300.506,237.056l-126.06,60.123c-3.359,1.602-7.239-0.847-7.239-4.568V168.607 c0-3.774,3.982-6.22,7.348-4.514l126.06,63.881C304.363,229.873,304.298,235.248,300.506,237.056z"></path></g></svg>
+                    </a>
+                </li>
+
+                <!-- X -->
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="https://x.com/EU_JRC"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone ecl-link--icon ecl-link--icon-before">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="xmlns=&quot;http://www.w3.org/2000/svg" class="wt-icon--inverted ecl-icon ecl-icon--s ecl-link__icon ecl-social-media-follow__icon ecl-icon-networks--x" width="48" height="48"><g><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></g></svg>
+                    </a>
+                </li>
+
+            </ul>
+        </div>
+
+        <div class="ecl-footer-standardised__section ecl-footer-standardised__section6">
+            <div class="ecl-footer-standardised__content">More information on:</div>
+            <ul class="ecl-footer-standardised__list ecl-footer-standardised__list--condensed">
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="https://ec.europa.eu/jrc/en"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone">
+                        EU Science Hub
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="ecl-footer-standardised__section ecl-footer-standardised__section7">
+            <a href="https://ec.europa.eu/info/index_en"
+               class="ecl-footer-standardised__title ecl-link ecl-link--standalone">
+                European Commission
+            </a>
+        </div>
+        <div class="ecl-footer-standardised__section ecl-footer-standardised__section8">
+            <ul class="ecl-footer-standardised__list">
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="https://ec.europa.eu/info/about-european-commission/contact_en"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone">
+                        Contact the European Commission
+                    </a>
+                </li>
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="https://european-union.europa.eu/contact-eu/social-media-channels_en#/search?page=0&institutions=european_commission"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone ecl-link--icon ecl-link--icon-after">
+                        <span class="ecl-link__label">Follow the European Commission on social media</span>
+                        <svg focusable="false" aria-hidden="true" class="ecl-link__icon ecl-icon ecl-icon--xs">
+                            <use xlink:href="assets/ec-media/icons.svg#ui--external"></use>
+                        </svg>
+                    </a>
+                </li>
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="#" class="ecl-footer-standardised__link ecl-link ecl-link--standalone">
+                        Resources for partners
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="ecl-footer-standardised__section ecl-footer-standardised__section9">
+            <ul class="ecl-footer-standardised__list">
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="https://ec.europa.eu/info/cookies_en"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone">
+                        Cookies
+                    </a>
+                </li>
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="https://ec.europa.eu/info/privacy-policy_en"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone">
+                        Privacy policy
+                    </a>
+                </li>
+                <li class="ecl-footer-standardised__list-item">
+                    <a href="https://ec.europa.eu/info/legal-notice_en"
+                       class="ecl-footer-standardised__link ecl-link ecl-link--standalone">
+                        Legal notice
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</footer>
+
+    </body>
+</html>

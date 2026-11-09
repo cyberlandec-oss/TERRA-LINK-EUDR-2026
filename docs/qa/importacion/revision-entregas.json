@@ -1,0 +1,68 @@
+{
+  "fecha": "2026-10-12T15:41:21.613Z",
+  "base": "http://localhost:3000",
+  "entorno": "DESARROLLO local (contenedores), datos DEMO y archivos sintéticos",
+  "ok": true,
+  "casos": [
+    {
+      "caso": "admin: elige Entregas, descarga su plantilla y ve que solo crea borradores",
+      "ok": true,
+      "detalle": "plantilla-entregas_v1.xlsx",
+      "captura": "docs/qa/capturas/importacion/en01-admin-plantilla-entregas.png"
+    },
+    {
+      "caso": "admin: registrada con otro peso, productor de baja, unidad LB, periodo sin precisión y fila sin referencia son errores; no confirmable",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/en02-admin-errores-entregas.png"
+    },
+    {
+      "caso": "admin: vista previa válida (sin guardar)",
+      "ok": true,
+      "detalle": "2 nuevas",
+      "captura": "docs/qa/capturas/importacion/en03-admin-vista-previa-entregas.png"
+    },
+    {
+      "caso": "admin: confirmación con teclado → 2 borradores creados",
+      "ok": true,
+      "detalle": "foco en «Confirmar importación»",
+      "captura": "docs/qa/capturas/importacion/en04-admin-resultado-entregas.png"
+    },
+    {
+      "caso": "base: borradores creados y ningún efecto físico ni evento de entrega",
+      "ok": true,
+      "detalle": "ENT-2026-00006:DRAFT,ENT-2026-00007:DRAFT · recepciones/pesajes/muestras/inventario/eventos/compuertas 2/2/1/8/2/7 → 2/2/1/8/2/7",
+      "captura": null
+    },
+    {
+      "caso": "390 px: reimportación por referencia = 2 sin cambios, nada que confirmar",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/en05-390-reimportacion-entregas.png"
+    },
+    {
+      "caso": "390 px: sin desplazamiento horizontal de la página",
+      "ok": true,
+      "detalle": "exceso 0px",
+      "captura": null
+    },
+    {
+      "caso": "supervisión (MANAGER): Entregas habilitada",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/en06-supervision-entregas.png"
+    },
+    {
+      "caso": "recepción: sin menú y denegación explicada en la URL directa",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/en07-recepción-denegado.png"
+    },
+    {
+      "caso": "técnico de campo: sin menú y denegación explicada en la URL directa",
+      "ok": true,
+      "detalle": "",
+      "captura": "docs/qa/capturas/importacion/en08-técnico-denegado.png"
+    }
+  ]
+}
