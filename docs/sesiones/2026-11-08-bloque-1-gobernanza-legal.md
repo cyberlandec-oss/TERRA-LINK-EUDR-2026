@@ -73,6 +73,8 @@ Se implementó el mecanismo técnico versionado para aplicabilidad EUDR, retenci
 - El respaldo `0078` fue comprobado por hash y legibilidad, conservando el intento fallido. La restauración fallida se explicó por los logs: `pg_isready` había respondido durante la inicialización temporal del entrypoint; no fue OOM (`OOM=false`). El segundo intento esperó el arranque definitivo y terminó `pg_restore` con código 0.
 - Verificación aislada aprobada: 163 tablas, 2.731 restricciones, 299 triggers, migración `0078_marco_gobernanza_legal`, versión `1.0.0` DRAFT con 6 controles; 2 documentos y 2 objetos restaurados con SHA-256/tamaños coincidentes. La copia duradera está fuera del repositorio en `Documents/TerraLink-Backups/2026-11-09-p1005-migracion-0078`; `claves.env` quedó con ACL del usuario actual y sus valores nunca se imprimieron.
 - Se limpiaron únicamente los recursos aislados con nombres únicos. No se modificaron volúmenes operativos ni se recreó la base de desarrollo.
+- `npm run validate -- --skip-e2e` sobre el árbol congelado pasó servicios, typecheck, lint, build y OpenAPI; su paso normal de Jest en Windows falló antes de ejecutar por el resolver de `ts-jest`. La misma orden normal (`npm test --workspace apps/api`) ejecutada en `node:24-bookworm-slim`, con dependencias de desarrollo y base de pruebas, pasó 54/54; web pasó 27/27 en la validación oficial.
+- SHA funcional validado y servido: `56994ebbc0b13b87bb45d22851cfb14cd9765e91`; `/health/ready` 200 y `/version` confirmó `56994eb`, esquema `0078_marco_gobernanza_legal`. El HEAD documental posterior se mantendrá separado y no requiere reconstrucción si solo cambia esta continuidad.
 
 ## Bloqueos honestos
 
