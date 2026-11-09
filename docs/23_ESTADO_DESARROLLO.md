@@ -881,3 +881,56 @@ El siguiente trabajo ejecutable del bloque DD es continuar con casos controlados
 La verificación dirigida del estado vigente ejecutó `test/shipments.int-spec.ts` y `test/d34a-despacho.int-spec.ts` en el entorno Linux reproducible: **2 suites y 15 pruebas aprobadas**, código del contenedor 0. La evidencia cubre reserva, liberación/cancelación, preflight, despacho controlado, ledger y saldo, concurrencia, reintento/idempotencia, saldo insuficiente, aislamiento por organización y revalidación de condiciones antes de consumir.
 
 Esto cierra técnicamente la mecánica local demostrable, pero no P0-029 completo: el camino positivo usa la fixture sintética explícitamente documentada porque `READY` real permanece bloqueado por requisitos legales, riesgo, calidad y DD. No se alteraron expedientes ni se rebajaron compuertas. La brecha siguiente es habilitar un expediente DD válido mediante las decisiones y configuraciones aprobadas; hasta entonces el despacho operativo real sigue bloqueado.
+
+## Línea base cuantitativa de cierre técnico — 2026-11-09
+
+Esta línea base fija un denominador de **30 criterios técnicos**, cinco por cada uno de los seis bloques acordados. Los criterios se deduplican por capacidad. `Demostrado` exige implementación y evidencia local; `Parcial` indica una parte técnica o una fixture incompleta; `Pendiente` indica falta de evidencia suficiente. Las aprobaciones jurídicas, PILOTO, VALIDACIÓN DE CAMPO y OPERACIÓN REAL no se cuentan como criterios técnicos ni reciben fracciones.
+
+| ID / bloque | Resultado esperado | Estado | Evidencia / SHA | Dependencia separada |
+|---|---|---|---|---|
+| L-01 Legal | Aplicabilidad EUDR parametrizada y versionada | Demostrado | gobernanza legal, migración 0078 y pruebas; `0996464` | aprobación jurídica del contenido |
+| L-02 Legal | Aprobación autorizada y permisos separados de evaluar/concluir | Demostrado | autorización, aislamiento y auditoría; `0996464` | designación jurídica del aprobador |
+| L-03 Legal | Catálogo con fuente, versión, vigencia, revisión y responsable | Demostrado | catálogo versionado y controles; `0996464` | adopción del catálogo definitivo |
+| L-04 Legal | Retención, base legal y responsabilidades por ámbito | Demostrado | políticas y auditoría; `0996464` | aprobación de política jurídica |
+| L-05 Legal | Gobernanza pendiente/vencida/retirada bloquea DD y conserva instantáneas | Demostrado | transiciones legales/DD; `0996464` | P1-005, D-05.B, D-07.5/D-07.6 |
+| DD-01 Debida diligencia | Instantánea append-only con hash, manifiesto y procedencia | Demostrado | pruebas DD y panel geográfico; `0996464` | datos operativos reales |
+| DD-02 Debida diligencia | Evidencia vinculada, versionada y aislada por organización | Demostrado | evidencia, permisos y auditoría; `0996464` | — |
+| DD-03 Debida diligencia | Riesgo, mitigación, reevaluación y obsolescencia verificables | Demostrado | evaluador y estado `STALE`; `0996464` | catálogo/reglas aprobados |
+| DD-04 Debida diligencia | Recorrido autorizado hasta READY y paquete versionado | Parcial | `INTERNAL_REVIEW`/`DD_PACKAGE`; READY directo en fixture; `0996464` | expediente jurídicamente habilitado |
+| DD-05 Debida diligencia | READY, exportación, presentación y aceptación oficial separados | Demostrado | estados internos y canal sin envío; `0996464` | credenciales y aceptación externa |
+| SAT-01 Satélite | Adaptador y contrato de proveedor con estados de respuesta | Demostrado | adaptador WHISP y fixtures; `8a0bf67` | proveedor real seleccionado |
+| SAT-02 Satélite | TLS, certificados, destinos permitidos y aislamiento | Demostrado | 3 suites / 84 pruebas; `8a0bf67` | — |
+| SAT-03 Satélite | Custodia/autorización de credenciales y límites de uso | Demostrado | cifrado, permisos y feature flag; `8a0bf67` | clave, términos y autorización del operador |
+| SAT-04 Satélite | Respuesta original, integridad, geometría, versiones y fallos trazables | Demostrado | persistencia/procedencia y pruebas; `8a0bf67` | consulta real para cobertura externa |
+| SAT-05 Satélite | Resultado satelital vinculado formalmente a riesgo y expediente DD | Parcial | persistencia y bloqueos locales; `8a0bf67` | proveedor/credenciales/consulta real |
+| MOV-01 Movimientos | Lote, ledger, saldo, unidades y trazabilidad consistentes | Demostrado | `shipments.int-spec`; 15 pruebas; `65b835b` | — |
+| MOV-02 Movimientos | Reserva, liberación, cancelación, concurrencia e idempotencia | Demostrado | `shipments.int-spec`; `65b835b` | — |
+| MOV-03 Movimientos | Preflight aplica calidad, DD, legalidad y bloqueos operativos | Demostrado | `d34a-despacho.int-spec`; `65b835b` | datos/decisiones reales |
+| MOV-04 Movimientos | Despacho revalida condiciones y consume una sola vez | Demostrado | despacho controlado, reintentos y saldo; `65b835b` | — |
+| MOV-05 Movimientos | Evidencia→riesgo→mitigación→DD→paquete→reserva→despacho integrado | Parcial | mecánica 15/15; READY y aprobación directos en fixture; `65b835b` | READY por casos de uso autorizados |
+| MOB-01 Móvil | Persistencia offline cifrada y cola durable | Demostrado | SQLite/SQLCipher y pruebas móviles; `b995aa3` | validación Android |
+| MOB-02 Móvil | Sincronización, idempotencia, conflictos y recuperación | Demostrado | pruebas sync/conflictos; `b3e9ca8` | validación en dispositivo |
+| MOB-03 Móvil | Captura de productor/parcela/entrega/evidencia con GPS y foto | Parcial | servidor y lógica móvil; faltan físico/documentos | teléfono/Android/campo |
+| MOB-04 Móvil | APK, mapa y SQLCipher comprobados en Android reproducible | Parcial | APK/emulador documentados; dispositivo no acreditado; `b995aa3` | SDK/emulador/teléfono físico |
+| MOB-05 Móvil | Operación prolongada sin conectividad y resolución en campo | Pendiente | sin evidencia suficiente | PILOTO/VALIDACIÓN DE CAMPO |
+| OPS-01 Operación | Despliegue reproducible, salud y versión del candidato | Demostrado | `/version`=`0996464`, BUILD_ARG, imagen `sha256:90bf…`; `0996464` | servidor real |
+| OPS-02 Operación | Logs/medición, redacción y señales operativas | Demostrado | controles de observabilidad; `0996464` | operación real |
+| OPS-03 Operación | Secretos, TLS e infraestructura endurecida para producción | Parcial | mecanismos locales/configuración | gestión productiva |
+| OPS-04 Operación | Backup/restore verificado y objetivos RPO/RTO definidos | Parcial | recuperación 0078 acreditada | aceptación de RPO/RTO |
+| OPS-05 Operación | Soporte, monitoreo productivo y revisión independiente | Pendiente | no acreditado en local | OPERACIÓN REAL |
+
+### Resultado cuantitativo
+
+La línea base queda conciliada en **21/30 criterios demostrados = 70,0 % de cierre técnico**. Hay **7 parciales** y **2 pendientes**; los parciales no reciben fracciones. Avance de esta entrega: **+0 criterios demostrados y +0,0 puntos porcentuales**, porque el despacho ya estaba acreditado como mecánica en `65b835b` y esta entrega fija el instrumento, no altera su alcance. El SHA funcional servido permanece **`0996464`**; el HEAD documental posterior no se atribuye a la imagen.
+
+| Bloque | Demostrados | Parciales | Pendientes | Resultado |
+|---|---:|---:|---:|---|
+| Legal y regulatorio | 5 | 0 | 0 | técnico demostrado; aprobación jurídica separada |
+| Debida diligencia | 4 | 1 | 0 | READY integrado pendiente |
+| Satélite | 4 | 1 | 0 | proveedor real/vínculo formal pendiente |
+| Movimientos y despacho | 4 | 1 | 0 | mecánica demostrada; READY integrado pendiente |
+| Móvil | 2 | 2 | 1 | Android/campo pendientes |
+| Operación productiva | 2 | 2 | 1 | producción/RPO-RTO pendientes |
+| **Total** | **21** | **7** | **2** | **21/30 = 70,0 %** |
+
+El denominador queda estable para las siguientes entregas. Solo cambiará mediante una decisión explícita de alcance registrada en backlog/matriz. Los pendientes externos no eliminan los pendientes técnicos asociados.

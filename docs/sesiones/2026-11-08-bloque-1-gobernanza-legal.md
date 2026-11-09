@@ -129,3 +129,11 @@ Se mantiene pendiente la aprobación jurídica de `P1-005`, `D-05.B`, `D-07.5/D-
 Se ejecutaron en Linux, sobre la base aislada `*_test`, `test/shipments.int-spec.ts` y `test/d34a-despacho.int-spec.ts`: **2 suites, 15 pruebas, 0 fallidas, código del contenedor 0**. El contenedor quedó `AutoRemove=false`, terminó `EXIT=0`, sus logs se recuperaron y se eliminó únicamente el contenedor/volumen exclusivos de esta ejecución. La prueba cubre reservas, liberación, cancelación, preflight, ledger, saldo insuficiente, concurrencia, idempotencia, tenant y revalidación en despacho.
 
 El resultado no cierra P0-029 operativo: el positivo de despacho depende de la fixture READY sintética ya rotulada en la suite; la vía normal sigue bloqueada por las compuertas DD/legalidad/calidad. Se conserva el recorrido negativo y no se fabrican datos favorables.
+
+## Control cuantitativo de cierre — 2026-11-09
+
+La matriz consolidada de [`docs/23_ESTADO_DESARROLLO.md`](../23_ESTADO_DESARROLLO.md) fija 30 criterios técnicos deduplicados, cinco por bloque: **21 demostrados, 7 parciales y 2 pendientes; acumulado 21/30 = 70,0 %**. Esta entrega aporta **+0 criterios y +0,0 puntos porcentuales**: conserva el cierre de mecánica de despacho de `65b835b` y formaliza el denominador, sin atribuir el HEAD documental a la imagen funcional.
+
+La fixture de despacho toma una instantánea real capturada por API, pero escribe directamente en la base de pruebas el estado `READY` y la aprobación para aislar la mecánica. Por eso MOV-01..04 son demostrados y MOV-05 queda parcial: no se acredita el recorrido integrado de evidencia, riesgo, mitigación, DD, paquete, reserva y despacho mediante los casos de uso autorizados. `READY` interno no equivale a presentación o aceptación oficial.
+
+El SHA funcional servido continúa siendo `0996464` (`/version`, `BUILD_ARG`); los documentos posteriores se publican como HEAD documental separado. PILOTO, VALIDACIÓN DE CAMPO, OPERACIÓN REAL y aprobaciones jurídicas permanecen fuera del porcentaje técnico y explícitamente pendientes cuando aplican.
