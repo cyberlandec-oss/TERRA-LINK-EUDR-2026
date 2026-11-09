@@ -25,8 +25,9 @@ describeDb('P1-005 gobernanza legal: autorización, versión, vigencia, retiro y
     await h.db.updateTable('legal_governance_controls').set({ status: 'ACTIVE' }).where('version', '=', '9.9.1').execute();
     await h.http().post('/api/v1/platform/legal-governance/versions/9.9.1/decision').set(h.as('governance-super@test.local')).send({ operation_id: randomUUID(), decision: 'APPROVE', basis: 'Aprobación sintética de prueba controlada.' }).expect(201);
     await h.http().post('/api/v1/platform/legal-governance/versions/9.9.1/decision').set(h.as('governance-super@test.local')).send({ operation_id: randomUUID(), decision: 'RETIRE', basis: 'Retiro sintético para comprobar transición.' }).expect(201);
-    const audit = await h.db.selectFrom('audit_logs').select(['action', 'entity_id']).where('entity_id', '=', '9.9.1').orderBy('occurred_at').execute();
+    const audit = await h.db.selectFrom('audit_logs').select(['action', 'entity_id', 'after']).where('entity_type', '=', 'legal_governance_version').orderBy('occurred_at').execute();
     expect(audit.map((x) => x.action)).toEqual(expect.arrayContaining(['legal_governance.create', 'legal_governance.approve', 'legal_governance.retire']));
+    expect(audit.filter((x) => (x.after as { version?: string } | null)?.version === '9.9.1')).toHaveLength(3);
     expect((await sql<{ n: number }>`SELECT count(*)::int AS n FROM legal_governance_versions WHERE version = '9.9.1'`.execute(h.db)).rows[0].n).toBe(1);
   });
 

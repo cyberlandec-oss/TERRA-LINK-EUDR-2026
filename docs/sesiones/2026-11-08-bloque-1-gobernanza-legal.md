@@ -65,6 +65,15 @@ Se implementó el mecanismo técnico versionado para aplicabilidad EUDR, retenci
 - Se generó el respaldo de base, objetos, claves restringidas, estado y huellas en una carpeta temporal externa al repositorio porque `D:` devolvió “dispositivo no está listo”. La restauración aislada se intentó y falló por terminación abrupta del PostgreSQL de ensayo durante `pg_restore`; el ensayo fue retirado y no se declara verificado.
 - El candidato `65c099671897a7c0727091e604e66604e312c2ea` fue reconstruido y desplegado localmente con `APP_COMMIT=65c0996`: `/health/ready` respondió 200 y `/version` confirmó commit `65c0996` y esquema `0078_marco_gobernanza_legal`. Los servicios quedaron saludables.
 
+## Reproducibilidad y recuperación completadas
+
+- El diagnóstico de Jest registró Node `v26.13.0`, npm `11.20.0`, Jest `30.5.2` y ts-jest `29.4.14`. Node resolvía ts-jest, pero el resolver de Jest del workspace Windows no lo encontraba desde `rootDir=apps/api`. Las junctions manuales fueron retiradas; `jest.config.js` quedó sin rutas absolutas ni enlaces requeridos.
+- La prueba existente ejecutada en contenedor desechable pasó: `src/dd/requirements.spec.ts`, 52/52. La ejecución conjunta final pasó: 2 suites, 54/54 (`requirements.spec.ts` + `legal-governance.int-spec.ts`). La suite de integración usó `terra_link_test`/Redis de pruebas y no la base operativa.
+- La integración detectó y corrigió que `audit_logs.entity_id` es UUID: las versiones semánticas se auditan con `entity_id=NULL` y `after.version`, conservando su identidad y evitando conversión inválida. La vigencia se compara con `CURRENT_DATE` en PostgreSQL.
+- El respaldo `0078` fue comprobado por hash y legibilidad, conservando el intento fallido. La restauración fallida se explicó por los logs: `pg_isready` había respondido durante la inicialización temporal del entrypoint; no fue OOM (`OOM=false`). El segundo intento esperó el arranque definitivo y terminó `pg_restore` con código 0.
+- Verificación aislada aprobada: 163 tablas, 2.731 restricciones, 299 triggers, migración `0078_marco_gobernanza_legal`, versión `1.0.0` DRAFT con 6 controles; 2 documentos y 2 objetos restaurados con SHA-256/tamaños coincidentes. La copia duradera está fuera del repositorio en `Documents/TerraLink-Backups/2026-11-09-p1005-migracion-0078`; `claves.env` quedó con ACL del usuario actual y sus valores nunca se imprimieron.
+- Se limpiaron únicamente los recursos aislados con nombres únicos. No se modificaron volúmenes operativos ni se recreó la base de desarrollo.
+
 ## Bloqueos honestos
 
 - La versión `1.0.0` permanece `DRAFT`.

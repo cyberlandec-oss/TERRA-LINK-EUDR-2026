@@ -2,7 +2,7 @@ import { Body, Controller, Get, Inject, Injectable, Param, Post } from '@nestjs/
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsString, IsUUID, Length, Matches, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Kysely } from 'kysely';
+import { Kysely, sql } from 'kysely';
 import { CurrentUser, type AuthUser } from '../auth/auth';
 import { AuthorizationService } from '../authz/authorization.service';
 import { AuditService } from '../audit/audit.service';
@@ -56,7 +56,9 @@ export class LegalGovernanceService {
     await this.db.transaction().execute(async (trx) => {
       await trx.insertInto('legal_governance_versions').values({ version: dto.version, jurisdiction: 'EC', status: 'DRAFT', effective_from: dto.effective_from, effective_to: dto.effective_to ?? null, source_url: dto.source_url, source_sha256: dto.source_sha256 ?? null, purpose: dto.purpose.trim(), created_by: user.email }).execute();
       await trx.insertInto('legal_governance_controls').values(dto.controls.map((c) => ({ version: dto.version, code: c.code, kind: c.kind, title: c.title.trim(), status: c.status, value_text: c.value_text ?? null, source_reference: c.source_reference.trim(), responsible_role: c.responsible_role ?? null, notes: c.notes.trim() }))).execute();
-      await this.audit.record(trx, { organizationId: null, actorUserId: user.id, action: 'legal_governance.create', entityType: 'legal_governance_version', entityId: dto.version, result: 'SUCCESS', reason: dto.purpose.trim(), after: { version: dto.version, controls: dto.controls.length } });
+      // audit_logs.entity_id es UUID para recursos operativos; una versión semántica no lo es.
+      // La identidad inmutable de la versión queda en after.version y entity_id permanece NULL.
+      await this.audit.record(trx, { organizationId: null, actorUserId: user.id, action: 'legal_governance.create', entityType: 'legal_governance_version', entityId: null, result: 'SUCCESS', reason: dto.purpose.trim(), after: { version: dto.version, controls: dto.controls.length } });
     });
     return { version: dto.version, status: 'DRAFT', controls: dto.controls.length, note: 'Versión creada como DRAFT; requiere aprobación posterior y no habilita READY.' };
   }
@@ -67,8 +69,11 @@ export class LegalGovernanceService {
     if (!existing) throw new AppError(422, 'LEGAL_GOVERNANCE_UNKNOWN', 'La versión de gobernanza no existe.', [{ field: 'version', reason: 'UNKNOWN' }]);
     if (existing.status !== 'DRAFT' && dto.decision === 'APPROVE') throw conflict('LEGAL_GOVERNANCE_NOT_DRAFT', 'Solo se puede aprobar una versión en DRAFT.');
     if (dto.decision === 'APPROVE') {
-      const today = new Date().toISOString().slice(0, 10);
-      if (existing.effective_from > today || (existing.effective_to !== null && existing.effective_to < today)) {
+      const effective = await sql<{ outside: boolean }>`
+        SELECT (effective_from > CURRENT_DATE OR (effective_to IS NOT NULL AND effective_to < CURRENT_DATE)) AS outside
+        FROM legal_governance_versions WHERE version = ${version}
+      `.execute(this.db);
+      if (effective.rows[0]?.outside) {
         throw new AppError(422, 'LEGAL_GOVERNANCE_NOT_EFFECTIVE', 'No se puede aprobar una versión fuera de su periodo de vigencia.', [{ field: 'effective_from', reason: 'OUTSIDE_EFFECTIVE_WINDOW' }]);
       }
       const pending = await this.db.selectFrom('legal_governance_controls').select(['code']).where('version', '=', version).where('status', '=', 'PENDING').execute();
@@ -77,7 +82,7 @@ export class LegalGovernanceService {
     const status = dto.decision === 'APPROVE' ? 'APPROVED' : 'RETIRED';
     await this.db.transaction().execute(async (trx) => {
       await trx.updateTable('legal_governance_versions').set({ status, approved_by: user.id, approved_at: new Date(), approval_basis: dto.basis.trim() }).where('version', '=', version).execute();
-      await this.audit.record(trx, { organizationId: null, actorUserId: user.id, action: `legal_governance.${dto.decision.toLowerCase()}`, entityType: 'legal_governance_version', entityId: version, result: 'SUCCESS', reason: dto.basis.trim(), after: { version, status } });
+      await this.audit.record(trx, { organizationId: null, actorUserId: user.id, action: `legal_governance.${dto.decision.toLowerCase()}`, entityType: 'legal_governance_version', entityId: null, result: 'SUCCESS', reason: dto.basis.trim(), after: { version, status } });
     });
     return { version, status, note: 'La decisión quedó auditada. Aprobar el marco no emite una conclusión EUDR sobre ningún expediente.' };
   }
