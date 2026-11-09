@@ -42,6 +42,27 @@ Se implementó el mecanismo técnico versionado para aplicabilidad EUDR, retenci
 - API, web, worker, PostgreSQL, Redis, escáner y almacenamiento local quedaron saludables.
 - No se recrearon bases, no se ejecutaron seeds, no se cambiaron credenciales o roles operativos y no se eliminaron volúmenes.
 
+## Verificación de la entrega en `main`
+
+- La captura de debida diligencia incorpora versión, vigencia, estado y controles del marco legal vigente. Esa captura forma parte de la instantánea y de su hash; las instantáneas históricas no se reescriben.
+- El evaluador agrega `LEGAL_GOVERNANCE`: sin versión vigente, con estado distinto de `APPROVED` o con controles no `ACTIVE`, el expediente queda `PENDING` y no puede avanzar a `READY`. `READY` interno sigue siendo distinto de paquete generado, envío y aceptación oficial.
+- Se añadieron pruebas para crear/versionar, aprobar con autorización, rechazar controles pendientes, rechazar vigencia futura, retirar, impedir duplicados, auditar y denegar a usuarios sin permiso. Administrar el catálogo queda separado de evaluar/concluir riesgo: `legal_governance:*` no concede `risk:evaluate` ni `risk:conclude`.
+- El catálogo global tiene ámbito de plataforma y autorización backend; los expedientes conservan el aislamiento por organización y permisos existentes.
+
+## Retención y pendientes
+
+- Los cinco años de los artículos 4(3) y 12(5) se limitan a declaraciones y documentación de debida diligencia EUDR. No se extienden automáticamente a todos los datos personales, archivos, logs ni respaldos.
+- La base legal y las responsabilidades de tratamiento personal siguen `PENDING`; no se inventa un plazo general. El ciclo de vida de respaldos, sus claves y su destrucción requiere una política separada y aprobada.
+- P1-005 y el bloque legal permanecen abiertos: la implementación técnica está ampliada, pero faltan aprobación jurídica/configuración vigente y evidencia integral de validación.
+
+## Pruebas y evidencia de esta continuación
+
+- `npm run typecheck`: aprobado.
+- `npm run lint`: aprobado.
+- La prueba unitaria nueva está en `apps/api/src/dd/requirements.spec.ts`.
+- La prueba de integración está en `apps/api/test/legal-governance.int-spec.ts`; queda pendiente por el resolver de `ts-jest` del entorno Windows hoisted, sin declararla aprobada.
+- Falta ejecutar el respaldo y su verificación aislada posterior a `0078` conforme a `docs/20_COMANDOS_Y_ENTORNO.md`, sin repetir respaldos ya acreditados.
+
 ## Bloqueos honestos
 
 - La versión `1.0.0` permanece `DRAFT`.

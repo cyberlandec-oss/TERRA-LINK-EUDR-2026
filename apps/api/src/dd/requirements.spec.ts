@@ -255,6 +255,18 @@ describe('RISK_CATALOG_APPROVED: regulatory_profile es una referencia revisada, 
   });
 });
 
+describe('LEGAL_GOVERNANCE: el marco participa en READY', () => {
+  it('DRAFT o con controles pendientes bloquea y un marco aprobado/activo se evalúa como MET', () => {
+    const base = { ...SYNTHETIC, profiles: { ...SYNTHETIC.profiles, governance: {
+      version: '1.0.0', status: 'DRAFT' as const, effective: true,
+      controls: [{ code: 'LEGAL_BASIS', kind: 'LEGAL_BASIS', status: 'PENDING' as const }],
+    } } };
+    expect(evaluateRequirements(base).find((x) => x.code === 'LEGAL_GOVERNANCE')?.status).toBe('PENDING');
+    const approved = { ...base, profiles: { ...base.profiles, governance: { ...base.profiles.governance!, status: 'APPROVED' as const, controls: [{ code: 'LEGAL_BASIS', kind: 'LEGAL_BASIS', status: 'ACTIVE' as const }] } } };
+    expect(evaluateRequirements(approved).find((x) => x.code === 'LEGAL_GOVERNANCE')?.status).toBe('MET');
+  });
+});
+
 describe('GEOLOCATION_PROFILE: configuración versionada adoptada, revisada, aplicable y con datos vigentes', () => {
   const con = (g: Partial<GeoConfigContent> | null) => ({ ...SYNTHETIC, profiles: { ...SYNTHETIC.profiles, geolocation_profile: g === null ? null : { ...GEO_OK, ...g } } }) as DdContent;
   const req = (c: DdContent) => evaluateRequirements(c).find((x) => x.code === 'GEOLOCATION_PROFILE')!;

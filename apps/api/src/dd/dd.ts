@@ -205,6 +205,20 @@ export class DdService {
     // GEOLOCATION_PROFILE: la configuración de reglas adoptada, su revisión vigente, su aplicabilidad y las evaluaciones vigentes del perfil técnico por
     // versión de parcela. null si la organización no adoptó ninguna (el contenido y su hash quedan como antes).
     const geolocationProfile = await geoConfigContent(db as Kysely<Database>, ctx.organizationId, plots.map((p) => ({ plot_id: p.plot_id, version_id: p.version_id ?? null })));
+    const governanceVersion = await sql<{ version: string; status: 'DRAFT' | 'APPROVED' | 'RETIRED'; effective_from: string; effective_to: string | null }>`
+      SELECT version, status, effective_from, effective_to
+      FROM legal_governance_versions
+      WHERE jurisdiction = 'EC'
+        AND effective_from <= CURRENT_DATE
+        AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
+      ORDER BY effective_from DESC, version DESC LIMIT 1
+    `.execute(db);
+    const gv = governanceVersion.rows[0] ?? null;
+    const governanceControls = gv
+      ? (await sql<{ code: string; kind: string; status: 'PENDING' | 'ACTIVE' | 'EXPIRED' }>`
+        SELECT code, kind, status FROM legal_governance_controls WHERE version = ${gv.version} ORDER BY code
+      `.execute(db)).rows
+      : [];
     return {
       subject: { type: 'LOT', id: lot.id, code: lot.lot_code, product: lot.product, unit: lot.unit, origin_status: lot.origin_status },
       quantities: { ...q, unit: lot.unit, source: 'ledger (stock_entries)' },
@@ -214,7 +228,7 @@ export class DdService {
       // P1-005: el perfil adoptado **y la cobertura del sujeto**. Las dos cosas, porque el catálogo por sí
       // solo no dice si ESTE lote tiene resueltas sus obligaciones. Hoy el perfil es parcial y sin revisión
       // jurídica, así que LEGAL_PROFILE queda PENDING y READY sigue bloqueado.
-      profiles: { legal_profile: legalProfile, geolocation_profile: geolocationProfile, satellite_provider: satelliteProfile, ...(satelliteAnalysis ? { satellite_analysis: satelliteAnalysis } : {}) },
+      profiles: { legal_profile: legalProfile, governance: { version: gv?.version ?? null, status: gv?.status ?? null, effective: !!gv, controls: governanceControls }, geolocation_profile: geolocationProfile, satellite_provider: satelliteProfile, ...(satelliteAnalysis ? { satellite_analysis: satelliteAnalysis } : {}) },
     };
   }
 

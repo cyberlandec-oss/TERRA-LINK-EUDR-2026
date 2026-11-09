@@ -43,6 +43,13 @@ export interface DdContent {
    */
   shipment_links: Array<{ shipment_id: string; shipment_code: string; shipment_status: string; item_id: string; reservation_id: string; lot_id: string; quantity: string; unit: string; location_id: string }>;
   profiles: {
+    /** Marco de gobernanza legal capturado junto con la instantánea. Ausente solo en fixtures históricas. */
+    governance?: {
+      version: string | null;
+      status: 'DRAFT' | 'APPROVED' | 'RETIRED' | null;
+      effective: boolean;
+      controls: Array<{ code: string; kind: string; status: 'PENDING' | 'ACTIVE' | 'EXPIRED' }>;
+    };
     /**
      * P1-005: estado del perfil jurídico ADOPTADO por la organización, o `null` si no adoptó ninguno.
      * Es un objeto y no un texto porque el requisito necesita distinguir tres cosas: no hay perfil, hay uno
@@ -162,6 +169,17 @@ export function catalogUnderProfile(cat: string, ref: string, lp: DdContent['pro
 export function evaluateRequirements(c: DdContent): Requirement[] {
   const r = (code: string, label: string, status: ReqStatus, detail: string, source: string, references: string[] = []): Requirement => ({ code, label, status, detail, source, references });
   const out: Requirement[] = [];
+  const governance = c.profiles.governance;
+  if (governance) {
+    const pending = governance.controls.filter((x) => x.status !== 'ACTIVE').map((x) => x.code);
+    out.push(!governance.version
+      ? r('LEGAL_GOVERNANCE', 'Marco legal y de tratamiento vigente', 'NOT_EVALUABLE', 'No existe una versión de gobernanza vigente; no se puede preparar una conclusión favorable.', 'P1-005; docs/sesiones/2026-11-08-bloque-1-gobernanza-legal.md')
+      : governance.status !== 'APPROVED' || !governance.effective
+        ? r('LEGAL_GOVERNANCE', 'Marco legal y de tratamiento vigente', 'PENDING', `El marco ${governance.version} no está aprobado y vigente; la configuración no habilita conclusiones.`, 'P1-005; docs/sesiones/2026-11-08-bloque-1-gobernanza-legal.md')
+        : pending.length
+          ? r('LEGAL_GOVERNANCE', 'Marco legal y de tratamiento vigente', 'PENDING', `El marco ${governance.version} conserva controles pendientes o vencidos: ${pending.join(', ')}.`, 'P1-005; docs/sesiones/2026-11-08-bloque-1-gobernanza-legal.md', pending)
+          : r('LEGAL_GOVERNANCE', 'Marco legal y de tratamiento vigente', 'MET', `El marco ${governance.version} está aprobado, vigente y sus controles están activos.`, 'P1-005; docs/sesiones/2026-11-08-bloque-1-gobernanza-legal.md'));
+  }
   // 1) Sujeto y cantidades (ledger).
   const phys = dec(c.quantities.physical);
   out.push(Number.isNaN(phys) ? r('SUBJECT_QUANTITY', 'Cantidad del sujeto con unidad', 'NOT_EVALUABLE', 'Cantidad no determinable desde el ledger.', 'docs/13 §Paquete')
