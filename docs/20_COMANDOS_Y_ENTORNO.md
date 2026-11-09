@@ -68,12 +68,15 @@ Las variables (`JWT_SECRET`, credenciales de PostgreSQL) se leen de `.env` al ej
 npm run validate                 # completa
 npm run validate -- --skip-e2e   # sin navegador
 npm run validate -- --docker     # añade build de imágenes
+npm run validate -- --tests-container # unitarias/integración en Linux, con npm ci aislado
 ```
 
 - **Requisitos:** Docker Desktop en marcha, `.env` completo (incluidas `TEST_DATABASE_URL` → `*_test` y las claves `PII_*`), `npm install` hecho y Chromium instalado (`npm run install-browsers -w e2e`).
 - **Pasos** (se detiene en el primer fallo): servicios (`docker compose up -d --wait postgres redis object-storage`, sin borrar nada) → typecheck → lint → build → OpenAPI generado **y validado** → unitarias + integración (`terra_link_test`, esquema recreado) → E2E Chromium (`terra_link_e2e`).
 - **Salvaguardas:** se niega a ejecutar si `TEST_DATABASE_URL` no termina en `_test` o coincide con la base de desarrollo (código 2). No toca `terra_link`, no borra volúmenes.
 - **Resultados:** `validation-results/<fecha>/resumen.md`, `resumen.json` (commit, archivos sin commit, pasos, códigos, tiempos) y un `.log` por paso. Si falla E2E, se copian trazas y reporte de Playwright a esa carpeta. Código de salida: 0 aprobada, 1 fallida, 2 configuración insegura o incompleta.
+- **Ejecutor Linux reproducible:** `--tests-container` conserva el mismo paso `npm test`, suites, configuración y criterios de fallo, pero lo ejecuta en `node:24-bookworm-slim` con `npm ci`, `--memory 6g`, `NODE_OPTIONS=--max-old-space-size=4096` y un volumen exclusivo para `/repo/node_modules`; no monta las dependencias del host. Usa la base cuyo nombre se comprueba como `*_test`, red host para los servicios locales y solo entrega al contenedor las variables de prueba necesarias. El código de Jest se propaga al validador y la salida queda en el mismo `.log`/`resumen`.
+- **Límite de diagnóstico:** esta opción evita el resolver de Jest de Windows para obtener una ejecución reproducible en Linux; no prueba por sí sola cuál es la causa exacta de la limitación del resolver Windows. No se modifican junctions ni rutas absolutas para corregirla.
 - **Comprobado el 2026-10-10:** corrida aprobada (6 pasos); configuración insegura → código 2 sin ejecutar nada; Redis inaccesible → integración FALLA y código 1.
 
 - **Limitación conocida (2026-10-19):** `jest --runInBand` serializa las suites de UNA corrida, pero no impide dos corridas simultáneas: ambas recrearían el esquema de `terra_link_test` y vaciarían el bucket `terra-link-test`. Antes de lanzar `validate`, comprobar que no hay otra (`Get-CimInstance Win32_Process | ? CommandLine -match validate-local`). No se añadió un cerrojo.

@@ -775,6 +775,93 @@
         ]
       }
     },
+    "/api/v1/platform/legal-governance/versions": {
+      "get": {
+        "operationId": "LegalGovernanceController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Consultar el marco legal versionado y sus controles",
+        "tags": [
+          "Gobernanza legal"
+        ]
+      },
+      "post": {
+        "operationId": "LegalGovernanceController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGovernanceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear una versión DRAFT del marco legal",
+        "tags": [
+          "Gobernanza legal"
+        ]
+      }
+    },
+    "/api/v1/platform/legal-governance/versions/{version}/decision": {
+      "post": {
+        "operationId": "LegalGovernanceController_approve",
+        "parameters": [
+          {
+            "name": "version",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GovernanceApprovalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Aprobar o retirar un marco legal versionado",
+        "tags": [
+          "Gobernanza legal"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "AuthController_login",
@@ -13839,6 +13926,14 @@
         "properties": {}
       },
       "RevisarDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateGovernanceDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "GovernanceApprovalDto": {
         "type": "object",
         "properties": {}
       },

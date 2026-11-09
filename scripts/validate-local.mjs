@@ -10,7 +10,7 @@
 // `terra_link`, NO borra volúmenes y NO ejecuta `docker compose down -v`.
 // Resultados: validation-results/<fecha>/ (resumen.md, resumen.json y un .log por paso). Código de
 // salida distinto de 0 si falla cualquier paso.
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, createWriteStream } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -54,6 +54,55 @@ function run(name, command, cmdArgs) {
       const seconds = Math.round((Date.now() - started) / 100) / 10;
       process.stdout.write(`${code === 0 ? 'OK' : `FALLA (código ${code})`} ${seconds}s\n`);
       resolvePromise({ name, command: [command, ...cmdArgs].join(' '), code, seconds, log: logPath });
+    });
+  });
+}
+
+function runTestsContainer() {
+  return new Promise((resolvePromise) => {
+    const name = 'pruebas-unitarias-integracion';
+    const started = Date.now();
+    const logPath = join(outDir, `${name}.log`);
+    const log = createWriteStream(logPath);
+    const volume = `tl-validation-node-modules-${stamp.replace(/[^a-zA-Z0-9]/g, '-')}`;
+    const image = 'node:24-bookworm-slim';
+    const database = dbName(env.TEST_DATABASE_URL);
+    const testEnv = [
+      ['TEST_DATABASE_URL', env.TEST_DATABASE_URL],
+      ['REDIS_URL', env.REDIS_URL],
+      ['S3_ACCESS_KEY', env.S3_ACCESS_KEY],
+      ['S3_SECRET_KEY', env.S3_SECRET_KEY],
+    ].filter(([, value]) => value);
+    const dockerArgs = [
+      'run', '--rm', '--network', 'host', '--memory', '6g',
+      '--mount', `type=bind,source=${root},target=/repo`,
+      '--mount', `type=volume,source=${volume},target=/repo/node_modules`,
+      '--workdir', '/repo',
+      '--env', 'NODE_OPTIONS=--max-old-space-size=4096',
+      ...testEnv.flatMap(([key, value]) => ['--env', `${key}=${value}`]),
+      image, 'bash', '-lc', 'npm ci --ignore-scripts --no-audit --no-fund && npm test',
+    ];
+    process.stdout.write(`▶ ${name} (contenedor Linux; ${database}) … `);
+    log.write(`Imagen: ${image}\nVolumen de node_modules: ${volume}\nBase de pruebas: ${database}\n`);
+    log.write('Variables operativas no entregadas al contenedor de pruebas.\n\n');
+    const child = spawn('docker', dockerArgs, { cwd: root, env, shell: false });
+    child.stdout.pipe(log, { end: false });
+    child.stderr.pipe(log, { end: false });
+    child.on('close', (testCode) => {
+      const cleanup = spawnSync('docker', ['volume', 'rm', volume], { cwd: root, env, encoding: 'utf8' });
+      if (cleanup.stdout) log.write(`\nLimpieza del volumen: ${cleanup.stdout}`);
+      if (cleanup.stderr) log.write(`\nSalida de limpieza: ${cleanup.stderr}`);
+      log.end();
+      const code = testCode === 0 && cleanup.status !== 0 ? cleanup.status : testCode;
+      const seconds = Math.round((Date.now() - started) / 100) / 10;
+      process.stdout.write(`${code === 0 ? 'OK' : `FALLA (código ${code})`} ${seconds}s\n`);
+      resolvePromise({
+        name,
+        command: `docker run --rm --network host --memory 6g ${image} npm ci --ignore-scripts --no-audit --no-fund && npm test`,
+        code,
+        seconds,
+        log: logPath,
+      });
     });
   });
 }
@@ -104,7 +153,9 @@ for (const [name, cmd, a] of steps) {
     // Diagnóstico de tiempos: se reinicia antes y se conserva después (aprobada o fallida).
     rmSync(join(root, 'apps', 'api', 'test-results'), { recursive: true, force: true });
   }
-  const r = await run(name, cmd, a);
+  const r = name === 'pruebas-unitarias-integracion' && args.has('--tests-container')
+    ? await runTestsContainer()
+    : await run(name, cmd, a);
   results.push(r);
   if (name === 'pruebas-unitarias-integracion') {
     const src = join(root, 'apps', 'api', 'test-results');
