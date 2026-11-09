@@ -77,6 +77,7 @@ import { AccessGrantsController, AccessGrantsService, GrantedController } from '
 import { OperationsAlertsController, OperationsAlertsService, OperationsOrgAlertsController, evaluarDependencias } from './operations/alerts';
 import { ObservabilityController, ObservabilityInterceptor, VersionController } from './observability/observability';
 import { LegalAssessmentsController, LegalProfileController, LegalProfileService } from './legal/legal-profile';
+import { LegalGovernanceController, LegalGovernanceService } from './legal/legal-governance';
 import { PlatformElevationController, PlatformElevationService } from './authz/platform-elevation';
 import { EventHistoryController, EventHistoryService } from './events/event-history';
 import { DocumentsController, DocumentsService } from './documents/documents';
@@ -210,7 +211,7 @@ export class AppModule implements NestModule {
       module: AppModule,
       controllers: [
         HealthController, VersionController, ObservabilityController, OperationsAlertsController, OperationsOrgAlertsController,
-        RiskConclusionController, GeoConfigPlatformController, GeoConfigOrgController, RiskProfileLinkController, LegalProfileReviewController, LegalProfileController, LegalAssessmentsController, AuthController, MeController, OrganizationsController, CatalogController, RbacController,
+        RiskConclusionController, GeoConfigPlatformController, GeoConfigOrgController, RiskProfileLinkController, LegalProfileReviewController, LegalProfileController, LegalAssessmentsController, LegalGovernanceController, AuthController, MeController, OrganizationsController, CatalogController, RbacController,
         MembersController, InvitationsController, UsersController, ProducersController, ProducerMatchingController, PlotsController, PlotProductionCountryController, PolygonDraftsController, GeometryImportsController, GisEvaluationController, GeoProfileController, ProductsController, CteController, KdeController, PublicReferencesController, AccessGrantsController, GrantedController, PlatformElevationController, EventHistoryController, DocumentsController, EvidenceController, AuditController, DeliveriesController, LotsController, InventoryController, RiskController, MitigationsController, DdController, SyncController, ImportsController, MyWorkController, OnboardingController, ExchangeController, SimulationController, CostController, HistoryController, EconomicsController, AnalyticsController, ExtractionController, LimitsController, PlatformCostController, SsoController, WebhookController, ShipmentsController, CustodyTransfersController, SatelliteController, EudrIsController, ReportsController, EntityReportsController,
       ],
       providers: [
@@ -250,7 +251,7 @@ export class AppModule implements NestModule {
         PublicReferencesService,
         AccessGrantsService,
         OperationsAlertsService,
-        LegalProfileService,
+        LegalProfileService, LegalGovernanceService,
         PlatformElevationService,
         EventHistoryService,
         DocumentsService,

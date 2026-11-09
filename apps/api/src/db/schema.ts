@@ -693,6 +693,17 @@ export interface LegalProfileVersionsTable {
   /** Texto, no usuario: es un catálogo de sistema sembrado por la migración. */
   published_by: string; published_at: Generated<Timestamp>; reason: string;
 }
+export interface LegalGovernanceVersionsTable {
+  version: string; jurisdiction: 'EC'; status: 'DRAFT' | 'APPROVED' | 'RETIRED';
+  effective_from: string; effective_to: string | null; source_url: string; source_sha256: string | null;
+  purpose: string; created_by: string; created_at: Generated<Timestamp>; approved_by: string | null;
+  approved_at: Timestamp | null; approval_basis: string | null;
+}
+export interface LegalGovernanceControlsTable {
+  version: string; code: string; kind: 'APPLICABILITY' | 'RETENTION' | 'LEGAL_BASIS' | 'RESPONSIBILITY';
+  title: string; status: 'PENDING' | 'ACTIVE' | 'EXPIRED'; value_text: string | null;
+  source_reference: string; responsible_role: string | null; notes: string;
+}
 export interface LegalProfileReviewsTable {
   id: string; version: string; decision: 'REVIEWED' | 'OBJECTED' | 'WITHDRAWN';
   reviewer_id: string; reviewer_capacity: string; basis: string;
@@ -1048,6 +1059,8 @@ export interface Database {
   stock_movements: StockMovementsTable;
   stock_entries: StockEntriesTable;
   legal_profile_versions: LegalProfileVersionsTable;
+  legal_governance_versions: LegalGovernanceVersionsTable;
+  legal_governance_controls: LegalGovernanceControlsTable;
   legal_profile_reviews: LegalProfileReviewsTable;
   legal_profile_sources: LegalProfileSourcesTable;
   legal_profile_rules: LegalProfileRulesTable;

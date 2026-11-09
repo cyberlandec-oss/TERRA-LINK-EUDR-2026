@@ -199,6 +199,8 @@ export type PlatformPermission =
   | 'risk_catalog:link_profile'
   // P1-005: registrar el ACTO de revisión de una versión del perfil jurídico (global). Registrar no es una conclusión jurídica del sistema.
   | 'legal_profile:record_review'
+  | 'legal_governance:read'
+  | 'legal_governance:manage'
   // GEOLOCATION_PROFILE: preparar y revisar versiones de la CONFIGURACIÓN de reglas de geolocalización (global). No concede concluir riesgo.
   | 'geo_config:manage';
 
@@ -242,7 +244,7 @@ export const PLATFORM_PERMISSIONS: Record<'SUPER_ADMIN', PlatformPermission[]> =
   // organization:onboard_admin: solo invitar (y ver/revocar invitaciones de) ORG_ADMIN en una organización
   // donde no es miembro. NO da acceso a miembros, datos personales ni operación: eso requiere la
   // política de elevación auditada (D-04, pendiente). No hay bypass global de SUPER_ADMIN.
-  SUPER_ADMIN: ['organization:create', 'organization:suspend', 'organization:list_all', 'organization:onboard_admin', 'user:deactivate', 'observability:read', 'exchange:verify', 'risk_catalog:link_profile', 'legal_profile:record_review', 'geo_config:manage'],
+  SUPER_ADMIN: ['organization:create', 'organization:suspend', 'organization:list_all', 'organization:onboard_admin', 'user:deactivate', 'observability:read', 'exchange:verify', 'risk_catalog:link_profile', 'legal_profile:record_review', 'legal_governance:read', 'legal_governance:manage', 'geo_config:manage'],
 };
 
 export function permissionsForRoles(roles: string[]): Permission[] {
