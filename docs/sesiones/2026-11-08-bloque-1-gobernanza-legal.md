@@ -78,6 +78,13 @@ Se implementó el mecanismo técnico versionado para aplicabilidad EUDR, retenci
 
 ## Bloqueos honestos
 
+## Continuacion manual de la validacion 494f864
+
+- La ejecucion se inicio sobre `main` en `494f864`, en `validation-results/2026-11-09T17-48-35-507Z`, con el contenedor `tender_poitras` (`node:24-bookworm-slim`, memoria 6 GiB, `NODE_OPTIONS=--max-old-space-size=4096`).
+- El proceso padre `validate-local` termino antes que el contenedor. Se verifico progreso mediante `harness-timings.jsonl`; el contenedor continuo y termino con codigo `0`. El capturador persistente registro por separado la espera y el codigo del contenedor en `captura-terminal-contenedor.json`.
+- `AutoRemove=true` elimino el contenedor antes de recuperar sus logs Docker completos. El archivo `pruebas-unitarias-integracion.log` conservo salida parcial y no se genero `resumen.json`; por ello esta corrida no se declara como validacion integral aprobada ni acredita omisiones, E2E o continuacion automatica. El codigo `0` se conserva como evidencia del comando del contenedor, no como sustituto del resumen Jest.
+- Se corrigio el procedimiento en `75b4d5f`: el contenedor de pruebas queda nombrado y retenido (`AutoRemove=false`) hasta capturar logs completos, `docker wait` y codigo del proceso; luego se elimina junto con su volumen de dependencias. La sintaxis se comprobo en `node:24-bookworm-slim`.
+
 - La versión `1.0.0` permanece `DRAFT`.
 - La base jurídica personal permanece `PENDING`.
 - Las responsabilidades concretas permanecen `PENDING`.
