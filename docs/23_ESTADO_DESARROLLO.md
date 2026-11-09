@@ -934,3 +934,11 @@ La línea base queda conciliada en **21/30 criterios demostrados = 70,0 % de cie
 | **Total** | **21** | **7** | **2** | **21/30 = 70,0 %** |
 
 El denominador queda estable para las siguientes entregas. Solo cambiará mediante una decisión explícita de alcance registrada en backlog/matriz. Los pendientes externos no eliminan los pendientes técnicos asociados.
+
+### Verificación integrada DD → despacho — 2026-11-09
+
+Se ejecutó en Linux, con el repositorio de `main` montado, base `*_test` y recursos efímeros exclusivos: `test/cadena-tecnica-completa.int-spec.ts`. Resultado terminal: **1 suite, 4 pruebas aprobadas, 0 fallidas, 0 omitidas, código del contenedor 0**, tiempo Jest 109,858 s; contenedor `terra-link-integrated-20261109`, `AutoRemove=false`, `EXIT=0`, eliminado después de recuperar los logs.
+
+El primer caso recorrió por API los soportes, geometría, análisis satelital controlado, riesgo, revisión, conclusión, calidad, vínculo de embarque y captura de instantánea. El resultado comprobable fue `RISK_NO_BLOCKING_FINDINGS: NOT_EVALUABLE`, por D-05.B/D-09 parte B; `READY` no se obtuvo. Los tres casos restantes conservaron la evidencia de paquete, permisos, hash y obsolescencia, pero utilizaron la fixture sintética ya existente para ejercitar el tramo posterior. No se cuenta como cierre de DD-04 ni MOV-05 y no se modificó la línea base: **21/30 = 70,0 %**, incremento **+0 criterios / +0,0 pp**.
+
+La siguiente acción ejecutable no es insertar READY: requiere resolver la decisión/configuración de geolocalización y cobertura satelital que hoy el contrato marca como `NOT_EVALUABLE`. La aceptación jurídica, consulta real del proveedor y operación de despacho siguen separadas del cierre técnico local.
