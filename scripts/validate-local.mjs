@@ -65,6 +65,7 @@ function runTestsContainer() {
     const logPath = join(outDir, `${name}.log`);
     const log = createWriteStream(logPath);
     const volume = `tl-validation-node-modules-${stamp.replace(/[^a-zA-Z0-9]/g, '-')}`;
+    const container = `tl-validation-tests-${stamp.replace(/[^a-zA-Z0-9]/g, '-')}`;
     const image = 'node:24-bookworm-slim';
     const database = dbName(env.TEST_DATABASE_URL);
     const testEnv = [
@@ -74,7 +75,9 @@ function runTestsContainer() {
       ['S3_SECRET_KEY', env.S3_SECRET_KEY],
     ].filter(([, value]) => value);
     const dockerArgs = [
-      'run', '--rm', '--network', 'host', '--memory', '6g',
+      // El contenedor queda retenido hasta que se captura el código y los logs. Si el
+      // proceso padre se interrumpe, Docker conserva la evidencia para recuperación manual.
+      'run', '--name', container, '--network', 'host', '--memory', '6g',
       '--mount', `type=bind,source=${root},target=/repo`,
       '--mount', `type=volume,source=${volume},target=/repo/node_modules`,
       '--workdir', '/repo',
@@ -83,17 +86,26 @@ function runTestsContainer() {
       image, 'bash', '-lc', 'npm ci --ignore-scripts --no-audit --no-fund && npm test',
     ];
     process.stdout.write(`▶ ${name} (contenedor Linux; ${database}) … `);
-    log.write(`Imagen: ${image}\nVolumen de node_modules: ${volume}\nBase de pruebas: ${database}\n`);
+    log.write(`Imagen: ${image}\nContenedor: ${container}\nAutoRemove: false (se elimina tras capturar resultado)\nVolumen de node_modules: ${volume}\nBase de pruebas: ${database}\n`);
     log.write('Variables operativas no entregadas al contenedor de pruebas.\n\n');
     const child = spawn('docker', dockerArgs, { cwd: root, env, shell: false });
     child.stdout.pipe(log, { end: false });
     child.stderr.pipe(log, { end: false });
     child.on('close', (testCode) => {
+      const waited = spawnSync('docker', ['wait', container], { cwd: root, env, encoding: 'utf8' });
+      const waitCode = Number.parseInt((waited.stdout ?? '').trim(), 10);
+      const containerLogs = spawnSync('docker', ['logs', container], { cwd: root, env, encoding: 'utf8' });
+      if (containerLogs.stdout) log.write(`\nSalida completa del contenedor:\n${containerLogs.stdout}`);
+      if (containerLogs.stderr) log.write(`\nErrores del contenedor:\n${containerLogs.stderr}`);
+      log.write(`\nCódigo docker wait: ${Number.isNaN(waitCode) ? 'NO_DISPONIBLE' : waitCode}\nCódigo del contenedor: ${testCode ?? 'NO_DISPONIBLE'}\n`);
+      const remove = spawnSync('docker', ['rm', container], { cwd: root, env, encoding: 'utf8' });
+      if (remove.stdout) log.write(`\nEliminación del contenedor: ${remove.stdout}`);
+      if (remove.stderr) log.write(`\nSalida de eliminación: ${remove.stderr}`);
       const cleanup = spawnSync('docker', ['volume', 'rm', volume], { cwd: root, env, encoding: 'utf8' });
       if (cleanup.stdout) log.write(`\nLimpieza del volumen: ${cleanup.stdout}`);
       if (cleanup.stderr) log.write(`\nSalida de limpieza: ${cleanup.stderr}`);
       log.end();
-      const code = testCode === 0 && cleanup.status !== 0 ? cleanup.status : testCode;
+      const code = testCode === 0 && waitCode === 0 && cleanup.status !== 0 ? cleanup.status : testCode;
       const seconds = Math.round((Date.now() - started) / 100) / 10;
       process.stdout.write(`${code === 0 ? 'OK' : `FALLA (código ${code})`} ${seconds}s\n`);
       resolvePromise({
