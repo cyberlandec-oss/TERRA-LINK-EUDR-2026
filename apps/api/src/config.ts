@@ -46,7 +46,8 @@ export interface AppConfig {
   jwtTtlSeconds: number;
   webOrigin: string;
   /** Express `trust proxy`: solo activar detrás de un proxy conocido; si no, X-Forwarded-For es falsificable. */
-  trustProxy: boolean;
+  /** Saltos de proxy confiables; 0 desactiva X-Forwarded-For. */
+  trustProxy: number;
   loginRateLimit: LoginRateLimitConfig;
   /** Vigencia de las invitaciones (P0-002), en horas. */
   invitationTtlHours: number;
@@ -115,21 +116,22 @@ export function loadSsoConfig(env: NodeJS.ProcessEnv): SsoConfig {
 }
 
 /** Production must terminate transport securely; local development deliberately remains HTTP-only. */
-export function validateProductionTransport(env: NodeJS.ProcessEnv, webOrigin: string, objectStoreEndpoint: string, trustProxy: boolean): void {
+export function validateProductionTransport(env: NodeJS.ProcessEnv, webOrigin: string, objectStoreEndpoint: string, trustProxy: number): void {
   if (env.NODE_ENV !== 'production') return;
   for (const [name, value] of [['WEB_ORIGIN', webOrigin], ['S3_ENDPOINT', objectStoreEndpoint]] as const) {
     let url: URL;
     try { url = new URL(value); } catch { throw new Error(`${name} debe ser una URL válida en producción`); }
     if (url.protocol !== 'https:') throw new Error(`${name} debe usar HTTPS en producción`);
   }
-  if (!trustProxy) throw new Error('TRUST_PROXY=true es obligatorio en producción detrás del terminador TLS');
+  if (!Number.isInteger(trustProxy) || trustProxy < 0 || trustProxy > 5) throw new Error('TRUST_PROXY_HOPS debe ser un entero entre 0 y 5');
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const jwtSecret = required('JWT_SECRET', env);
   if (jwtSecret.length < 32) throw new Error('JWT_SECRET debe tener al menos 32 caracteres');
   const webOrigin = env.WEB_ORIGIN ?? 'http://localhost:3000';
-  const trustProxy = env.TRUST_PROXY === 'true';
+  const trustProxy = env.TRUST_PROXY_HOPS ? Number(env.TRUST_PROXY_HOPS) : 0;
+  if (!Number.isInteger(trustProxy) || trustProxy < 0 || trustProxy > 5) throw new Error('TRUST_PROXY_HOPS debe ser un entero entre 0 y 5');
   const objectStoreEndpoint = env.S3_ENDPOINT ?? `http://localhost:${env.S3_PORT ?? '9000'}`;
   validateProductionTransport(env, webOrigin, objectStoreEndpoint, trustProxy);
   return {
