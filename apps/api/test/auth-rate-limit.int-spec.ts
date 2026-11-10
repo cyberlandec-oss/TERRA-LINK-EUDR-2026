@@ -27,7 +27,7 @@ describeDb('login: límite de intentos (Redis real)', () => {
   const CADUCIDAD = 'rl-caducidad@test.local';
 
   beforeAll(async () => {
-    h = await setupHarness({ loginRateLimit: policy, trustProxy: true });
+    h = await setupHarness({ loginRateLimit: policy, trustProxy: 1 });
     for (const email of [NORMAL, BLOQUEO, ENUM, COMPARTIDO, CADUCIDAD]) await h.user(email);
   });
   afterAll(async () => h?.close());

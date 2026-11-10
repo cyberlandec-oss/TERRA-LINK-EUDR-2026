@@ -955,6 +955,14 @@ La siguiente acción ejecutable no es insertar READY: requiere resolver la decis
 ### Compuerta nativa SQLCipher - 2026-11-09
 
 Se corrigió `apps/mobile/src/adapters/expo.ts`: después de consultar `PRAGMA cipher_version`, un entorno `NATIVE_BUILD` cierra la conexión y falla explícitamente si SQLCipher no está activo. La configuración Expo ya declaraba `expo-sqlite.useSQLCipher: true`; la clave aleatoria de 32 bytes permanece en SecureStore por cuenta/organización y no se modifican bases ni claves operativas. Typecheck y las pruebas móviles locales permanecen aprobados tras la corrección. La compilación nativa Android aún no es ejecutable en este equipo: faltan Java, Android SDK/ADB y la carpeta `android/`; el bundle Hermes anterior no se reinterpreta como evidencia de SQLCipher nativo. Android físico y validación de campo siguen posteriores.
+### Frontera de confianza del proxy - 2026-11-09
+
+Se rectifica el ensayo HTTP anterior: terminó con código **1** y mostró que una cadena `X-Forwarded-For` manipulada puede cambiar la IP efectiva cuando el API recibe tráfico directo con `trust proxy` por saltos. No es evidencia de aprobación de seguridad.
+
+La corrección conserva `TRUST_PROXY_HOPS` numérico, compatibilidad explícita de `TRUST_PROXY=false/true` como `0/1`, y publica el API local en loopback. `apps/api/test/proxy-bootstrap.int-spec.ts` ejecuta el bootstrap Nest real detrás de un proxy controlado que reemplaza XFF: **1 suite, 1 prueba, 0 fallos, código 0**; cambiar XFF del cliente no cambia el contador de rate limiting. `docker-compose.proxy-test.yml` retira el puerto del API y publica únicamente el proxy en redes frontend/backend separadas.
+
+Estado de **OPS-03**: **parcial**, no demostrado completo todavía. La prueba integrada acredita headers, bootstrap y rate limiting; queda ejecutar la topología Compose aislada y comprobar desde un cliente externo al backend que el API no admite bypass, además de la configuración real del terminador TLS y proxies autorizados. El criterio no se cierra por la prueba Nest aislada.
+
 ### SQLCipher: pruebas del adaptador y toolchain nativo - 2026-11-09
 
 La prueba aislada `apps/mobile/src/adapters/__tests__/expo.sqlcipher.test.ts` cubre: `cipher_version` válido permite continuar; resultado vacío o error rechaza la apertura; la conexión se cierra al rechazar; no se ejecutan las sentencias posteriores de preparación de la aplicación antes de superar la sonda; y no existe fallback sin cifrar. Resultado: **1 suite, 3 pruebas aprobadas**. Esta evidencia es de contrato del adaptador con mocks y no se presenta como cifrado nativo.

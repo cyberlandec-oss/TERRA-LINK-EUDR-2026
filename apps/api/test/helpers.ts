@@ -38,7 +38,7 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     jwtSecret: 'x'.repeat(40),
     jwtTtlSeconds: 600,
     webOrigin: 'http://localhost:3000',
-    trustProxy: false,
+    trustProxy: 0,
     loginRateLimit: { windowSeconds: 900, maxPerAccountAndIp: 5, maxPerAccount: 20, maxPerIp: 50 },
     invitationTtlHours: 72,
     // Claves efímeras por corrida: nunca las del .env ni versionadas.

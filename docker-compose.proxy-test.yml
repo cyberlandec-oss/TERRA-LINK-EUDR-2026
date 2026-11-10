@@ -1,0 +1,23 @@
+# Topología local aislada para probar cliente → proxy → API.
+# Uso exclusivo de pruebas: retira el puerto del API y publica solo el proxy.
+services:
+  api:
+    ports: !reset []
+    networks:
+      - backend
+  proxy:
+    image: nginx:1.27-alpine
+    ports:
+      - "127.0.0.1:${PROXY_TEST_PORT:-4400}:8080"
+    volumes:
+      - ./infra/proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      api:
+        condition: service_started
+    networks:
+      - frontend
+      - backend
+
+networks:
+  frontend:
+  backend:
