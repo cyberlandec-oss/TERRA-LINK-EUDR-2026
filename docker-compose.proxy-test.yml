@@ -1,8 +1,47 @@
 # Topología local aislada para probar cliente → proxy → API.
 # Uso exclusivo de pruebas: retira el puerto del API y publica solo el proxy.
 services:
+  postgres:
+    ports: !reset []
+    healthcheck:
+      start_period: 10s
+    environment:
+      POSTGRES_DB: terra_link_proxy_test
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/proxy/postgres-init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - backend
+  redis:
+    ports: !reset []
+    networks:
+      - backend
+  scanner:
+    ports: !reset []
+    networks:
+      - backend
+  object-storage:
+    ports: !reset []
+    networks:
+      - backend
   api:
     ports: !reset []
+    environment:
+      DATABASE_URL: postgres://terra_link:change-me-local@postgres:5432/terra_link_proxy_test
+      S3_BUCKET: terra-link-proxy-test
+      TRUST_PROXY_HOPS: "1"
+    networks:
+      - backend
+  migrate:
+    command: ["sh", "-c", "sleep 8; node dist/db/migrate-cli.js"]
+    environment:
+      DATABASE_URL: postgres://terra_link:change-me-local@postgres:5432/terra_link_proxy_test
+      S3_BUCKET: terra-link-proxy-test
+    networks:
+      - backend
+  worker:
+    environment:
+      DATABASE_URL: postgres://terra_link:change-me-local@postgres:5432/terra_link_proxy_test
     networks:
       - backend
   proxy:
@@ -21,3 +60,7 @@ services:
 networks:
   frontend:
   backend:
+
+volumes:
+  postgres-data:
+    name: tl-proxy-b337e38_postgres-data
