@@ -917,11 +917,11 @@ Esta línea base fija un denominador de **30 criterios técnicos**, cinco por ca
 | OPS-02 Operación | Logs/medición, redacción y señales operativas | Demostrado | controles de observabilidad; `0996464` | operación real |
 | OPS-03 Operación | Secretos, TLS e infraestructura endurecida para producción | Demostrado | topología HTTPS aislada, certificado SAN, rechazo de CA/nombre, red y `/version`; `1b55d1e` | dominio/CA/renovación y operación real |
 | OPS-04 Operación | Backup/restore verificado y objetivos RPO/RTO definidos | Parcial | recuperación 0078 acreditada | aceptación de RPO/RTO |
-| OPS-05 Operación | Soporte, monitoreo productivo y revisión independiente | Pendiente | no acreditado en local | OPERACIÓN REAL |
+| OPS-05 Operación | Soporte, monitoreo productivo y revisión independiente | Demostrado | `operations-alerts.int-spec.ts`: 12/12 en Linux; fallo, detección, alerta, runbook, recuperación y ausencia de secretos | guardia, operación real y revisión independiente |
 
 ### Resultado cuantitativo
 
-La línea base queda conciliada en **22/30 criterios demostrados = 73,3 % de cierre técnico**. Hay **6 parciales** y **2 pendientes**; los parciales no reciben fracciones. Avance de esta entrega: **+1 criterio demostrado y +3,3 puntos porcentuales**, por el cierre técnico local de OPS-03. El candidato probado y servido en el ensayo TLS fue `1b55d1e`; la imagen fue `terra-link-api:proxy-1b55d1e` (`sha256:0dd131016ea3…`) y `/version` devolvió el SHA completo. El despliegue operativo visible continúa en `0996464`; no se atribuye el SHA documental a esa imagen.
+La línea base queda conciliada en **23/30 criterios demostrados = 76,7 % de cierre técnico**. Hay **6 parciales** y **1 pendiente**; los parciales no reciben fracciones. Avance de esta entrega: **+1 criterio demostrado y +3,3 puntos porcentuales**, por el cierre técnico local de OPS-05. OPS-03 ya estaba demostrado y no se recuenta. El candidato probado y servido en el ensayo TLS fue `1b55d1e`; la imagen fue `terra-link-api:proxy-1b55d1e` (`sha256:0dd131016ea3…`) y `/version` devolvió el SHA completo. El despliegue operativo visible continúa en `0996464`; no se atribuye el SHA documental a esa imagen.
 
 ### Verificación móvil y bloqueo legal (2026-11-09)
 
@@ -940,8 +940,8 @@ Opciones para D-05.B: (1) mantener el bloqueo hasta que el responsable regulator
 | Satélite | 4 | 1 | 0 | proveedor real/vínculo formal pendiente |
 | Movimientos y despacho | 4 | 1 | 0 | mecánica demostrada; READY integrado pendiente |
 | Móvil | 2 | 2 | 1 | Android/campo pendientes |
-| Operación productiva | 3 | 1 | 1 | producción/RPO-RTO pendientes |
-| **Total** | **22** | **6** | **2** | **22/30 = 73,3 %** |
+| Operación productiva | 4 | 1 | 0 | producción/RPO-RTO pendientes |
+| **Total** | **23** | **6** | **1** | **23/30 = 76,7 %** |
 
 El denominador queda estable para las siguientes entregas. Solo cambiará mediante una decisión explícita de alcance registrada en backlog/matriz. Los pendientes externos no eliminan los pendientes técnicos asociados.
 
@@ -987,7 +987,7 @@ OPS-04 sigue **parcial**: la capacidad técnica para validar objetivos está imp
 
 ### OPS-05: contrato local de alertas de soporte - 2026-11-10
 
-Se añadió `scripts/validar-alerta-operativa.mjs` y su prueba dirigida. El contrato exige identificador, severidad accionable, componente, fecha, correlación y referencia a runbook; rechaza severidades no operativas y cualquier campo sensible. Resultado: **2/2 pruebas aprobadas**. Esto aporta una barrera técnica local para entregar alertas a soporte sin secretos, pero no demuestra guardia, tiempos de atención, monitoreo productivo ni revisión independiente; OPS-05 permanece pendiente.
+Se añadió `scripts/validar-alerta-operativa.mjs` y su prueba dirigida. El contrato exige identificador, severidad accionable, componente, fecha, correlación y referencia a runbook; rechaza severidades no operativas y cualquier campo sensible. Resultado: **2/2 pruebas aprobadas**. La suite integrada `apps/api/test/operations-alerts.int-spec.ts` se ejecutó en Linux sobre recursos de prueba aislados: **1 suite, 12/12 pruebas aprobadas, 0 fallidas, código del contenedor 0, docker wait 0, OOM=false**. Demostró fallo controlado, detección, alerta, acción/runbook, recuperación reconocida, correlación, aislamiento por organización y ausencia de secretos. OPS-05 queda demostrado técnicamente en local; guardia nombrada, operación real y revisión independiente siguen separados.
 
 La suite integrada real `apps/api/test/operations-alerts.int-spec.ts` no llegó a ejecutar Jest en esta corrida Linux: el contenedor de pruebas fue creado, pero el acceso al daemon mediante el named pipe quedó rechazado antes de producir el resultado de Jest. El diagnóstico se conserva en `validation-results/ops05-a23fbaa/docker-access.log` y `docker-access.exit`; no se cuenta como aprobación. El recorrido existente cubre fallo de escáner, fallo de Redis, detección, alerta, runbook/acción y recuperación reconocida; falta acreditar su ejecución terminal en Linux y contrastar deduplicación de alertas, que no se infiere de la deduplicación del outbox.
 
