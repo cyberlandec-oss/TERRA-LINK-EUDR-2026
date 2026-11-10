@@ -983,6 +983,10 @@ Se implementó `scripts/validar-rpo-rto.mjs` con pruebas en `scripts/validar-rpo
 
 OPS-04 sigue **parcial**: la capacidad técnica para validar objetivos está implementada, pero no se asignaron ni aceptaron objetivos RPO/RTO operativos en este repositorio. No se inventaron tiempos, responsables ni compromisos; la aceptación correspondiente continúa pendiente.
 
+### OPS-05: contrato local de alertas de soporte - 2026-11-10
+
+Se añadió `scripts/validar-alerta-operativa.mjs` y su prueba dirigida. El contrato exige identificador, severidad accionable, componente, fecha, correlación y referencia a runbook; rechaza severidades no operativas y cualquier campo sensible. Resultado: **2/2 pruebas aprobadas**. Esto aporta una barrera técnica local para entregar alertas a soporte sin secretos, pero no demuestra guardia, tiempos de atención, monitoreo productivo ni revisión independiente; OPS-05 permanece pendiente.
+
 ### SQLCipher: pruebas del adaptador y toolchain nativo - 2026-11-09
 
 La prueba aislada `apps/mobile/src/adapters/__tests__/expo.sqlcipher.test.ts` cubre: `cipher_version` válido permite continuar; resultado vacío o error rechaza la apertura; la conexión se cierra al rechazar; no se ejecutan las sentencias posteriores de preparación de la aplicación antes de superar la sonda; y no existe fallback sin cifrar. Resultado: **1 suite, 3 pruebas aprobadas**. Esta evidencia es de contrato del adaptador con mocks y no se presenta como cifrado nativo.

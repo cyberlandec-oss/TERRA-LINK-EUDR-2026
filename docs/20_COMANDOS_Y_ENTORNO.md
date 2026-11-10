@@ -326,6 +326,9 @@ node scripts/validar-rpo-rto.mjs --objetivos objetivos-sinteticos.json --medicio
 La aceptación de los objetivos y su responsable siguen pendientes; hasta entonces
 OPS-04 permanece parcial aunque la recuperación 0078 continúe acreditada.
 
+El contrato local de alertas se comprueba con `node scripts/validar-alerta-operativa.mjs <alert.json>`.
+La entrada debe ser accionable y no puede contener credenciales, tokens ni claves; el comando devuelve código no cero ante incumplimientos. Esto no sustituye la operación de soporte ni una guardia productiva.
+
 Corre en una **base de ensayo propia** que crea y elimina (`tl_ensayo_retorno`): **no toca la base de
 desarrollo, sus volúmenes ni ningún recurso del otro proyecto Compose**. Comprueba las tres partes por
 separado, que las **referencias públicas vuelven exactas** (huella del conjunto, no solo el recuento), que la

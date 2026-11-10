@@ -4,28 +4,9 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
-const run = (objectives, measurement) => {
-  const dir = mkdtempSync(join(tmpdir(), 'tl-rpo-rto-'));
-  try {
-    const a = join(dir, 'objectives.json');
-    const m = join(dir, 'measurement.json');
-    writeFileSync(a, JSON.stringify(objectives));
-    writeFileSync(m, JSON.stringify(measurement));
-    return spawnSync(process.execPath, ['scripts/validar-rpo-rto.mjs', '--objetivos', a, '--medicion', m], { encoding: 'utf8' });
-  } finally { rmSync(dir, { recursive: true, force: true }); }
-};
-
-test('exige objetivos aprobados y pasa cuando la medición está dentro', () => {
-  const result = run({ rpo_minutes: 60, rto_minutes: 120, approved_by: 'responsable-pendiente-de-confirmacion' }, { observed_rpo_minutes: 10, observed_rto_minutes: 30 });
-  assert.equal(result.status, 0);
-  assert.match(result.stdout, /"status":"PASS"/);
-});
-
-test('rechaza ausencia de aceptación y objetivos incumplidos', () => {
-  const missing = run({ rpo_minutes: 60, rto_minutes: 120 }, { observed_rpo_minutes: 10, observed_rto_minutes: 30 });
-  assert.notEqual(missing.status, 0);
-  const exceeded = run({ rpo_minutes: 1, rto_minutes: 2, approved_by: 'aprobador' }, { observed_rpo_minutes: 10, observed_rto_minutes: 30 });
-  assert.notEqual(exceeded.status, 0);
-  assert.match(exceeded.stdout, /"status":"FAIL"/);
-});
+const objectives = { rpo_minutes: 15, rto_minutes: 30, approval: { status: 'APPROVED', actor_id: 'user-123', approved_at: '2026-11-09T12:00:00Z' } };
+const measurement = (overrides = {}) => ({ reference_at: '2026-11-10T10:00:00Z', recoverable_point_at: '2026-11-10T09:45:00Z', recovery_started_at: '2026-11-10T10:05:00Z', service_restored_at: '2026-11-10T10:35:00Z', objects_verified_at: '2026-11-10T10:40:00Z', objects_verified: true, keys_verified: true, healthcheck: true, ...overrides });
+const run = (o, m) => { const dir = mkdtempSync(join(tmpdir(), 'tl-rpo-rto-')); try { const a = join(dir, 'o.json'); const b = join(dir, 'm.json'); writeFileSync(a, JSON.stringify(o)); writeFileSync(b, JSON.stringify(m)); return spawnSync(process.execPath, ['scripts/validar-rpo-rto.mjs', '--objetivos', a, '--medicion', b], { encoding: 'utf8' }); } finally { rmSync(dir, { recursive: true, force: true }); } };
+test('pasa con aprobación formal y medición dentro de límites', () => { const r = run(objectives, measurement()); assert.equal(r.status, 0); assert.match(r.stdout, /"status":"PASS"/); });
+test('rechaza nombre sin aprobación formal y objetivos incumplidos', () => { assert.notEqual(run({ rpo_minutes: 15, rto_minutes: 30, approved_by: 'nombre' }, measurement()).status, 0); const r = run({ ...objectives, rpo_minutes: 14, rto_minutes: 29 }, measurement()); assert.notEqual(r.status, 0); assert.match(r.stdout, /"status":"FAIL"/); });
+test('acepta el límite exacto y rechaza inconsistencias o evidencia incompleta', () => { assert.equal(run(objectives, measurement()).status, 0); assert.notEqual(run(objectives, measurement({ recoverable_point_at: '2026-11-10T10:01:00Z' })).status, 0); assert.notEqual(run(objectives, measurement({ keys_verified: false })).status, 0); });

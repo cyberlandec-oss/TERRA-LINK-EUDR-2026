@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+const run = (payload) => { const dir = mkdtempSync(join(tmpdir(), 'tl-alert-')); const file = join(dir, 'alert.json'); try { writeFileSync(file, JSON.stringify(payload)); return spawnSync(process.execPath, ['scripts/validar-alerta-operativa.mjs', file], { encoding: 'utf8' }); } finally { rmSync(dir, { recursive: true, force: true }); } };
+const valid = { alert_id: 'alert-1', severity: 'critical', component: 'api', occurred_at: '2026-11-10T12:00:00Z', correlation_id: 'req-1', runbook_ref: 'RUNBOOK-API-001' };
+test('acepta alerta accionable y sin secretos', () => { const r = run(valid); assert.equal(r.status, 0); assert.match(r.stdout, /"status":"PASS"/); });
+test('rechaza alerta incompleta, severidad inválida o secreto', () => { assert.notEqual(run({ ...valid, runbook_ref: '' }).status, 0); assert.notEqual(run({ ...valid, severity: 'info' }).status, 0); assert.notEqual(run({ ...valid, access_token: 'synthetic' }).status, 0); });
