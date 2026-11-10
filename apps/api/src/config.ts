@@ -130,7 +130,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const jwtSecret = required('JWT_SECRET', env);
   if (jwtSecret.length < 32) throw new Error('JWT_SECRET debe tener al menos 32 caracteres');
   const webOrigin = env.WEB_ORIGIN ?? 'http://localhost:3000';
-  const trustProxy = env.TRUST_PROXY_HOPS ? Number(env.TRUST_PROXY_HOPS) : 0;
+  // Compatibilidad explícita: TRUST_PROXY=false conserva 0; true conserva un salto, pero no habilita confianza global.
+  const rawProxyHops = env.TRUST_PROXY_HOPS ?? (env.TRUST_PROXY === undefined ? '0' : env.TRUST_PROXY === 'true' ? '1' : env.TRUST_PROXY === 'false' ? '0' : env.TRUST_PROXY);
+  const trustProxy = Number(rawProxyHops);
   if (!Number.isInteger(trustProxy) || trustProxy < 0 || trustProxy > 5) throw new Error('TRUST_PROXY_HOPS debe ser un entero entre 0 y 5');
   const objectStoreEndpoint = env.S3_ENDPOINT ?? `http://localhost:${env.S3_PORT ?? '9000'}`;
   validateProductionTransport(env, webOrigin, objectStoreEndpoint, trustProxy);

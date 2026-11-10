@@ -11,4 +11,8 @@ describe('transporte de producción', () => {
     expect(() => validateProductionTransport({ NODE_ENV: 'test' }, 'http://localhost:3000', 'http://localhost:9000', 0)).not.toThrow();
     expect(() => validateProductionTransport({ NODE_ENV: 'production' }, 'https://web.example', 'https://objects.example', 0)).not.toThrow();
   });
+
+  it('mantiene compatibilidad explícita de TRUST_PROXY antiguo', () => {
+    expect(() => validateProductionTransport({ NODE_ENV: 'production' }, 'https://web.example', 'https://objects.example', 1)).not.toThrow();
+  });
 });
