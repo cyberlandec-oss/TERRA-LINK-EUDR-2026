@@ -1,0 +1,16 @@
+# Override exclusivo del ensayo TLS. Combinar con docker-compose.proxy-test.yml.
+services:
+  api:
+    image: terra-link-api:proxy-1b55d1e
+    environment:
+      NODE_ENV: test
+      WEB_ORIGIN: https://terra-link.test
+  migrate:
+    image: terra-link-api:proxy-1b55d1e
+  proxy:
+    ports:
+      - "127.0.0.1:${TLS_TEST_PORT:-4443}:8443"
+      - "127.0.0.1:${TLS_HTTP_PORT:-4080}:8080"
+    volumes:
+      - ./infra/proxy/nginx-tls.conf:/etc/nginx/nginx.conf:ro
+      - ${TLS_TEST_CERT_DIR:?definir TLS_TEST_CERT_DIR}:/etc/nginx/tls:ro

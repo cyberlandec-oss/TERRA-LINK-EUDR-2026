@@ -63,4 +63,3 @@ networks:
 
 volumes:
   postgres-data:
-    name: tl-proxy-b337e38_postgres-data

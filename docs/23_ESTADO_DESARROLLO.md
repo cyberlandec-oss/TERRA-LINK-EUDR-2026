@@ -915,13 +915,13 @@ Esta línea base fija un denominador de **30 criterios técnicos**, cinco por ca
 | MOB-05 Móvil | Operación prolongada sin conectividad y resolución en campo | Pendiente | sin evidencia suficiente | PILOTO/VALIDACIÓN DE CAMPO |
 | OPS-01 Operación | Despliegue reproducible, salud y versión del candidato | Demostrado | `/version`=`0996464`, BUILD_ARG, imagen `sha256:90bf…`; `0996464` | servidor real |
 | OPS-02 Operación | Logs/medición, redacción y señales operativas | Demostrado | controles de observabilidad; `0996464` | operación real |
-| OPS-03 Operación | Secretos, TLS e infraestructura endurecida para producción | Parcial | mecanismos locales/configuración | gestión productiva |
+| OPS-03 Operación | Secretos, TLS e infraestructura endurecida para producción | Demostrado | topología HTTPS aislada, certificado SAN, rechazo de CA/nombre, red y `/version`; `1b55d1e` | dominio/CA/renovación y operación real |
 | OPS-04 Operación | Backup/restore verificado y objetivos RPO/RTO definidos | Parcial | recuperación 0078 acreditada | aceptación de RPO/RTO |
 | OPS-05 Operación | Soporte, monitoreo productivo y revisión independiente | Pendiente | no acreditado en local | OPERACIÓN REAL |
 
 ### Resultado cuantitativo
 
-La línea base queda conciliada en **21/30 criterios demostrados = 70,0 % de cierre técnico**. Hay **7 parciales** y **2 pendientes**; los parciales no reciben fracciones. Avance de esta entrega: **+0 criterios demostrados y +0,0 puntos porcentuales**, porque el despacho ya estaba acreditado como mecánica en `65b835b` y esta entrega fija el instrumento, no altera su alcance. El SHA funcional servido permanece **`0996464`**; el HEAD documental posterior no se atribuye a la imagen.
+La línea base queda conciliada en **22/30 criterios demostrados = 73,3 % de cierre técnico**. Hay **6 parciales** y **2 pendientes**; los parciales no reciben fracciones. Avance de esta entrega: **+1 criterio demostrado y +3,3 puntos porcentuales**, por el cierre técnico local de OPS-03. El candidato probado y servido en el ensayo TLS fue `1b55d1e`; la imagen fue `terra-link-api:proxy-1b55d1e` (`sha256:0dd131016ea3…`) y `/version` devolvió el SHA completo. El despliegue operativo visible continúa en `0996464`; no se atribuye el SHA documental a esa imagen.
 
 ### Verificación móvil y bloqueo legal (2026-11-09)
 
@@ -940,8 +940,8 @@ Opciones para D-05.B: (1) mantener el bloqueo hasta que el responsable regulator
 | Satélite | 4 | 1 | 0 | proveedor real/vínculo formal pendiente |
 | Movimientos y despacho | 4 | 1 | 0 | mecánica demostrada; READY integrado pendiente |
 | Móvil | 2 | 2 | 1 | Android/campo pendientes |
-| Operación productiva | 2 | 2 | 1 | producción/RPO-RTO pendientes |
-| **Total** | **21** | **7** | **2** | **21/30 = 70,0 %** |
+| Operación productiva | 3 | 1 | 1 | producción/RPO-RTO pendientes |
+| **Total** | **22** | **6** | **2** | **22/30 = 73,3 %** |
 
 El denominador queda estable para las siguientes entregas. Solo cambiará mediante una decisión explícita de alcance registrada en backlog/matriz. Los pendientes externos no eliminan los pendientes técnicos asociados.
 
@@ -961,9 +961,13 @@ Se rectifica el ensayo HTTP anterior: terminó con código **1** y mostró que u
 
 La corrección conserva `TRUST_PROXY_HOPS` numérico, compatibilidad explícita de `TRUST_PROXY=false/true` como `0/1`, y publica el API local en loopback. `apps/api/test/proxy-bootstrap.int-spec.ts` ejecuta el bootstrap Nest real detrás de un proxy controlado que reemplaza XFF: **1 suite, 1 prueba, 0 fallos, código 0**; cambiar XFF del cliente no cambia el contador de rate limiting. `docker-compose.proxy-test.yml` retira el puerto del API y publica únicamente el proxy en redes frontend/backend separadas.
 
-Estado de **OPS-03**: **parcial**, no demostrado completo todavía. La prueba integrada acredita headers, bootstrap y rate limiting; queda ejecutar la topología Compose aislada y comprobar desde un cliente externo al backend que el API no admite bypass, además de la configuración real del terminador TLS y proxies autorizados. El criterio no se cierra por la prueba Nest aislada.
+Estado de **OPS-03**: **demostrado técnicamente en local**. La topología aislada acredita headers, bootstrap, rate limiting, terminación TLS, certificado SAN, rechazo de CA/nombre y ausencia de bypass desde frontend. Dominio, CA, renovación y operación real permanecen separados.
 
 La topología `tl-proxy-b337e38` se ejecutó con base `terra_link_proxy_test`, bucket `terra-link-proxy-test` y volúmenes con prefijo exclusivo; no reutilizó DEMO ni recursos operativos. El cliente conectado solo a `frontend` obtuvo `200` por `proxy:8080/health/live`; `api:4000` no resolvió desde esa red. Con seis intentos sintéticos al login y XFF alternado (`203.0.113.1` a `.6`), se observaron `401, 401, 401, 401, 401, 429`: el proxy reemplazó XFF y el rate limiting no se evadió. El API no registra la IP en `audit_logs` para este caso; por tanto no se declara una comprobación de IP de auditoría como realizada. La configuración del override y la prueba de red quedan acreditadas, pero OPS-03 sigue parcial hasta verificar el terminador TLS real y la política completa de proxies autorizados.
+
+### TLS de terminador y candidato servido - 2026-11-10
+
+La topología `tl-proxy-tls-1b55d1e` se ejecutó con certificados efímeros SAN para `terra-link.test` y cliente frontend confiando explícitamente en `ca.crt`: HTTPS válido `200`; nombre incorrecto `ERR_TLS_CERT_ALTNAME_INVALID`; CA ausente `UNABLE_TO_VERIFY_LEAF_SIGNATURE`; HTTP `308` hacia HTTPS; acceso directo `api:4000` desde frontend `ENOTFOUND`. `/version` devolvió `commit=1b55d1ef35fd925cfeb160f2acb0cee93b383fff`, `commit_source=BUILD_ARG`. La imagen usada fue `terra-link-api:proxy-1b55d1e`, digest `sha256:0dd131016ea3d0ac1ba97a41e7617fb4a0d1d686ae96f863ffca1647cafe9c1e`. Se conservó el rate limiting anterior. OPS-03 queda demostrado técnicamente en local; dominio, CA, renovación y operación real permanecen separados. El procedimiento está en `infra/proxy/README.md`.
 
 ### SQLCipher: pruebas del adaptador y toolchain nativo - 2026-11-09
 
