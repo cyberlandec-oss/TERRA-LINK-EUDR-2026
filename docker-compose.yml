@@ -87,6 +87,7 @@ services:
       S3_BUCKET: ${S3_BUCKET:-terra-link-private}
       WEB_ORIGIN: http://localhost:${WEB_HOST_PORT:-3000}
       API_PORT: 4000
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-0}
       SCANNER_HOST: scanner
       # Llamadas satelitales REALES. Encenderlas envía geometrías de productores a un tercero y exige la
       # aprobación de D-09 parte B. Se declara `disabled` EXPLÍCITAMENTE y no por omisión: el valor por defecto
@@ -110,7 +111,9 @@ services:
       SSO_OIDC_CLIENT_ID: ${SSO_OIDC_CLIENT_ID:-terra-link-web}
       SSO_REDIRECT_URIS: ${SSO_REDIRECT_URIS:-}
       SSO_LABEL: ${SSO_LABEL:-Keycloak (ensayo local)}
-    ports: ["${API_HOST_PORT:-4000}:4000"]
+    # En desarrollo el API no queda expuesto a la LAN. En producción, el terminador TLS/proxy debe ser el único
+    # acceso y `API_BIND_ADDRESS` se define explícitamente según esa topología.
+    ports: ["${API_BIND_ADDRESS:-127.0.0.1}:${API_HOST_PORT:-4000}:4000"]
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
