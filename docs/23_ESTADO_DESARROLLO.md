@@ -969,6 +969,8 @@ La topología `tl-proxy-b337e38` se ejecutó con base `terra_link_proxy_test`, b
 
 La topología `tl-proxy-tls-1b55d1e` se ejecutó con certificados efímeros SAN para `terra-link.test` y cliente frontend confiando explícitamente en `ca.crt`: HTTPS válido `200`; nombre incorrecto `ERR_TLS_CERT_ALTNAME_INVALID`; CA ausente `UNABLE_TO_VERIFY_LEAF_SIGNATURE`; HTTP `308` hacia HTTPS; acceso directo `api:4000` desde frontend `ENOTFOUND`. `/version` devolvió `commit=1b55d1ef35fd925cfeb160f2acb0cee93b383fff`, `commit_source=BUILD_ARG`. La imagen usada fue `terra-link-api:proxy-1b55d1e`, digest `sha256:0dd131016ea3d0ac1ba97a41e7617fb4a0d1d686ae96f863ffca1647cafe9c1e`. Se conservó el rate limiting anterior. OPS-03 queda demostrado técnicamente en local; dominio, CA, renovación y operación real permanecen separados. El procedimiento está en `infra/proxy/README.md`.
 
+Confirmación independiente nueva sobre `a7bca3f`: proyecto Compose `tl-proxy-tls-confirm-a23fbaa`, certificados sintéticos exclusivos y recursos propios. El arnés probado fue `infra/proxy/assert-tls.mjs`, SHA `ba4f2d4cc213b430599421612ffccbc8f69b5649`; configuración `a7bca3fc79aac40cb2b8afc429037efc49dc31a8`; imagen local `sha256:0dd131016ea3d0ac1ba97a41e7617fb4a0d1d686ae96f863ffca1647cafe9c1e`. Resultado conservado en `validation-results/tls-assert-confirm-a23fbaa/assert-tls.log` y código separado `assert-tls.exit`: `TLS_ASSERTIONS_OK`, **0**. Los recursos temporales se eliminaron después de conservar la evidencia; no se publicaron claves privadas.
+
 ### Ratificación TLS y arranque productivo aislado - 2026-11-10
 
 El arnés versionado `infra/proxy/assert-tls.mjs` terminó con `TLS_ASSERTIONS_OK` y código 0; sus aserciones fallan con código no cero. Verificó HTTPS válido con respuesta 200 y cuerpo health, CA no confiable (`UNABLE_TO_VERIFY_LEAF_SIGNATURE`), nombre incorrecto (`ERR_TLS_CERT_ALTNAME_INVALID`), HTTP 308 cuyo destino exacto fue `https://proxy:8443/health/live`, y bypass directo desde frontend (`ENOTFOUND`).
@@ -986,6 +988,8 @@ OPS-04 sigue **parcial**: la capacidad técnica para validar objetivos está imp
 ### OPS-05: contrato local de alertas de soporte - 2026-11-10
 
 Se añadió `scripts/validar-alerta-operativa.mjs` y su prueba dirigida. El contrato exige identificador, severidad accionable, componente, fecha, correlación y referencia a runbook; rechaza severidades no operativas y cualquier campo sensible. Resultado: **2/2 pruebas aprobadas**. Esto aporta una barrera técnica local para entregar alertas a soporte sin secretos, pero no demuestra guardia, tiempos de atención, monitoreo productivo ni revisión independiente; OPS-05 permanece pendiente.
+
+La suite integrada real `apps/api/test/operations-alerts.int-spec.ts` no llegó a ejecutar Jest en esta corrida Linux: el contenedor de pruebas fue creado, pero el acceso al daemon mediante el named pipe quedó rechazado antes de producir el resultado de Jest. El diagnóstico se conserva en `validation-results/ops05-a23fbaa/docker-access.log` y `docker-access.exit`; no se cuenta como aprobación. El recorrido existente cubre fallo de escáner, fallo de Redis, detección, alerta, runbook/acción y recuperación reconocida; falta acreditar su ejecución terminal en Linux y contrastar deduplicación de alertas, que no se infiere de la deduplicación del outbox.
 
 ### SQLCipher: pruebas del adaptador y toolchain nativo - 2026-11-09
 
