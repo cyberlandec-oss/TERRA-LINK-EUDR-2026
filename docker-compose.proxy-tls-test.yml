@@ -1,10 +1,27 @@
 # Override exclusivo del ensayo TLS. Combinar con docker-compose.proxy-test.yml.
 services:
+  object-storage-tls:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./infra/proxy/nginx-object-storage-tls.conf:/etc/nginx/nginx.conf:ro
+      - ${TLS_TEST_CERT_DIR:?definir TLS_TEST_CERT_DIR}:/etc/nginx/tls:ro
+    depends_on:
+      object-storage:
+        condition: service_started
+    networks:
+      - backend
   api:
     image: terra-link-api:proxy-1b55d1e
     environment:
-      NODE_ENV: test
+      NODE_ENV: production
       WEB_ORIGIN: https://terra-link.test
+      S3_ENDPOINT: https://object-storage-tls:9443
+      NODE_EXTRA_CA_CERTS: /etc/ssl/test-ca/ca.crt
+    volumes:
+      - ${TLS_TEST_CERT_DIR:?definir TLS_TEST_CERT_DIR}/ca.crt:/etc/ssl/test-ca/ca.crt:ro
+    depends_on:
+      object-storage-tls:
+        condition: service_started
   migrate:
     image: terra-link-api:proxy-1b55d1e
   proxy:
