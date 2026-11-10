@@ -975,6 +975,14 @@ El arnés versionado `infra/proxy/assert-tls.mjs` terminó con `TLS_ASSERTIONS_O
 
 La misma topología arrancó con `NODE_ENV=production`, `WEB_ORIGIN=https://terra-link.test`, S3 interno detrás de `object-storage-tls:9443` con certificado SAN confiable mediante `NODE_EXTRA_CA_CERTS`, y secretos sintéticos. API, migración, PostgreSQL, Redis, almacenamiento TLS y proxy terminaron saludables. Dos configuraciones efectivas con proyectos distintos produjeron volúmenes separados (`tl-vol-a-1b55d1e_postgres-data` y `tl-vol-b-1b55d1e_postgres-data`, además de object/scanner equivalentes). La imagen runtime fue `sha256:0dd131016ea3d0ac1ba97a41e7617fb4a0d1d686ae96f863ffca1647cafe9c1e`; `/version` coincidió con el SHA de código `1b55d1ef35fd925cfeb160f2acb0cee93b383fff`. La configuración de infraestructura probada quedó en el HEAD que contiene `docker-compose.proxy-tls-test.yml`, el arnés y los proxies TLS; el cierre se ratifica en 22/30.
 
+El log terminal conservado del arnés HTTP integrado es `validation-results/proxy-bootstrap-b337e38.log` y su código separado `validation-results/proxy-bootstrap-b337e38.exit` contiene `0`: 1 suite, 1 prueba aprobada, 0 fallidas. No se vuelve a contar como avance de OPS-03.
+
+### OPS-04: validador de objetivos RPO/RTO - 2026-11-10
+
+Se implementó `scripts/validar-rpo-rto.mjs` con pruebas en `scripts/validar-rpo-rto.test.mjs`. El comando exige objetivos explícitos, responsable de aprobación y mediciones observadas; rechaza valores ausentes o inválidos y devuelve código no cero si RPO o RTO observados exceden el objetivo. La prueba dirigida terminó **2/2 aprobadas**. No se repitió la restauración 0078: esa evidencia permanece válida y separada.
+
+OPS-04 sigue **parcial**: la capacidad técnica para validar objetivos está implementada, pero no se asignaron ni aceptaron objetivos RPO/RTO operativos en este repositorio. No se inventaron tiempos, responsables ni compromisos; la aceptación correspondiente continúa pendiente.
+
 ### SQLCipher: pruebas del adaptador y toolchain nativo - 2026-11-09
 
 La prueba aislada `apps/mobile/src/adapters/__tests__/expo.sqlcipher.test.ts` cubre: `cipher_version` válido permite continuar; resultado vacío o error rechaza la apertura; la conexión se cierra al rechazar; no se ejecutan las sentencias posteriores de preparación de la aplicación antes de superar la sonda; y no existe fallback sin cifrar. Resultado: **1 suite, 3 pruebas aprobadas**. Esta evidencia es de contrato del adaptador con mocks y no se presenta como cifrado nativo.

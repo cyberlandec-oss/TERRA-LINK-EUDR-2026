@@ -310,6 +310,22 @@ entiende el esquema, o restaurar datos coherentes con esa versión.
 node scripts/ensayo-retorno.mjs --respaldo "D:\PROYECTOS CYBER LAND\TERRA LINK EUDR 2026\_respaldos\<carpeta>"
 ```
 
+### Validación de objetivos RPO/RTO (OPS-04)
+
+La restauración verificada no fija por sí sola objetivos operativos. El procedimiento
+`scripts/validar-rpo-rto.mjs` exige un archivo de objetivos con `rpo_minutes`,
+`rto_minutes` y `approved_by`, y un archivo de medición con los tiempos observados.
+Falla con código distinto de cero si falta la aceptación, los valores son inválidos o
+la medición excede un objetivo. No contiene valores por defecto ni inventa la aprobación.
+Ejemplo controlado (no usar como objetivo operativo):
+
+```powershell
+node scripts/validar-rpo-rto.mjs --objetivos objetivos-sinteticos.json --medicion medicion-sintetica.json
+```
+
+La aceptación de los objetivos y su responsable siguen pendientes; hasta entonces
+OPS-04 permanece parcial aunque la recuperación 0078 continúe acreditada.
+
 Corre en una **base de ensayo propia** que crea y elimina (`tl_ensayo_retorno`): **no toca la base de
 desarrollo, sus volúmenes ni ningún recurso del otro proyecto Compose**. Comprueba las tres partes por
 separado, que las **referencias públicas vuelven exactas** (huella del conjunto, no solo el recuento), que la
