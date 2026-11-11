@@ -34,6 +34,7 @@ type State =
   | { kind: 'saving'; sample: Sample }
   | { kind: 'save-error'; sample: Sample; error: ApiError }
   | { kind: 'queued'; sample: Sample }
+  | { kind: 'storage-error'; sample: Sample; message: string }
   | { kind: 'saved'; versionNumber: number; receivedAt: string };
 
 type Tr = (es: string, vars?: Record<string, string | number>) => string;
@@ -62,18 +63,25 @@ export function LocationCapture({ orgId, plotId, rowVersion, ownerKey, onSaved, 
   const [showMap, setShowMap] = useState(false);
   const [pending, setPending] = useState<OfflineLocationCapture[]>([]);
   const [online, setOnline] = useState(true);
+  const syncing = useRef(false);
   const cancelled = useRef(false);
   const supported = typeof window !== 'undefined' && 'geolocation' in navigator && window.isSecureContext;
 
   useEffect(() => () => { cancelled.current = true; }, []);
 
   const loadPending = async () => {
-    try { setPending(await listOfflineCaptures(ownerKey, orgId, plotId)); } catch { setPending([]); }
+    try {
+      const rows = await listOfflineCaptures(ownerKey, orgId, plotId);
+      setPending(rows);
+      const draft = rows.find((row) => !row.confirmed && row.status === 'DRAFT');
+      if (draft && state.kind === 'idle') setState({ kind: 'review', sample: draft });
+      return rows;
+    } catch { setPending([]); return []; }
   };
   useEffect(() => {
     setOnline(navigator.onLine);
-    void loadPending();
-    const onOnline = () => { setOnline(true); void loadPending(); };
+    void loadPending().then(() => { if (navigator.onLine) void syncPending(true); });
+    const onOnline = () => { setOnline(true); void syncPending(true); };
     const onOffline = () => setOnline(false);
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
@@ -91,15 +99,12 @@ export function LocationCapture({ orgId, plotId, rowVersion, ownerKey, onSaved, 
       (pos) => {
         if (cancelled.current) return;
         const acc = pos.coords.accuracy;
-        setState({
-          kind: 'review',
-          sample: {
+        void acquire({
             operation_id: crypto.randomUUID(),
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
             accuracy_m: typeof acc === 'number' && Number.isFinite(acc) && acc >= 0 ? acc : null,
             captured_at: new Date(pos.timestamp).toISOString(), // hora de adquisición del dispositivo
-          },
         });
       },
       (err) => {
@@ -113,7 +118,7 @@ export function LocationCapture({ orgId, plotId, rowVersion, ownerKey, onSaved, 
   /** «Mi ubicación» → «Usar como punto de referencia»: abre la MISMA revisión de muestra; no se guarda hasta «Guardar como nueva versión». */
   function usarComoReferencia(l: MyLocation) {
     if (state.kind !== 'idle') return;
-    setState({ kind: 'review', sample: { operation_id: crypto.randomUUID(), latitude: l.latitude, longitude: l.longitude, accuracy_m: l.accuracy_m, captured_at: l.captured_at } });
+    void acquire({ operation_id: crypto.randomUUID(), latitude: l.latitude, longitude: l.longitude, accuracy_m: l.accuracy_m, captured_at: l.captured_at });
   }
 
   function cancel() {
@@ -124,39 +129,61 @@ export function LocationCapture({ orgId, plotId, rowVersion, ownerKey, onSaved, 
   async function save(sample: Sample) {
     setState({ kind: 'saving', sample });
     try {
+      await updateOfflineCapture(sample.operation_id, { confirmed: true, status: 'PENDING' });
       const res = await api<{ version: { version_number: number; sample: { received_at: string } } }>(
         `/api/v1/organizations/${orgId}/plots/${plotId}/location-samples`,
         { method: 'POST', body: { expected_version: rowVersion, source: 'BROWSER_GEOLOCATION', ...sample } },
       );
+      await removeOfflineCapture(sample.operation_id);
+      await loadPending();
       setState({ kind: 'saved', versionNumber: res.version.version_number, receivedAt: res.version.sample.received_at });
       await onSaved();
     } catch (err) {
       const error = err as ApiError;
       if (error.status === 0) {
-        await saveOfflineCapture({ owner_key: ownerKey, organization_id: orgId, plot_id: plotId,
-          expected_version: rowVersion, source: 'BROWSER_GEOLOCATION', ...sample, status: 'PENDING' });
         await loadPending();
         setState({ kind: 'queued', sample });
-      } else setState({ kind: 'save-error', sample, error });
+      } else {
+        await updateOfflineCapture(sample.operation_id, { status: error.status === 409 ? 'CONFLICT' : 'ERROR', last_error: error.body?.code ?? 'SAVE_FAILED' });
+        await loadPending();
+        setState({ kind: 'save-error', sample, error });
+      }
     }
   }
 
-  async function syncPending() {
-    for (const item of pending) {
-      await updateOfflineCapture(item.operation_id, { status: 'SYNCING', last_error: undefined });
-      try {
-        await api(`/api/v1/organizations/${orgId}/plots/${plotId}/location-samples`, { method: 'POST', body: {
-          expected_version: item.expected_version, source: item.source, operation_id: item.operation_id,
-          latitude: item.latitude, longitude: item.longitude, accuracy_m: item.accuracy_m, captured_at: item.captured_at,
-        } });
-        await removeOfflineCapture(item.operation_id);
-      } catch (err) {
-        const error = err as ApiError;
-        await updateOfflineCapture(item.operation_id, { status: error.status === 409 ? 'CONFLICT' : 'ERROR', last_error: error.body?.code ?? 'NETWORK' });
+  async function syncPending(forceOnline = false) {
+    if (syncing.current || (!online && !forceOnline)) return;
+    syncing.current = true;
+    try {
+      const rows = await loadPending();
+      for (const item of rows.filter((row) => row.confirmed && row.status === 'PENDING')) {
+        await updateOfflineCapture(item.operation_id, { status: 'SYNCING', last_error: undefined });
+        try {
+          await api(`/api/v1/organizations/${orgId}/plots/${plotId}/location-samples`, { method: 'POST', body: {
+            expected_version: item.expected_version, source: item.source, operation_id: item.operation_id,
+            latitude: item.latitude, longitude: item.longitude, accuracy_m: item.accuracy_m, captured_at: item.captured_at,
+          } });
+          await removeOfflineCapture(item.operation_id);
+        } catch (err) {
+          const error = err as ApiError;
+          await updateOfflineCapture(item.operation_id, { status: error.status === 409 ? 'CONFLICT' : 'ERROR', last_error: error.body?.code ?? 'NETWORK' });
+        }
       }
+    } finally {
+      syncing.current = false;
     }
     await loadPending();
     await onSaved();
+  }
+
+  async function acquire(sample: Sample) {
+    try {
+      await saveOfflineCapture({ owner_key: ownerKey, organization_id: orgId, plot_id: plotId,
+        expected_version: rowVersion, source: 'BROWSER_GEOLOCATION', ...sample, status: 'DRAFT', confirmed: false });
+      setState({ kind: 'review', sample });
+    } catch (err) {
+      setState({ kind: 'storage-error', sample, message: err instanceof Error ? err.message : t('No se pudo guardar el borrador local.') });
+    }
   }
 
   const sampleView = (s: Sample) => (
@@ -211,14 +238,21 @@ export function LocationCapture({ orgId, plotId, rowVersion, ownerKey, onSaved, 
         <div className="alert" role="status">
           <p className="alert-title">{t('Guardado en este dispositivo; pendiente de sincronización.')}</p>
           <p>{t('Tu muestra conserva su precisión y hora. No es todavía una geometría aprobada.')}</p>
-          <div className="actions"><button type="button" onClick={syncPending} disabled={!online}>{t('Sincronizar ahora')}</button><button type="button" className="secondary" onClick={() => setState({ kind: 'idle' })}>{t('Seguir capturando')}</button></div>
+          <div className="actions"><button type="button" onClick={() => { void syncPending(); }} disabled={!online}>{t('Sincronizar ahora')}</button><button type="button" className="secondary" onClick={() => setState({ kind: 'idle' })}>{t('Seguir capturando')}</button></div>
+        </div>
+      )}
+      {state.kind === 'storage-error' && (
+        <div className="error" role="alert">
+          <p className="alert-title">{t('No se pudo guardar el borrador en este dispositivo.')}</p>
+          <p>{state.message}</p>
+          <button type="button" onClick={() => setState({ kind: 'idle' })}>{t('Intentar de nuevo')}</button>
         </div>
       )}
       {pending.length > 0 && state.kind !== 'queued' && (
         <div className="alert" role="status">
           <p className="alert-title">{t('{n} captura(s) pendiente(s) en este dispositivo.', { n: pending.length })}</p>
           <p>{t('La cola está aislada por cuenta, organización y parcela.')}</p>
-          <button type="button" onClick={syncPending} disabled={!online}>{t('Sincronizar pendientes')}</button>
+          <button type="button" onClick={() => { void syncPending(); }} disabled={!online}>{t('Sincronizar pendientes')}</button>
         </div>
       )}
       {(state.kind === 'review' || state.kind === 'saving' || state.kind === 'save-error') && (

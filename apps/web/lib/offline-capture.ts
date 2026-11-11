@@ -1,4 +1,4 @@
-export type OfflineCaptureStatus = 'PENDING' | 'SYNCING' | 'CONFLICT' | 'ERROR';
+export type OfflineCaptureStatus = 'DRAFT' | 'PENDING' | 'SYNCING' | 'CONFLICT' | 'ERROR';
 
 export interface OfflineLocationCapture {
   operation_id: string;
@@ -12,6 +12,7 @@ export interface OfflineLocationCapture {
   accuracy_m: number | null;
   captured_at: string;
   status: OfflineCaptureStatus;
+  confirmed: boolean;
   last_error?: string;
 }
 
