@@ -1,0 +1,11 @@
+{
+  "name": "Terra Link",
+  "short_name": "Terra Link",
+  "description": "Trazabilidad y debida diligencia de cacao",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f4ed",
+  "theme_color": "#1f4d3b",
+  "lang": "es",
+  "icons": []
+}

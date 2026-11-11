@@ -1,0 +1,74 @@
+export type OfflineCaptureStatus = 'PENDING' | 'SYNCING' | 'CONFLICT' | 'ERROR';
+
+export interface OfflineLocationCapture {
+  operation_id: string;
+  owner_key: string;
+  organization_id: string;
+  plot_id: string;
+  expected_version: number;
+  source: 'BROWSER_GEOLOCATION';
+  latitude: number;
+  longitude: number;
+  accuracy_m: number | null;
+  captured_at: string;
+  status: OfflineCaptureStatus;
+  last_error?: string;
+}
+
+const DB_NAME = 'terra-link-offline-capture';
+const STORE = 'location-captures';
+const VERSION = 1;
+
+function database(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, VERSION);
+    request.onupgradeneeded = () => request.result.createObjectStore(STORE, { keyPath: 'operation_id' });
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error('IndexedDB no disponible'));
+  });
+}
+
+export async function saveOfflineCapture(capture: OfflineLocationCapture): Promise<void> {
+  const db = await database();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(capture);
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error ?? new Error('No se pudo guardar el borrador local')); };
+  });
+}
+
+export async function listOfflineCaptures(ownerKey: string, organizationId: string, plotId: string): Promise<OfflineLocationCapture[]> {
+  const db = await database();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const request = tx.objectStore(STORE).getAll();
+    request.onsuccess = () => {
+      db.close();
+      resolve((request.result as OfflineLocationCapture[]).filter((x) => x.owner_key === ownerKey && x.organization_id === organizationId && x.plot_id === plotId));
+    };
+    request.onerror = () => { db.close(); reject(request.error ?? new Error('No se pudo leer la cola local')); };
+  });
+}
+
+export async function updateOfflineCapture(operationId: string, patch: Partial<OfflineLocationCapture>): Promise<void> {
+  const db = await database();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    const get = store.get(operationId);
+    get.onsuccess = () => { if (get.result) store.put({ ...get.result, ...patch }); };
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error ?? new Error('No se pudo actualizar la cola local')); };
+  });
+}
+
+export async function removeOfflineCapture(operationId: string): Promise<void> {
+  const db = await database();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(operationId);
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error ?? new Error('No se pudo limpiar la cola local')); };
+  });
+}

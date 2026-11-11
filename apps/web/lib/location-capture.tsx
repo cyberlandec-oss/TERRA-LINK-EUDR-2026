@@ -6,6 +6,7 @@ import { ApiError, api } from './api';
 import { translate, useI18n } from './i18n';
 import { type MyLocation } from './mi-ubicacion';
 import { ErrorPanel } from './ui';
+import { listOfflineCaptures, removeOfflineCapture, saveOfflineCapture, updateOfflineCapture, type OfflineLocationCapture } from './offline-capture';
 
 const MapCapture = dynamic(() => import('./map-capture').then((m) => m.MapCapture), { ssr: false });
 
@@ -32,6 +33,7 @@ type State =
   | { kind: 'review'; sample: Sample }
   | { kind: 'saving'; sample: Sample }
   | { kind: 'save-error'; sample: Sample; error: ApiError }
+  | { kind: 'queued'; sample: Sample }
   | { kind: 'saved'; versionNumber: number; receivedAt: string };
 
 type Tr = (es: string, vars?: Record<string, string | number>) => string;
@@ -49,8 +51,8 @@ export function accuracyLabel(acc: number | null, t: Tr = (es, vars) => translat
   return t('± {m} m (informada)', { m: num(acc, 1) });
 }
 
-export function LocationCapture({ orgId, plotId, rowVersion, onSaved, existing = [] }: {
-  orgId: string; plotId: string; rowVersion: number; onSaved: () => Promise<void>;
+export function LocationCapture({ orgId, plotId, rowVersion, ownerKey, onSaved, existing = [] }: {
+  orgId: string; plotId: string; rowVersion: number; ownerKey: string; onSaved: () => Promise<void>;
   /** Geometría vigente de la parcela (solo para mostrarla como referencia en el mapa). */
   existing?: Array<{ lon: number; lat: number }>;
 }) {
@@ -58,10 +60,25 @@ export function LocationCapture({ orgId, plotId, rowVersion, onSaved, existing =
   const FAILURE = failure(t);
   const [state, setState] = useState<State>({ kind: 'idle' });
   const [showMap, setShowMap] = useState(false);
+  const [pending, setPending] = useState<OfflineLocationCapture[]>([]);
+  const [online, setOnline] = useState(true);
   const cancelled = useRef(false);
   const supported = typeof window !== 'undefined' && 'geolocation' in navigator && window.isSecureContext;
 
   useEffect(() => () => { cancelled.current = true; }, []);
+
+  const loadPending = async () => {
+    try { setPending(await listOfflineCaptures(ownerKey, orgId, plotId)); } catch { setPending([]); }
+  };
+  useEffect(() => {
+    setOnline(navigator.onLine);
+    void loadPending();
+    const onOnline = () => { setOnline(true); void loadPending(); };
+    const onOffline = () => setOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => { window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline); };
+  }, [ownerKey, orgId, plotId]);
 
   function request() {
     if (!supported) {
@@ -114,8 +131,32 @@ export function LocationCapture({ orgId, plotId, rowVersion, onSaved, existing =
       setState({ kind: 'saved', versionNumber: res.version.version_number, receivedAt: res.version.sample.received_at });
       await onSaved();
     } catch (err) {
-      setState({ kind: 'save-error', sample, error: err as ApiError });
+      const error = err as ApiError;
+      if (error.status === 0) {
+        await saveOfflineCapture({ owner_key: ownerKey, organization_id: orgId, plot_id: plotId,
+          expected_version: rowVersion, source: 'BROWSER_GEOLOCATION', ...sample, status: 'PENDING' });
+        await loadPending();
+        setState({ kind: 'queued', sample });
+      } else setState({ kind: 'save-error', sample, error });
     }
+  }
+
+  async function syncPending() {
+    for (const item of pending) {
+      await updateOfflineCapture(item.operation_id, { status: 'SYNCING', last_error: undefined });
+      try {
+        await api(`/api/v1/organizations/${orgId}/plots/${plotId}/location-samples`, { method: 'POST', body: {
+          expected_version: item.expected_version, source: item.source, operation_id: item.operation_id,
+          latitude: item.latitude, longitude: item.longitude, accuracy_m: item.accuracy_m, captured_at: item.captured_at,
+        } });
+        await removeOfflineCapture(item.operation_id);
+      } catch (err) {
+        const error = err as ApiError;
+        await updateOfflineCapture(item.operation_id, { status: error.status === 409 ? 'CONFLICT' : 'ERROR', last_error: error.body?.code ?? 'NETWORK' });
+      }
+    }
+    await loadPending();
+    await onSaved();
   }
 
   const sampleView = (s: Sample) => (
@@ -164,6 +205,20 @@ export function LocationCapture({ orgId, plotId, rowVersion, onSaved, existing =
             {state.code !== 'UNSUPPORTED' && <button type="button" onClick={request}>{t('Intentar de nuevo')}</button>}
             <button type="button" className="secondary" onClick={cancel}>{t('Cerrar')}</button>
           </div>
+        </div>
+      )}
+      {state.kind === 'queued' && (
+        <div className="alert" role="status">
+          <p className="alert-title">{t('Guardado en este dispositivo; pendiente de sincronización.')}</p>
+          <p>{t('Tu muestra conserva su precisión y hora. No es todavía una geometría aprobada.')}</p>
+          <div className="actions"><button type="button" onClick={syncPending} disabled={!online}>{t('Sincronizar ahora')}</button><button type="button" className="secondary" onClick={() => setState({ kind: 'idle' })}>{t('Seguir capturando')}</button></div>
+        </div>
+      )}
+      {pending.length > 0 && state.kind !== 'queued' && (
+        <div className="alert" role="status">
+          <p className="alert-title">{t('{n} captura(s) pendiente(s) en este dispositivo.', { n: pending.length })}</p>
+          <p>{t('La cola está aislada por cuenta, organización y parcela.')}</p>
+          <button type="button" onClick={syncPending} disabled={!online}>{t('Sincronizar pendientes')}</button>
         </div>
       )}
       {(state.kind === 'review' || state.kind === 'saving' || state.kind === 'save-error') && (

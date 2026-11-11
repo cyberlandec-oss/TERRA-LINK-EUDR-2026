@@ -9,6 +9,7 @@ import { ManualCapture } from './manual-capture';
 import { PolygonCapture } from './polygon-capture';
 import { positions, type Plot } from './plots';
 import { Alert } from './ui';
+import { useWorkspace } from './workspace';
 
 // A-01 — Captura de la ubicación de una PARCELA agrícola desde la web. Reúne, sin duplicar lógica, los mecanismos que ya
 // existían (ubicación del navegador, polígono por vértices, GeoJSON) y añade coordenadas escritas / croquis. Todas las
@@ -18,6 +19,7 @@ type Method = 'BROWSER' | 'MANUAL' | 'POLYGON' | 'FILE';
 
 export function FieldCapture({ orgId, plot, onChanged }: { orgId: string; plot: Plot; onChanged: () => Promise<void> }) {
   const { t } = useI18n();
+  const ws = useWorkspace();
   const [method, setMethod] = useState<Method>('BROWSER');
   const hasGeometry = !!plot.current_version?.geometry_type;
   const chosen = useRef(false);
@@ -66,7 +68,7 @@ export function FieldCapture({ orgId, plot, onChanged }: { orgId: string; plot: 
         ))}
       </div>
       <p className="muted">{options.find((o) => o.id === method)!.help}.</p>
-      {method === 'BROWSER' && <LocationCapture orgId={orgId} plotId={plot.id} rowVersion={plot.row_version} onSaved={onChanged} existing={positions(plot.current_version?.geometry ?? null)} />}
+      {method === 'BROWSER' && <LocationCapture orgId={orgId} plotId={plot.id} rowVersion={plot.row_version} ownerKey={ws.me.id} onSaved={onChanged} existing={positions(plot.current_version?.geometry ?? null)} />}
       {method === 'MANUAL' && <ManualCapture orgId={orgId} plotId={plot.id} rowVersion={plot.row_version} hasGeometry={hasGeometry} initialCenter={center} onSaved={onChanged} />}
       {method === 'POLYGON' && <PolygonCapture orgId={orgId} plotId={plot.id} plotVersion={plot.row_version} onConfirmed={onChanged} />}
       {method === 'FILE' && <GeometryImport orgId={orgId} plotId={plot.id} plotVersion={plot.row_version} onConfirmed={onChanged} />}
