@@ -53,11 +53,11 @@ services:
       PII_KEYS: ${PII_KEYS:?falta PII_KEYS}
       PII_ACTIVE_KEY_ID: ${PII_ACTIVE_KEY_ID:?falta PII_ACTIVE_KEY_ID}
       PII_INDEX_KEY: ${PII_INDEX_KEY:?falta PII_INDEX_KEY}
-      S3_ENDPOINT: http://object-storage:9000
+      S3_ENDPOINT: ${S3_ENDPOINT:?falta S3_ENDPOINT}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_BUCKET: ${S3_BUCKET:?falta S3_BUCKET}
-      WEB_ORIGIN: http://localhost:3010
+      WEB_ORIGIN: ${WEB_ORIGIN:?falta WEB_ORIGIN}
       API_PORT: 4000
       # Escáner no disponible en el ensayo: la API lo informa como capacidad ausente y las subidas no se ejercitan.
       SCANNER_HOST: scanner-ausente
