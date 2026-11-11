@@ -43,6 +43,18 @@ services:
       ROOT_SECRET_KEY: ${S3_SECRET_KEY:?falta S3_SECRET_KEY}
     ports: ["9010:9000"]
     volumes: [ensayo-object-data:/data]
+  scanner:
+    image: clamav/clamav:1.4.6
+    command: ["clamd", "--foreground=true", "--config-file=/etc/clamav/clamd.conf"]
+    volumes:
+      - ensayo-scanner-db:/var/lib/clamav
+      - ../../infra/clamav/clamd.conf:/etc/clamav/clamd.conf:ro
+    ports: ["3311:3310"]
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 1 2>/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
   api:
     image: terra-link-api:local
     environment:
@@ -61,7 +73,8 @@ services:
       WEB_ORIGIN: ${WEB_ORIGIN:?falta WEB_ORIGIN}
       API_PORT: 4000
       # Escáner no disponible en el ensayo: la API lo informa como capacidad ausente y las subidas no se ejercitan.
-      SCANNER_HOST: scanner-ausente
+      SCANNER_HOST: scanner
+      SCANNER_PORT: 3310
       # Llamadas externas y fixture satelital DESHABILITADAS de forma explícita.
       SATELLITE_LIVE_CALLS: disabled
       SATELLITE_FIXTURE_ENABLED: "false"
@@ -72,6 +85,7 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
       object-storage: { condition: service_started }
+      scanner: { condition: service_healthy }
   web:
     build:
       context: ../..
@@ -85,3 +99,4 @@ services:
 volumes:
   ensayo-postgres-data:
   ensayo-object-data:
+  ensayo-scanner-db:
