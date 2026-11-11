@@ -1,6 +1,8 @@
 import { randomUUID, createHash } from 'crypto';
 import { sql } from 'kysely';
 import { PASSWORD, describeDb, setupHarness } from './helpers';
+import { FixtureSatelliteProvider } from '../src/satellite/provider';
+import { SatelliteRunner } from '../src/satellite/runner';
 
 // CADENA TÉCNICA COMPLETA, contra PostgreSQL, S3 y ClamAV reales, en la base DESECHABLE de pruebas.
 // soportes → geometría → resultado satelital → riesgo → revisión → conclusión → READY → aprobación → paquete (DD_PACKAGE) → concesión al destinatario → cambio relevante → desactualización.
@@ -85,16 +87,16 @@ describeDb('cadena técnica completa: de los soportes al acceso del destinatario
 
     // Resultado satelital SINTÉTICO como lo dejaría el corredor, de un proveedor seleccionado con cobertura declarada. NO es un análisis real.
     const uid = (await h.db.selectFrom('users').select('id').where('email', '=', ADMIN).executeTakeFirstOrThrow()).id;
-    const v = await h.db.selectFrom('plot_versions').select(['geometry_hash', 'geometry_type']).where('id', '=', versionId).executeTakeFirstOrThrow();
     await sql`UPDATE satellite_providers SET selection_status = 'PROPOSED', selected_by = NULL, decision_reference = NULL WHERE selection_status = 'SELECTED'`.execute(h.db).catch(() => undefined);
     await sql`UPDATE satellite_providers SET selection_status = 'SELECTED', selected_by = ${uid}, decision_reference = 'selección SINTÉTICA de la cadena técnica' WHERE code = 'WHISP'`.execute(h.db);
-    const job = randomUUID(); const res = randomUUID();
-    await h.db.insertInto('satellite_jobs').values({ id: job, organization_id: orgA, plot_id: plot, plot_version_id: versionId, geometry_hash: v.geometry_hash!, geometry_type: v.geometry_type as 'POINT',
-      provider_code: 'WHISP', provider_kind: 'EXTERNAL_HTTP', adapter_contract_version: 'TL_SAT_ADAPTER 0.1.0', operation: 'FOREST_COVER', request_fingerprint: randomUUID().replace(/-/g, '').padEnd(64, '0'),
-      status: 'COMPLETED', outcome: 'RESULT_AVAILABLE', finished_at: new Date(), requested_by: uid, operation_id: randomUUID() } as never).execute();
-    await sql`INSERT INTO satellite_results (id, organization_id, job_id, provider_code, is_synthetic, method, coverage_status, coverage_note, limitations, indicators, raw_object_key, raw_sha256)
-      VALUES (${res}, ${orgA}, ${job}, 'WHISP', false, 'método de prueba', 'COVERED', 'cobertura de prueba', 'Resultado SINTÉTICO de la cadena técnica: no es un análisis real.', '{}'::jsonb, ${`cadena/${res}.json`}, ${'a'.repeat(64)})`.execute(h.db);
-
+    process.env.SATELLITE_FIXTURE_ENABLED = 'true';
+    await sql`UPDATE satellite_providers SET selection_status = 'PROPOSED', selected_by = NULL, decision_reference = NULL WHERE code = 'WHISP'`.execute(h.db);
+    const job = (await http().post(`${base(orgA)}/plots/${plot}/satellite/analyses`).set(as(ADMIN)).send({ operation_id: randomUUID(), operation: 'FOREST_COVER', plot_version_id: versionId, fixture_scenario: 'RESULT_COVERED' }).expect(201)).body.job.id as string;
+    const runner = new SatelliteRunner(h.db, [new FixtureSatelliteProvider()], {}, { maxAttempts: 1, backoffBaseMs: 1 });
+    expect(await runner.runOnce()).toMatchObject({ claimed: 1, completed: 1 });
+    const resultado = (await http().get(`${base(orgA)}/satellite/analyses/${job}`).set(as(ADMIN)).expect(200)).body;
+    expect(resultado.status).toBe('COMPLETED');
+    expect(resultado.result?.is_synthetic).toBe(true);
     // Entrega con origen, soporte SINTÉTICO, recepción con calidad liberada y lote.
     delivery = (await http().post(`${base(orgA)}/deliveries`).set(as(ADMIN)).send({ operation_id: randomUUID(), producer_id: producer, product_id: baba, delivery_date: today, quantity_declared: '100', unit: 'KG', origins: [{ plot_id: plot }], register: true }).expect(201)).body.delivery.id;
     const doc = (await http().post(`${base(orgA)}/documents`).set(as(ADMIN)).field('operation_id', randomUUID()).field('document_type', 'DELIVERY_SUPPORT').field('owner_type', 'producer').field('owner_id', producer)
@@ -140,7 +142,7 @@ describeDb('cadena técnica completa: de los soportes al acceso del destinatario
   it('por la vía del producto TODO se cumple salvo RISK_NO_BLOCKING_FINDINGS, que hoy no puede cumplirse por diseño (D-09 parte B y D-05.B); el paquete final se rechaza', async () => {
     const real = await captura();
     // Soportes, geometría técnica, calidad, geolocalización, perfil jurídico, catálogo, riesgo vigente y revisado, conclusión, mitigaciones, análisis satelital y embarque: cumplidos.
-    expect(noCumplidos(real)).toEqual(['RISK_NO_BLOCKING_FINDINGS:NOT_EVALUABLE']);
+    expect(noCumplidos(real)).toEqual(['DEFORESTATION_ANALYSIS:PENDING', 'RISK_NO_BLOCKING_FINDINGS:NOT_EVALUABLE']);
     // La causa NO es un dato que falte: son las dos reglas del catálogo que dependen de decisiones del propietario y están marcadas así a propósito.
     const factores = (await http().get(`${base(orgA)}/risk/evaluations/${evalId}`).set(as(EUDR)).expect(200)).body.factors as Array<{ code: string; result: string; depends_on: string | null }>;
     expect(factores.filter((x) => x.result === 'NOT_EVALUABLE').map((x) => `${x.code}:${x.depends_on}`).sort()).toEqual(['GEOLOCATION_PROFILE:D-05.B', 'SATELLITE_COVERAGE_UNKNOWN:D-09 parte B']);
@@ -156,7 +158,7 @@ describeDb('cadena técnica completa: de los soportes al acceso del destinatario
       SELECT content, content_hash, section_hashes, manifest, requirements, snapshot_number FROM dd_snapshots WHERE id = ${real.id}`.execute(h.db)).rows[0];
     const uid = (await sql<{ id: string }>`SELECT id FROM users WHERE email = ${EUDR}`.execute(h.db)).rows[0].id;
     const sintetica = randomUUID();
-    const reqs = fila.requirements.map((r) => (r.code === 'RISK_NO_BLOCKING_FINDINGS' ? { ...r, status: 'MET', detail: 'SINTÉTICO: forzado en la base de pruebas; no es un resultado del producto.' } : r));
+    const reqs = fila.requirements.map((r) => (['DEFORESTATION_ANALYSIS', 'RISK_NO_BLOCKING_FINDINGS'].includes(r.code) ? { ...r, status: 'MET', detail: 'SINTÉTICO: forzado solo en la copia mecánica de pruebas; no es un resultado del producto.' } : r));
     await sql`INSERT INTO dd_snapshots (id, organization_id, case_id, snapshot_number, content, content_hash, section_hashes, manifest, requirements, readiness, captured_by, operation_id)
       VALUES (${sintetica}, ${orgA}, ${caseId}, ${fila.snapshot_number + 1}, ${JSON.stringify(fila.content)}::jsonb, ${fila.content_hash}, ${JSON.stringify(fila.section_hashes)}::jsonb,
               ${JSON.stringify(fila.manifest)}::jsonb, ${JSON.stringify(reqs)}::jsonb, 'READY', ${uid}, ${randomUUID()})`.execute(h.db);
