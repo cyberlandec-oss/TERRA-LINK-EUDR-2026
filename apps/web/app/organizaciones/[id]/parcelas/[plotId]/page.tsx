@@ -146,7 +146,7 @@ export default function PlotDetailPage() {
           <SatelliteAnalysis orgId={orgId} plotId={plot.id} />
           <AutorizarAnalisisPanel orgId={orgId} plotId={plot.id} />
 
-          <FieldEvidence orgId={orgId} plotId={plot.id} canUpload={!!plot.can_update && ws.can('document:upload')} />
+              <FieldEvidence orgId={orgId} plotId={plot.id} ownerKey={ws.me.id} canUpload={!!plot.can_update && ws.can('document:upload')} />
 
           {/* A-05: documentos en contexto (tenencia, soportes) con su guía orientativa; las fotos y actas del recorrido siguen en su sección. */}
           <EntityDocuments orgId={orgId} ownerType="plot" ownerId={plot.id} ownerLabel={plot.plot_code} canUpload={!!plot.can_update && ws.can('document:upload')} excludeTypes={['FIELD_EVIDENCE', 'FIELD_PHOTO']} />

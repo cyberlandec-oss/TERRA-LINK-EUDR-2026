@@ -180,7 +180,7 @@ export function LocationCapture({ orgId, plotId, rowVersion, ownerKey, onSaved, 
   async function acquire(sample: Sample) {
     try {
       await saveOfflineCapture({ owner_key: ownerKey, organization_id: orgId, plot_id: plotId,
-        expected_version: rowVersion, source: 'BROWSER_GEOLOCATION', ...sample, status: 'DRAFT', confirmed: false });
+        expected_version: rowVersion, source: 'BROWSER_GEOLOCATION', ...sample, status: 'DRAFT', confirmed: false, capture_kind: 'LOCATION' });
       setState({ kind: 'review', sample });
     } catch (err) {
       setState({ kind: 'storage-error', sample, message: err instanceof Error ? err.message : t('No se pudo guardar el borrador local.') });

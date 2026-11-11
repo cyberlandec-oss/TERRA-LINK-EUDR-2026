@@ -14,6 +14,22 @@ export interface OfflineLocationCapture {
   status: OfflineCaptureStatus;
   confirmed: boolean;
   last_error?: string;
+  capture_kind?: 'LOCATION' | 'ATTACHMENT';
+}
+
+export interface OfflineAttachmentCapture {
+  operation_id: string;
+  owner_key: string;
+  organization_id: string;
+  plot_id: string;
+  capture_kind: 'ATTACHMENT';
+  file_name: string;
+  mime_type: string;
+  title: string;
+  bytes: Blob;
+  document_type: 'FIELD_EVIDENCE' | 'FIELD_PHOTO';
+  status: 'DRAFT' | 'PENDING' | 'SYNCING' | 'ERROR';
+  last_error?: string;
 }
 
 const DB_NAME = 'terra-link-offline-capture';
@@ -46,7 +62,7 @@ export async function listOfflineCaptures(ownerKey: string, organizationId: stri
     const request = tx.objectStore(STORE).getAll();
     request.onsuccess = () => {
       db.close();
-      resolve((request.result as OfflineLocationCapture[]).filter((x) => x.owner_key === ownerKey && x.organization_id === organizationId && x.plot_id === plotId));
+      resolve((request.result as OfflineLocationCapture[]).filter((x) => (x.capture_kind ?? 'LOCATION') === 'LOCATION' && x.owner_key === ownerKey && x.organization_id === organizationId && x.plot_id === plotId));
     };
     request.onerror = () => { db.close(); reject(request.error ?? new Error('No se pudo leer la cola local')); };
   });
@@ -72,4 +88,13 @@ export async function removeOfflineCapture(operationId: string): Promise<void> {
     tx.oncomplete = () => { db.close(); resolve(); };
     tx.onerror = () => { db.close(); reject(tx.error ?? new Error('No se pudo limpiar la cola local')); };
   });
+}
+
+export async function saveOfflineAttachment(capture: OfflineAttachmentCapture): Promise<void> {
+  await saveOfflineCapture(capture as unknown as OfflineLocationCapture);
+}
+
+export async function listOfflineAttachments(ownerKey: string, organizationId: string, plotId: string): Promise<OfflineAttachmentCapture[]> {
+  const rows = await listOfflineCaptures(ownerKey, organizationId, plotId);
+  return rows.filter((row) => row.capture_kind === 'ATTACHMENT') as unknown as OfflineAttachmentCapture[];
 }

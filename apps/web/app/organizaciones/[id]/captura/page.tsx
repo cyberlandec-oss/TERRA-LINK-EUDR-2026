@@ -159,7 +159,7 @@ export default function CapturaPage() {
               ? <FieldCapture orgId={orgId} plot={plot} onChanged={loadPlot} />
               : <Alert tone="review" title={t('No puedes registrar ubicaciones en esta parcela.')}><p>{plot.status === 'INACTIVE' ? t('La parcela está dada de baja.') : t('Tu rol o tu alcance no lo permiten.')}</p></Alert>}
           </section>
-          <FieldEvidence orgId={orgId} plotId={plot.id} canUpload={!!plot.can_update && ws.can('document:upload')} />
+          <FieldEvidence orgId={orgId} plotId={plot.id} ownerKey={ws.me.id} canUpload={!!plot.can_update && ws.can('document:upload')} />
         </>
       )}
     </>
