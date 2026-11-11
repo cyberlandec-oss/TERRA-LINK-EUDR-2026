@@ -27,6 +27,7 @@
   const out = document.getElementById('content');
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   if (!indexedDB) { out.className='status error'; out.textContent='IndexedDB no está disponible; no se puede recuperar el borrador.'; return; }
+  window.addEventListener('online', () => location.reload());
   const req = indexedDB.open('terra-link-offline-capture', 1);
   req.onerror = () => { out.className='status error'; out.textContent='No se pudo abrir el almacenamiento local.'; };
   req.onsuccess = () => {

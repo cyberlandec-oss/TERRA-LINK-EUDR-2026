@@ -1,5 +1,9 @@
 # Matriz fuente → requisito → historia → prueba
 
+### Reanudación y sesión (2026-11-11)
+
+Al volver la red, `offline-capture.html` recarga la captura real y entrega el control al sincronizador existente. El cierre de sesión elimina la identidad temporal usada para filtrar borradores; la validación E2E de reconexión, cierre de navegador y cambio de cuenta permanece pendiente.
+
 ### Reapertura offline (2026-11-11)
 
 El service worker incorpora `offline-capture.html`, un shell público sin datos privados cacheados. Al perder la red durante una navegación a captura, recupera los borradores filtrados por identidad de sesión, organización y parcela; la confirmación local queda en la misma cola IndexedDB y el componente web sincroniza al reconectar. La E2E específica está versionada, pero no ejecutada en este entorno por ausencia del binario Playwright del workspace.

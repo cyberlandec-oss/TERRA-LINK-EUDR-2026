@@ -1,5 +1,9 @@
 # Estado compartido de desarrollo
 
+### Corrección de reanudación (2026-11-11)
+
+El shell offline vuelve automáticamente a la ruta real de captura cuando recupera conectividad; no implementa un sincronizador paralelo. El cierre de sesión elimina también la identidad de filtrado local. La ejecución E2E sigue pendiente por falta del binario Playwright en el entorno Windows.
+
 ### Continuación Offline-First (2026-11-11)
 
 Se añadió `offline-capture.html` como shell público del service worker para recuperar la captura sin cachear HTML autenticado ni respuestas privadas. Filtra por identidad de sesión, organización y parcela, permite confirmar el borrador local y deja la sincronización al componente real al reconectar. La prueba E2E está versionada; su ejecución queda pendiente porque el binario Playwright no está instalado en el workspace Windows.

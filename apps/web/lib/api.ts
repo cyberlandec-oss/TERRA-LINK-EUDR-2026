@@ -105,6 +105,7 @@ export const session = {
   clear() {
     try {
       sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem('tl_offline_owner_key');
     } catch {
       /* sin almacenamiento */
     }
