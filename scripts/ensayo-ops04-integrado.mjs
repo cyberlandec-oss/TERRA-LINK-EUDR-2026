@@ -1,0 +1,62 @@
+// OPS-04: ejecutor reproducible de restauración QA.
+// No crea respaldos ni imprime secretos: recibe una carpeta protegida fuera de Git.
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+
+const arg = (name, fallback = null) => { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : fallback; };
+const backup = resolve(arg('--respaldo', ''));
+const compose = resolve(arg('--compose', 'infra/qa16/docker-compose.ensayo.yml'));
+const envFile = resolve(arg('--env-file', ''));
+const project = arg('--project', `tl-ops04-${Date.now()}`);
+const reportPath = resolve(arg('--informe', join(backup || '.', `ops04-${project}.json`)));
+const pg = `${project}-postgres-1`;
+const started = new Date().toISOString();
+const report = { project, started_at: started, backup: {}, recovery: {}, checks: [], limitations: [] };
+const run = (command, args, options = {}) => execFileSync(command, args, { encoding: 'utf8', stdio: options.stdio ?? 'pipe', ...options });
+const docker = (args, options = {}) => run('docker', args, options);
+const check = (name, ok, detail) => { report.checks.push({ name, ok, detail }); return ok; };
+const fail = (message) => { report.status = 'FAIL'; report.error = message; writeFileSync(reportPath, JSON.stringify(report, null, 2)); console.error(`OPS04_FAIL: ${message}`); process.exit(1); };
+
+if (!backup || !existsSync(join(backup, 'terra_link.dump')) || !existsSync(join(backup, 'object-data.tar.gz') || '') || !envFile || !existsSync(envFile)) fail('faltan respaldo, objetos o env QA; no se muestran rutas de secretos');
+mkdirSync(resolve(backup), { recursive: true });
+report.backup.captured_at = readFileSync(join(backup, 'estado-actual.txt'), 'utf8').match(/^CAPTURED_AT\|(.+)$/m)?.[1] ?? null;
+for (const file of ['terra_link.dump', 'object-data.tar.gz']) {
+  const hash = run('certutil', ['-hashfile', join(backup, file), 'SHA256']).split(/\r?\n/).find((line) => /^[0-9a-f ]{64}$/i.test(line.trim()))?.replace(/\s/g, '').toLowerCase();
+  report.backup[file] = { sha256: hash ?? null };
+  check(`${file}: hash calculable`, Boolean(hash), hash ? 'SHA-256 local calculado' : 'no calculable');
+}
+
+const composeArgs = ['compose', '-p', project, '-f', compose, '--env-file', envFile];
+const startedRecovery = new Date(); report.recovery.started_at = startedRecovery.toISOString();
+try {
+  docker([...composeArgs, 'up', '-d', 'postgres', 'redis', 'object-storage']);
+  let definitive = false;
+  for (let i = 0; i < 45; i += 1) {
+    const logs = docker(['logs', pg]);
+    if (logs.includes('PostgreSQL init process complete')) { definitive = true; break; }
+    run('node', ['-e', 'setTimeout(()=>{},1000)']);
+  }
+  if (!check('PostgreSQL: arranque definitivo', definitive, definitive ? 'marcador del entrypoint observado' : 'marcador ausente')) fail('PostgreSQL no alcanzó el arranque definitivo');
+  docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'postgres', '-c', 'CREATE DATABASE restore_copy OWNER restore;']);
+  docker(['cp', join(backup, 'terra_link.dump'), `${pg}:/tmp/terra_link.dump`]);
+  const restore = run('docker', ['exec', pg, 'pg_restore', '-U', 'restore', '-d', 'restore_copy', '--no-owner', '--no-privileges', '/tmp/terra_link.dump'], { stdio: 'pipe' });
+  check('pg_restore', true, restore.includes('errors ignored') ? 'terminó con advertencias; revisar salida conservada por el lanzador' : 'código 0');
+  const migrations = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-tAc', 'SELECT count(*) FROM kysely_migration']).trim();
+  const tables = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-tAc', "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r' AND n.nspname='public'"]).trim();
+  const refs = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-tAc', 'SELECT count(*) FROM public_references']).trim();
+  check('base restaurada', migrations !== '' && tables !== '', `migraciones=${migrations}; tablas=${tables}; referencias=${refs}`);
+  docker([...composeArgs, 'up', '-d', 'api']);
+  const healthUrl = arg('--health-url', 'http://localhost:4010/health/ready');
+  const health = JSON.parse(run('curl.exe', ['-fsS', healthUrl]));
+  report.recovery.health = health;
+  check('servicio recuperado', health.status === 'ok', `status=${health.status}; scanner=${health.checks?.scanner ?? 'desconocido'}`);
+  if (health.status !== 'ok') report.limitations.push('API responde, pero no es recuperación completa: health distinto de ok');
+  report.recovery.finished_at = new Date().toISOString();
+  report.recovery.rto_minutes = (Date.parse(report.recovery.finished_at) - Date.parse(report.recovery.started_at)) / 60000;
+  report.limitations.push('RPO requiere una referencia transaccional capturada antes del pg_dump; la fecha del archivo no la sustituye');
+  report.status = report.checks.every((item) => item.ok) ? 'PASS' : 'PARTIAL';
+} catch (error) { report.error = error.message; report.status = 'FAIL'; }
+writeFileSync(reportPath, JSON.stringify(report, null, 2));
+console.log(JSON.stringify(report, null, 2));
+process.exitCode = report.status === 'PASS' ? 0 : 1;
