@@ -131,7 +131,12 @@ export default function MiFincaPage() {
                     <tr key={p.id}>
                       <td><Link href={`${base}/parcelas/${p.id}`}>{p.plot_code}{p.name ? ` · ${p.name}` : ''}</Link></td>
                       <td><StatusBadge tone={GEOMETRY_STATUS[p.geometry_status].tone}>{t(GEOMETRY_STATUS[p.geometry_status].label)}</StatusBadge></td>
-                      <td><Link href={`${base}/parcelas/${p.id}`}>{p.geometry_status === 'GEOMETRY_RECORDED' ? t('Ver o corregir la ubicación') : t('Ubicar la parcela')}</Link></td>
+                      <td>
+                        <div className="actions">
+                          <Link href={`${base}/parcelas/${p.id}`}>{p.geometry_status === 'GEOMETRY_RECORDED' ? t('Ver o corregir la ubicación') : t('Ubicar la parcela')}</Link>
+                          <Link className="secondary" href={`${base}/captura?producer_id=${p.producer.id}&plot_id=${p.id}`}>{t('Abrir captura guiada')}</Link>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { ApiError, api } from '../../../../lib/api';
 import { FieldCapture } from '../../../../lib/field-capture';
@@ -20,6 +21,7 @@ interface ProducerRow { id: string; producer_code: string; display_name: string;
 
 export default function CapturaPage() {
   const ws = useWorkspace();
+  const search = useSearchParams();
   const { t, dt, num, locale } = useI18n();
   const orgId = ws.activeOrg?.id ?? '';
   const region = locale === 'en' ? 'en-US' : 'es-EC';
@@ -30,6 +32,8 @@ export default function CapturaPage() {
   const [plot, setPlot] = useState<Plot | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [q, setQ] = useState('');
+  const requestedProducer = search.get('producer_id') ?? '';
+  const requestedPlot = search.get('plot_id') ?? '';
 
   const loadProducers = useCallback(async (term = '') => {
     if (!orgId) return;
@@ -44,7 +48,11 @@ export default function CapturaPage() {
   useEffect(() => { void loadProducers(); }, [loadProducers]);
 
   // Quien tiene un único productor propio no necesita elegir: se selecciona solo.
-  useEffect(() => { if (producers && producers.length === 1 && !producerId) setProducerId(producers[0].id); }, [producers, producerId]);
+  useEffect(() => {
+    if (!producers) return;
+    if (requestedProducer && producers.some((p) => p.id === requestedProducer)) setProducerId(requestedProducer);
+    else if (producers.length === 1 && !producerId) setProducerId(producers[0].id);
+  }, [producers, producerId, requestedProducer]);
 
   const loadPlots = useCallback(async () => {
     if (!orgId || !producerId) { setPlots(null); return; }
@@ -54,6 +62,9 @@ export default function CapturaPage() {
     } catch (err) { setError(err as ApiError); }
   }, [orgId, producerId]);
   useEffect(() => { setPlotId(''); setPlot(null); void loadPlots(); }, [loadPlots]);
+  useEffect(() => {
+    if (plots && requestedPlot && plots.some((p) => p.id === requestedPlot)) setPlotId(requestedPlot);
+  }, [plots, requestedPlot]);
 
   const loadPlot = useCallback(async () => {
     if (!orgId || !plotId) { setPlot(null); return; }
