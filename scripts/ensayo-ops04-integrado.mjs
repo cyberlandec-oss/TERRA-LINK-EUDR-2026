@@ -49,7 +49,11 @@ try {
   check('base restaurada', migrations !== '' && tables !== '', `migraciones=${migrations}; tablas=${tables}; referencias=${refs}`);
   docker([...composeArgs, 'up', '-d', 'api']);
   const healthUrl = arg('--health-url', 'http://localhost:4010/health/ready');
-  const health = JSON.parse(run('curl.exe', ['-fsS', healthUrl]));
+  let health = null; let lastHealthError = 'sin respuesta';
+  for (let i = 0; i < 30 && !health; i += 1) {
+    try { health = JSON.parse(run('curl.exe', ['-fsS', healthUrl])); } catch (error) { lastHealthError = error.message; run('node', ['-e', 'setTimeout(()=>{},1000)']); }
+  }
+  if (!health) fail(`API no alcanzó healthcheck dentro del límite: ${lastHealthError}`);
   report.recovery.health = health;
   check('servicio recuperado', health.status === 'ok', `status=${health.status}; scanner=${health.checks?.scanner ?? 'desconocido'}`);
   if (health.status !== 'ok') report.limitations.push('API responde, pero no es recuperación completa: health distinto de ok');
