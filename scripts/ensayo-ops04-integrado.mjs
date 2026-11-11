@@ -3,6 +3,9 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { locateBySha } from './ops04-object-localizer.mjs';
 
 const arg = (name, fallback = null) => { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : fallback; };
 const backup = resolve(arg('--respaldo', ''));
@@ -66,41 +69,50 @@ try {
   docker([...composeArgs, 'up', '-d', 'api']);
   docker(['cp', join(backup, 'object-data.tar.gz'), `${objects}:/tmp/object-data.tar.gz`]);
   docker(['exec', objects, 'tar', '-xzf', '/tmp/object-data.tar.gz', '-C', '/data']);
+  const extractDir = mkdtempSync(join(tmpdir(), 'tl-ops04-extract-'));
+  run('tar', ['-xzf', join(backup, 'object-data.tar.gz'), '-C', extractDir]);
   const refsSql = "SELECT 'document_versions', object_key, sha256 FROM document_versions WHERE object_key IS NOT NULL UNION ALL SELECT 'geometry_imports', object_key, sha256 FROM geometry_imports WHERE object_key IS NOT NULL UNION ALL SELECT 'satellite_results', raw_object_key, raw_sha256 FROM satellite_results WHERE raw_object_key IS NOT NULL";
-  const refRows = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-At', '-F', '\\t', '-c', refsSql]).trim().split(/\r?\n/).filter(Boolean);
-  let missing = 0; let altered = 0; let verified = 0;
-  for (const row of refRows) {
-    const [, key, expected] = row.split('\t');
-    if (!key || key.startsWith('/') || key.includes('..')) { missing += 1; continue; }
-    try {
-      let remapped = false;
-      const sourcePath = docker(['exec', objects, 'sh', '-c', `find /data -type f -exec sha256sum {} + | awk '$1=="${expected}" {print $2; exit}'`]).trim();
-      if (sourcePath) {
-        docker(['cp', `${objects}:${sourcePath}`, `${api}:/tmp/ops04-remap-object`]);
-        const putCode = "import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'; import { createReadStream } from 'node:fs'; const key=process.argv[1]; const c=new S3Client({endpoint:process.env.S3_ENDPOINT,region:process.env.S3_REGION||'us-east-1',forcePathStyle:true,credentials:{accessKeyId:process.env.S3_ACCESS_KEY,secretAccessKey:process.env.S3_SECRET_KEY}}); try { await c.send(new PutObjectCommand({Bucket:process.env.S3_BUCKET||'terra-link-private',Key:key,Body:createReadStream('/tmp/ops04-remap-object')})); } finally { c.destroy(); }";
-        docker(['exec', api, 'node', '--input-type=module', '-e', putCode, key]);
-        remapped = true;
-      }
-      const actual = remapped ? expected : docker(['exec', objects, 'sha256sum', '--', `/data/${key}`]).trim().split(/\s+/)[0]; if (actual !== expected) altered += 1; else verified += 1;
-    } catch { missing += 1; }
-  }
-  check('objetos referenciados integros', missing === 0 && altered === 0, `referencias=${refRows.length}; verificadas=${verified}; ausentes=${missing}; alteradas=${altered}`);
-  const keyRows = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-At', '-c', "SELECT DISTINCT split_part(document_number_enc,'.',2) FROM producers WHERE document_number_enc IS NOT NULL"]).trim().split(/\r?\n/).filter(Boolean);
+  const refRows = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-At', '-F', '|', '-c', refsSql]).trim().split(/\r?\n/).filter(Boolean);
   const envText = readFileSync(envFile, 'utf8');
   const qaEnv = parseEnv(envText);
+  let missing = 0; let altered = 0; let verified = 0;
+  const objectStages = [];
+  for (const row of refRows) {
+    const [, key, expected] = row.split('|');
+    const stage = { key, expected_sha256: expected, localization: null, transfer: null, put_object: null, get_object: null };
+    objectStages.push(stage);
+    if (!key || key.startsWith('/') || key.includes('..')) { stage.localization = { ok: false, error: 'INVALID_OBJECT_KEY' }; missing += 1; continue; }
+    try {
+      const matches = await locateBySha(extractDir, expected);
+      stage.localization = { ok: matches.length === 1, matches: matches.length };
+      if (matches.length !== 1) { missing += 1; continue; }
+      try { docker(['cp', matches[0].file, `${api}:/tmp/ops04-remap-object`]); stage.transfer = { ok: true }; }
+      catch (error) { stage.transfer = { ok: false, error: String(error?.stderr || error?.message || 'TRANSFER_FAILED').trim() }; missing += 1; continue; }
+      const putCode = "import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'; import { createReadStream } from 'node:fs'; const key=process.argv[1]; const c=new S3Client({endpoint:process.env.S3_ENDPOINT,region:process.env.S3_REGION||'us-east-1',forcePathStyle:true,credentials:{accessKeyId:process.env.S3_ACCESS_KEY,secretAccessKey:process.env.S3_SECRET_KEY}}); try { const r=await c.send(new PutObjectCommand({Bucket:process.env.S3_BUCKET||'terra-link-private',Key:key,Body:createReadStream('/tmp/ops04-remap-object')})); console.log(JSON.stringify({ok:true,etag:r.ETag||null})); } catch(e) { console.error(JSON.stringify({ok:false,name:e.name,code:e.Code||null,http:e.$metadata?.httpStatusCode||null,message:e.message})); process.exit(4); } finally { c.destroy(); }";
+      try { stage.put_object = { ok: true, output: docker(['exec', api, 'node', '--input-type=module', '-e', putCode, key]).trim() }; }
+      catch (error) { stage.put_object = { ok: false, error: String(error?.stderr || error?.stdout || error?.message || 'PUT_OBJECT_FAILED').trim() }; missing += 1; continue; }
+      const actual = s3Hash(api, qaEnv?.S3_ENDPOINT || 'http://object-storage:9000', qaEnv?.S3_BUCKET || 'terra-link-private', key);
+      stage.get_object = actual.ok ? { ok: true, sha256: actual.sha256, matches: actual.sha256 === expected } : { ok: false, error: actual.error };
+      if (!actual.ok) missing += 1; else if (actual.sha256 !== expected) altered += 1; else verified += 1;
+    } catch (error) { stage.localization = { ok: false, error: String(error?.message || 'LOCALIZATION_FAILED') }; missing += 1; }
+  }
+  report.recovery.object_stages = objectStages;
+  check('objetos referenciados integros', missing === 0 && altered === 0 && verified === refRows.length, `referencias=${refRows.length}; verificadas=${verified}; ausentes=${missing}; alteradas=${altered}`);
+  const keyRows = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-At', '-c', "SELECT DISTINCT split_part(document_number_enc,'.',2) FROM producers WHERE document_number_enc IS NOT NULL"]).trim().split(/\r?\n/).filter(Boolean);
   const keyring = new Set((envText.match(/^PII_KEYS=(.*)$/m)?.[1] ?? '').split(',').map((v) => v.split(':')[0]).filter(Boolean));
   const unavailable = keyRows.filter((kid) => !keyring.has(kid));
   check('claves referenciadas disponibles', unavailable.length === 0, `ids=${keyRows.length}; no_disponibles=${unavailable.length}`);
   check('descifrado sintetico con llavero recuperado', keyring.size > 0, 'alcance: material sintetico; no se imprimen datos personales');
   report.recovery.objects = { references: refRows.length, verified, missing, altered };
   if (refRows.length) {
-    const [, key, expected] = refRows[0].split('\t');
+    const [, key, expected] = refRows[0].split('|');
     const qaObject = s3Hash(api, 'http://object-storage:9000', qaEnv.S3_BUCKET, key);
     const originEndpoint = arg('--origen-endpoint', 'http://localhost:9000');
     const originObject = s3Hash(api, originEndpoint, qaEnv.S3_BUCKET, key);
     report.recovery.objects.s3 = { expected_sha256: expected, origin_present: originObject.ok, qa_present: qaObject.ok, qa_sha256: qaObject.sha256 ?? null, origin_sha256: originObject.sha256 ?? null, qa_sha_matches: qaObject.ok && qaObject.sha256 === expected, origin_sha_matches: originObject.ok && originObject.sha256 === expected, origin_error: originObject.error ?? null, qa_error: qaObject.error ?? null };
   }
   report.recovery.keys = { referenced_ids: keyRows.length, unavailable_ids: unavailable.length, synthetic_scope: true };
+  rmSync(extractDir, { recursive: true, force: true });
   if (objectsOnly) {
     report.recovery.finished_at = new Date().toISOString();
     report.status = report.checks.every((item) => item.ok) ? 'PASS' : 'PARTIAL';
