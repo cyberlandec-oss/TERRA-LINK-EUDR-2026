@@ -38,7 +38,8 @@ try {
     run('node', ['-e', 'setTimeout(()=>{},1000)']);
   }
   if (!check('PostgreSQL: arranque definitivo', definitive, definitive ? 'marcador del entrypoint observado' : 'marcador ausente')) fail('PostgreSQL no alcanzó el arranque definitivo');
-  docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'postgres', '-c', 'DROP DATABASE IF EXISTS restore_copy WITH (FORCE); CREATE DATABASE restore_copy OWNER restore;']);
+  docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'postgres', '-c', 'DROP DATABASE IF EXISTS restore_copy WITH (FORCE);']);
+  docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'postgres', '-c', 'CREATE DATABASE restore_copy OWNER restore;']);
   docker(['cp', join(backup, 'terra_link.dump'), `${pg}:/tmp/terra_link.dump`]);
   const restore = run('docker', ['exec', pg, 'pg_restore', '-U', 'restore', '-d', 'restore_copy', '--no-owner', '--no-privileges', '/tmp/terra_link.dump'], { stdio: 'pipe' });
   check('pg_restore', true, restore.includes('errors ignored') ? 'terminó con advertencias; revisar salida conservada por el lanzador' : 'código 0');
