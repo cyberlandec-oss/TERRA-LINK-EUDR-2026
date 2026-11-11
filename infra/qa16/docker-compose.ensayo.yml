@@ -46,6 +46,7 @@ services:
   api:
     image: terra-link-api:local
     environment:
+      NODE_ENV: ${NODE_ENV:?falta NODE_ENV}
       DATABASE_URL: postgres://${ENSAYO_PG_USER}:${ENSAYO_PG_PASSWORD}@postgres:5432/${ENSAYO_PG_DB}
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET}
