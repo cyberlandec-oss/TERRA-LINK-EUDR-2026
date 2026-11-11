@@ -186,7 +186,8 @@ test('Offline-First: punto confirmado sin red se recupera tras recargar y sincro
   });
   await ctx.addInitScript((token) => sessionStorage.setItem('tl_token', token), prodTok);
   const page = await ctx.newPage();
-  await page.goto(`/organizaciones/${orgId}/captura?producer_id=${encodeURIComponent('')}`);
+  await page.goto(`/organizaciones/${orgId}/mi-finca`);
+  await page.getByRole('link', { name: 'Abrir captura guiada' }).first().click();
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.getByLabel('Parcela', { exact: true }).selectOption({ index: 1 });
   await page.getByRole('button', { name: 'Capturar ubicación' }).click();
@@ -198,7 +199,7 @@ test('Offline-First: punto confirmado sin red se recupera tras recargar y sincro
   await page.getByRole('button', { name: 'Confirmar sin conexión' }).click();
   await expect(page.getByText('Captura confirmada')).toBeVisible();
   await ctx.setOffline(false);
-  await page.goto(`/organizaciones/${orgId}/captura`);
+  await expect(page.getByRole('heading', { name: 'Captura de campo' })).toBeVisible({ timeout: 30_000 });
   await expect.poll(async () => {
     const versiones = await ok(`/api/v1/organizations/${orgId}/plots/${plotPropia}/geometry-versions`, { token: prodTok });
     return (versiones.items ?? versiones.data ?? versiones).length;
