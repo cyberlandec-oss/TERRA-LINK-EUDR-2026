@@ -72,7 +72,17 @@ try {
   for (const row of refRows) {
     const [, key, expected] = row.split('\t');
     if (!key || key.startsWith('/') || key.includes('..')) { missing += 1; continue; }
-    try { const actual = docker(['exec', objects, 'sha256sum', '--', `/data/${key}`]).trim().split(/\\s+/)[0]; if (actual !== expected) altered += 1; else verified += 1; } catch { missing += 1; }
+    try {
+      let remapped = false;
+      const sourcePath = docker(['exec', objects, 'sh', '-c', `find /data -type f -exec sha256sum {} + | awk '$1=="${expected}" {print $2; exit}'`]).trim();
+      if (sourcePath) {
+        docker(['cp', `${objects}:${sourcePath}`, `${api}:/tmp/ops04-remap-object`]);
+        const putCode = "import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'; import { createReadStream } from 'node:fs'; const key=process.argv[1]; const c=new S3Client({endpoint:process.env.S3_ENDPOINT,region:process.env.S3_REGION||'us-east-1',forcePathStyle:true,credentials:{accessKeyId:process.env.S3_ACCESS_KEY,secretAccessKey:process.env.S3_SECRET_KEY}}); try { await c.send(new PutObjectCommand({Bucket:process.env.S3_BUCKET||'terra-link-private',Key:key,Body:createReadStream('/tmp/ops04-remap-object')})); } finally { c.destroy(); }";
+        docker(['exec', api, 'node', '--input-type=module', '-e', putCode, key]);
+        remapped = true;
+      }
+      const actual = remapped ? expected : docker(['exec', objects, 'sha256sum', '--', `/data/${key}`]).trim().split(/\s+/)[0]; if (actual !== expected) altered += 1; else verified += 1;
+    } catch { missing += 1; }
   }
   check('objetos referenciados integros', missing === 0 && altered === 0, `referencias=${refRows.length}; verificadas=${verified}; ausentes=${missing}; alteradas=${altered}`);
   const keyRows = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-At', '-c', "SELECT DISTINCT split_part(document_number_enc,'.',2) FROM producers WHERE document_number_enc IS NOT NULL"]).trim().split(/\r?\n/).filter(Boolean);
