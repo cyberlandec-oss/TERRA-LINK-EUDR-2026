@@ -1,5 +1,9 @@
 # Estado compartido de desarrollo
 
+### E2E Offline-First de punto (2026-11-11)
+
+La ejecución Linux completa de `e2e/tests/captura-campo.spec.ts` terminó `7 passed`, código `0`, incluyendo el recorrido desde «Mi finca», recarga offline, confirmación local y reconexión automática. Evidencia: `docs/qa/EVIDENCIA_OFFLINE_FIRST_WEB_2026-11-11.md`. El punto queda demostrado localmente; aislamiento avanzado, conflictos, cierre completo del navegador y polígonos/fotografías offline siguen pendientes.
+
 ### Corrección de reanudación (2026-11-11)
 
 El shell offline vuelve automáticamente a la ruta real de captura cuando recupera conectividad; no implementa un sincronizador paralelo. El cierre de sesión elimina también la identidad de filtrado local. La ejecución E2E sigue pendiente por falta del binario Playwright en el entorno Windows.

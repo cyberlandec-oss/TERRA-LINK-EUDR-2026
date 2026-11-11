@@ -1,5 +1,9 @@
 # Matriz fuente → requisito → historia → prueba
 
+### Evidencia E2E Offline-First (2026-11-11)
+
+`captura-campo.spec.ts` ejecutada en Linux con Playwright 1.64 y Chromium: `7 passed`, código `0`. El caso nuevo demuestra Mi finca → captura → desconexión → recarga → confirmación offline → reconexión automática → una versión en servidor. No acredita aún conflictos, cambio de cuenta, cierre completo del navegador ni offline de polígonos/fotografías. Ver `docs/qa/EVIDENCIA_OFFLINE_FIRST_WEB_2026-11-11.md`.
+
 ### Reanudación y sesión (2026-11-11)
 
 Al volver la red, `offline-capture.html` recarga la captura real y entrega el control al sincronizador existente. El cierre de sesión elimina la identidad temporal usada para filtrar borradores; la validación E2E de reconexión, cierre de navegador y cambio de cuenta permanece pendiente.

@@ -189,7 +189,6 @@ test('Offline-First: punto confirmado sin red se recupera tras recargar y sincro
   await page.goto(`/organizaciones/${orgId}/mi-finca`);
   await page.getByRole('link', { name: 'Abrir captura guiada' }).first().click();
   await page.evaluate(() => navigator.serviceWorker.ready);
-  await page.getByLabel('Parcela', { exact: true }).selectOption({ index: 1 });
   await page.getByRole('button', { name: 'Capturar ubicación' }).click();
   await expect(page.getByText('Revisa la muestra antes de guardarla')).toBeVisible();
   await ctx.setOffline(true);
