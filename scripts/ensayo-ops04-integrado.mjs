@@ -13,10 +13,16 @@ const reportPath = resolve(arg('--informe', join(backup || '.', `ops04-${project
 const pg = `${project}-postgres-1`;
 const objects = `${project}-object-storage-1`;
 const scanner = `${project}-scanner-1`;
+const api = `${project}-api-1`;
 const started = new Date().toISOString();
 const report = { project, started_at: started, backup: {}, recovery: {}, checks: [], limitations: [] };
 const run = (command, args, options = {}) => execFileSync(command, args, { encoding: 'utf8', stdio: options.stdio ?? 'pipe', ...options });
 const docker = (args, options = {}) => run('docker', args, options);
+const parseEnv = (text) => Object.fromEntries(text.split(/\r?\n/).filter((line) => line && !line.startsWith('#')).map((line) => { const i = line.indexOf('='); return i < 0 ? [line, ''] : [line.slice(0, i), line.slice(i + 1)]; }));
+const s3Hash = (container, endpoint, bucket, key) => {
+  const code = "import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'; import { createHash } from 'node:crypto'; const [endpoint,bucket,key]=process.argv.slice(1); const c=new S3Client({endpoint,region:'us-east-1',forcePathStyle:true,credentials:{accessKeyId:process.env.TL_S3_ACCESS,secretAccessKey:process.env.TL_S3_SECRET}}); try { const r=await c.send(new GetObjectCommand({Bucket:bucket,Key:key})); const b=Buffer.from(await r.Body.transformToByteArray()); console.log('SHA:'+createHash('sha256').update(b).digest('hex')); } catch (e) { console.log('ERROR:'+((e && e.name) || 'unknown')); process.exit(3); } finally { c.destroy(); }";
+  try { const output = docker(['exec', container, 'node', '--input-type=module', '-e', code, endpoint, bucket, key]).trim(); return output.startsWith('SHA:') ? { ok: true, sha256: output.slice(4) } : { ok: false, error: output }; } catch (error) { const output = String(error?.stdout ?? '').trim(); return { ok: false, error: output || 'S3_READ_FAILED' }; }
+};
 const check = (name, ok, detail) => { report.checks.push({ name, ok, detail }); return ok; };
 const save = () => writeFileSync(reportPath, JSON.stringify(report, null, 2));
 const fail = (message) => { report.status = 'FAIL'; report.error = message; save(); throw new Error(message); };
@@ -56,6 +62,7 @@ try {
   const tables = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-tAc', "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r' AND n.nspname='public'"]).trim();
   const refs = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-tAc', 'SELECT count(*) FROM public_references']).trim();
   check('base restaurada', migrations !== '' && tables !== '', `migraciones=${migrations}; tablas=${tables}; referencias=${refs}`);
+  docker([...composeArgs, 'up', '-d', 'api']);
   docker(['cp', join(backup, 'object-data.tar.gz'), `${objects}:/tmp/object-data.tar.gz`]);
   docker(['exec', objects, 'tar', '-xzf', '/tmp/object-data.tar.gz', '-C', '/data']);
   const refsSql = "SELECT 'document_versions', object_key, sha256 FROM document_versions WHERE object_key IS NOT NULL UNION ALL SELECT 'geometry_imports', object_key, sha256 FROM geometry_imports WHERE object_key IS NOT NULL UNION ALL SELECT 'satellite_results', raw_object_key, raw_sha256 FROM satellite_results WHERE raw_object_key IS NOT NULL";
@@ -69,13 +76,20 @@ try {
   check('objetos referenciados integros', missing === 0 && altered === 0, `referencias=${refRows.length}; verificadas=${verified}; ausentes=${missing}; alteradas=${altered}`);
   const keyRows = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-At', '-c', "SELECT DISTINCT split_part(document_number_enc,'.',2) FROM producers WHERE document_number_enc IS NOT NULL"]).trim().split(/\\r?\\n/).filter(Boolean);
   const envText = readFileSync(envFile, 'utf8');
+  const qaEnv = parseEnv(envText);
   const keyring = new Set((envText.match(/^PII_KEYS=(.*)$/m)?.[1] ?? '').split(',').map((v) => v.split(':')[0]).filter(Boolean));
   const unavailable = keyRows.filter((kid) => !keyring.has(kid));
   check('claves referenciadas disponibles', unavailable.length === 0, `ids=${keyRows.length}; no_disponibles=${unavailable.length}`);
   check('descifrado sintetico con llavero recuperado', keyring.size > 0, 'alcance: material sintetico; no se imprimen datos personales');
   report.recovery.objects = { references: refRows.length, verified, missing, altered };
+  if (refRows.length) {
+    const [, key, expected] = refRows[0].split('\\t');
+    const qaObject = s3Hash(api, 'http://object-storage:9000', qaEnv.S3_BUCKET, key);
+    const originEndpoint = arg('--origen-endpoint', 'http://localhost:9000');
+    const originObject = s3Hash(api, originEndpoint, qaEnv.S3_BUCKET, key);
+    report.recovery.objects.s3 = { origin_present: originObject.ok, qa_present: qaObject.ok, qa_sha_matches: qaObject.ok && qaObject.sha256 === expected, origin_sha_matches: originObject.ok && originObject.sha256 === expected, origin_error: originObject.error ?? null, qa_error: qaObject.error ?? null };
+  }
   report.recovery.keys = { referenced_ids: keyRows.length, unavailable_ids: unavailable.length, synthetic_scope: true };
-  docker([...composeArgs, 'up', '-d', 'api']);
   const healthUrl = arg('--health-url', 'http://localhost:4010/health/ready');
   let health = null; let lastHealthError = 'sin respuesta';
   for (let i = 0; i < 30 && !health; i += 1) {
