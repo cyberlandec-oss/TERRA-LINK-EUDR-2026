@@ -59,6 +59,7 @@ services:
     image: terra-link-api:local
     command: ["node", "dist/db/migrate-cli.js"]
     environment:
+      NODE_ENV: ${NODE_ENV:-development}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       PII_KEYS: ${PII_KEYS:?definir en .env}
       PII_ACTIVE_KEY_ID: ${PII_ACTIVE_KEY_ID:?definir en .env}
@@ -74,6 +75,7 @@ services:
     profiles: [app]
     image: terra-link-api:local
     environment:
+      NODE_ENV: ${NODE_ENV:-development}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:?definir en .env}
