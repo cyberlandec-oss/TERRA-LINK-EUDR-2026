@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Captura disponible sin conexión</title>
+  <style>
+    body{font:16px system-ui,sans-serif;margin:0;padding:1rem;background:#f6f8f5;color:#17251b}
+    main{max-width:42rem;margin:auto;background:#fff;padding:1.25rem;border-radius:.75rem;box-shadow:0 2px 12px #0001}
+    .status{padding:.75rem;border-radius:.5rem;background:#fff4d6}.ok{background:#e2f5e8}.error{background:#fde3e3}
+    button{padding:.7rem 1rem;border:0;border-radius:.4rem;background:#176b3a;color:#fff;font-weight:600;margin:.25rem}
+    button.secondary{background:#54635a} dl{display:grid;grid-template-columns:1fr 1fr;gap:.3rem}dt{font-weight:600}
+  </style>
+</head>
+<body>
+<main>
+  <p class="status">Modo sin conexión: no se cacheó contenido privado.</p>
+  <h1>Captura recuperada</h1>
+  <p>Este shell permite recuperar una captura guardada en este dispositivo. La revisión del servidor y la aprobación de la parcela ocurren al sincronizar.</p>
+  <section id="content" aria-live="polite">Buscando borradores locales…</section>
+  <p><button class="secondary" onclick="location.reload()">Volver a comprobar</button></p>
+</main>
+<script>
+(() => {
+  const q = new URLSearchParams(location.search), path = location.pathname.split('/'), org = q.get('org') || q.get('organization_id') || path[2], plot = q.get('plot_id'), owner = sessionStorage.getItem('tl_offline_owner_key');
+  const out = document.getElementById('content');
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  if (!indexedDB) { out.className='status error'; out.textContent='IndexedDB no está disponible; no se puede recuperar el borrador.'; return; }
+  const req = indexedDB.open('terra-link-offline-capture', 1);
+  req.onerror = () => { out.className='status error'; out.textContent='No se pudo abrir el almacenamiento local.'; };
+  req.onsuccess = () => {
+    const db=req.result, tx=db.transaction('location-captures','readonly'), get=tx.objectStore('location-captures').getAll();
+    get.onsuccess=()=>{
+      const rows=get.result.filter(x => owner && x.owner_key===owner && (!org || x.organization_id===org) && (!plot || x.plot_id===plot));
+      if (!rows.length) { out.textContent='No hay capturas pendientes para este contexto.'; db.close(); return; }
+      out.innerHTML=rows.map(x=>`<article><h2>Captura ${esc(x.status==='DRAFT'?'en revisión':'confirmada')}</h2><dl><dt>Latitud</dt><dd>${esc(x.latitude)}</dd><dt>Longitud</dt><dd>${esc(x.longitude)}</dd><dt>Precisión</dt><dd>${esc(x.accuracy_m ?? 'No informada')}</dd><dt>Adquisición</dt><dd>${esc(x.captured_at)}</dd></dl>${x.confirmed?'':'<button data-id="'+esc(x.operation_id)+'">Confirmar sin conexión</button>'}</article>`).join('');
+      out.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{ const w=db.transaction('location-captures','readwrite'); const s=w.objectStore('location-captures'); const g=s.get(b.dataset.id); g.onsuccess=()=>{if(g.result)s.put({...g.result,confirmed:true,status:'PENDING'});}; w.oncomplete=()=>location.reload(); });
+    };
+  };
+})();
+</script>
+</body>
+</html>

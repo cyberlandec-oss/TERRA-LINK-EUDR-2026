@@ -79,6 +79,7 @@ export function LocationCapture({ orgId, plotId, rowVersion, ownerKey, onSaved, 
     } catch { setPending([]); return []; }
   };
   useEffect(() => {
+    sessionStorage.setItem('tl_offline_owner_key', ownerKey);
     setOnline(navigator.onLine);
     void loadPending().then(() => { if (navigator.onLine) void syncPending(true); });
     const onOnline = () => { setOnline(true); void syncPending(true); };

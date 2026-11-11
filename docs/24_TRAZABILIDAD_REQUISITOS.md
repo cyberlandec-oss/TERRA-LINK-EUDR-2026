@@ -1,5 +1,9 @@
 # Matriz fuente → requisito → historia → prueba
 
+### Reapertura offline (2026-11-11)
+
+El service worker incorpora `offline-capture.html`, un shell público sin datos privados cacheados. Al perder la red durante una navegación a captura, recupera los borradores filtrados por identidad de sesión, organización y parcela; la confirmación local queda en la misma cola IndexedDB y el componente web sincroniza al reconectar. La E2E específica está versionada, pero no ejecutada en este entorno por ausencia del binario Playwright del workspace.
+
 **Cambio de canal (2026-11-11):** Android/Expo queda suspendido y sus requisitos no se eliminan. La captura de productor se continúa por web responsive/PWA: el criterio web conserva servidor como autoridad, alcance propio, procedencia, versionado, revisión previa e historial; el ensayo nativo Android, SQLCipher en dispositivo y campo siguen separados como pendientes no trasladados automáticamente. La primera entrega de este cambio añade acceso contextual desde «Mi finca» a `captura?producer_id=…&plot_id=…` y selección segura en la pantalla existente; evidencia de build Docker: `terra-link-web:local`, digest local `sha256:f3b8d48b5a51c03ce30811b4af72968d5ba35357da5985c84fec134cb6fb71b`. La cifra histórica anterior no se incrementa con esta nota.
 
 **Traslado Offline-First (2026-11-11):** la persistencia web de muestras de punto se implementa como cola IndexedDB con alcance `{usuario, organización, parcela}` y reintento explícito contra el endpoint de ubicación existente. El manifest y service worker son complemento de instalación y shell público, no sustituyen la cola ni ofrecen mapas offline. Quedan por demostrar e integrar en web: vértices de polígono y fotografías offline, reanudación completa con conflicto desde navegador y E2E del recorrido productor sin red.

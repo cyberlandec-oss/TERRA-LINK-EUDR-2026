@@ -1,5 +1,9 @@
 # Estado compartido de desarrollo
 
+### Continuación Offline-First (2026-11-11)
+
+Se añadió `offline-capture.html` como shell público del service worker para recuperar la captura sin cachear HTML autenticado ni respuestas privadas. Filtra por identidad de sesión, organización y parcela, permite confirmar el borrador local y deja la sincronización al componente real al reconectar. La prueba E2E está versionada; su ejecución queda pendiente porque el binario Playwright no está instalado en el workspace Windows.
+
 ## Estado vigente (2026-10-29)
 
 **Actualización de alcance (2026-11-11):** el propietario suspendió Android/Expo, APK, tiendas y toolchain nativo. El código y las evidencias móviles se conservan, pero el canal prioritario pasa a ser web responsive + preparación PWA. La primera entrega web mantiene el dominio existente de parcelas: desde «Mi finca» el productor vinculado puede abrir la captura guiada de su propia parcela (`producer_id`/`plot_id`); la pantalla valida esos parámetros contra las listas autorizadas y reutiliza `FieldCapture` (punto, polígono, revisión y versionado). La autorización final sigue en API (`plot:*_own`, `plot:read_geometry`) y no se modifica DEMO ni históricos. Build web probado en Docker y desplegado localmente con imagen `terra-link-web:local` (digest local `sha256:f3b8d48b5a51c03ede10311b4af72968d5ba35357da5985c84fec134cb6fb71b`); la validación E2E específica del nuevo enlace queda pendiente de ejecución con el arnés completo. El porcentaje histórico no se recalcula hasta conciliar el traslado de requisitos móviles al alcance web.

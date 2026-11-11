@@ -174,3 +174,34 @@ test('captura no es decidir: el productor no puede evaluar, encargar satélite n
   expect((await api(`${base}/plots/${plotPropia}/satellite/analyses`, { method: 'POST', token: prodTok, body: { operation_id: crypto.randomUUID(), operation: 'FOREST_COVER' } })).status).toBe(403);
   expect((await api(`${base}/risk/lots`, { token: prodTok })).status).toBe(403);
 });
+
+test('Offline-First: punto confirmado sin red se recupera tras recargar y sincroniza al reconectar', async ({ browser }) => {
+  const antes = await ok(`/api/v1/organizations/${orgId}/plots/${plotPropia}/geometry-versions`, { token: prodTok });
+  const totalAntes = (antes.items ?? antes.data ?? antes).length;
+  const ctx = await browser.newContext({
+    permissions: ['geolocation'],
+    geolocation: { latitude: -0.851, longitude: -80.161, accuracy: 12 },
+    serviceWorkers: 'allow',
+    viewport: { width: 390, height: 844 },
+  });
+  await ctx.addInitScript((token) => sessionStorage.setItem('tl_token', token), prodTok);
+  const page = await ctx.newPage();
+  await page.goto(`/organizaciones/${orgId}/captura?producer_id=${encodeURIComponent('')}`);
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.getByLabel('Parcela', { exact: true }).selectOption({ index: 1 });
+  await page.getByRole('button', { name: 'Capturar ubicación' }).click();
+  await expect(page.getByText('Revisa la muestra antes de guardarla')).toBeVisible();
+  await ctx.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Captura recuperada' })).toBeVisible();
+  await expect(page.getByText('-0.851')).toBeVisible();
+  await page.getByRole('button', { name: 'Confirmar sin conexión' }).click();
+  await expect(page.getByText('Captura confirmada')).toBeVisible();
+  await ctx.setOffline(false);
+  await page.goto(`/organizaciones/${orgId}/captura`);
+  await expect.poll(async () => {
+    const versiones = await ok(`/api/v1/organizations/${orgId}/plots/${plotPropia}/geometry-versions`, { token: prodTok });
+    return (versiones.items ?? versiones.data ?? versiones).length;
+  }, { timeout: 30_000 }).toBe(totalAntes + 1);
+  await ctx.close();
+});
