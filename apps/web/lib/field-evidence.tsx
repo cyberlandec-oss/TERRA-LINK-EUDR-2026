@@ -47,7 +47,11 @@ export function FieldEvidence({ orgId, plotId, canUpload, ownerKey = 'session' }
         console.info('[offline-sync]', JSON.stringify({ operation_id: row.operation_id, capture_kind: row.capture_kind, organization_id: row.organization_id, plot_id: row.plot_id, phase: 'attempt' }));
         const form = new FormData(); form.append('operation_id', row.operation_id); form.append('document_type', row.document_type); form.append('owner_type', 'plot'); form.append('owner_id', plotId); form.append('title', row.title); form.append('file', row.bytes, row.file_name);
         const response = await apiUpload(`/api/v1/organizations/${orgId}/documents`, form); console.info('[offline-sync]', JSON.stringify({ operation_id: row.operation_id, phase: 'response', status: response.status })); await removeOfflineCapture(row.operation_id);
-      } catch (e) { console.warn('[offline-sync]', JSON.stringify({ operation_id: row.operation_id, phase: 'error', status: e instanceof ApiError ? e.status : 0, code: e instanceof ApiError ? e.body.code : 'CLIENT_ERROR' })); await updateOfflineCapture(row.operation_id, { status: 'ERROR', last_error: e instanceof ApiError ? e.body.code : 'NETWORK' }); }
+      } catch (e) {
+        const transportFailure = !(e instanceof ApiError) || e.status === 0;
+        console.warn('[offline-sync]', JSON.stringify({ operation_id: row.operation_id, phase: 'error', status: e instanceof ApiError ? e.status : 0, code: e instanceof ApiError ? e.body.code : 'CLIENT_ERROR' }));
+        await updateOfflineCapture(row.operation_id, { status: transportFailure ? 'PENDING' : 'ERROR', last_error: e instanceof ApiError ? e.body.code : 'NETWORK' });
+      }
     }
     await loadPending(); await load();
   }, [load, loadPending, orgId, ownerKey, plotId]);
