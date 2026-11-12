@@ -55,17 +55,22 @@ export async function saveOfflineCapture(capture: OfflineLocationCapture): Promi
   });
 }
 
-export async function listOfflineCaptures(ownerKey: string, organizationId: string, plotId: string): Promise<OfflineLocationCapture[]> {
+async function listAllOfflineCaptures(ownerKey: string, organizationId: string, plotId: string): Promise<OfflineLocationCapture[]> {
   const db = await database();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readonly');
     const request = tx.objectStore(STORE).getAll();
     request.onsuccess = () => {
       db.close();
-      resolve((request.result as OfflineLocationCapture[]).filter((x) => (x.capture_kind ?? 'LOCATION') === 'LOCATION' && x.owner_key === ownerKey && x.organization_id === organizationId && x.plot_id === plotId));
+      resolve((request.result as OfflineLocationCapture[]).filter((x) => x.owner_key === ownerKey && x.organization_id === organizationId && x.plot_id === plotId));
     };
     request.onerror = () => { db.close(); reject(request.error ?? new Error('No se pudo leer la cola local')); };
   });
+}
+
+export async function listOfflineCaptures(ownerKey: string, organizationId: string, plotId: string): Promise<OfflineLocationCapture[]> {
+  const rows = await listAllOfflineCaptures(ownerKey, organizationId, plotId);
+  return rows.filter((x) => (x.capture_kind ?? 'LOCATION') === 'LOCATION');
 }
 
 export async function updateOfflineCapture(operationId: string, patch: Partial<OfflineLocationCapture>): Promise<void> {
@@ -95,6 +100,6 @@ export async function saveOfflineAttachment(capture: OfflineAttachmentCapture): 
 }
 
 export async function listOfflineAttachments(ownerKey: string, organizationId: string, plotId: string): Promise<OfflineAttachmentCapture[]> {
-  const rows = await listOfflineCaptures(ownerKey, organizationId, plotId);
+  const rows = await listAllOfflineCaptures(ownerKey, organizationId, plotId);
   return rows.filter((row) => row.capture_kind === 'ATTACHMENT') as unknown as OfflineAttachmentCapture[];
 }

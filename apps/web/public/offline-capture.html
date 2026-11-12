@@ -35,7 +35,9 @@
     get.onsuccess=()=>{
       const rows=get.result.filter(x => owner && x.owner_key===owner && (!org || x.organization_id===org) && (!plot || x.plot_id===plot));
       if (!rows.length) { out.textContent='No hay capturas pendientes para este contexto.'; db.close(); return; }
-      out.innerHTML=rows.map(x=>`<article><h2>Captura ${esc(x.status==='DRAFT'?'en revisión':'confirmada')}</h2><dl><dt>Latitud</dt><dd>${esc(x.latitude)}</dd><dt>Longitud</dt><dd>${esc(x.longitude)}</dd><dt>Precisión</dt><dd>${esc(x.accuracy_m ?? 'No informada')}</dd><dt>Adquisición</dt><dd>${esc(x.captured_at)}</dd></dl>${x.confirmed?'':'<button data-id="'+esc(x.operation_id)+'">Confirmar sin conexión</button>'}</article>`).join('');
+      out.innerHTML=rows.map(x => x.capture_kind === 'ATTACHMENT'
+        ? `<article><h2>Evidencia pendiente</h2><dl><dt>Título</dt><dd>${esc(x.title)}</dd><dt>Archivo</dt><dd>${esc(x.file_name)}</dd><dt>Parcela</dt><dd>${esc(x.plot_id)}</dd><dt>Estado</dt><dd>${esc(x.status)}</dd></dl></article>`
+        : `<article><h2>Captura ${esc(x.status==='DRAFT'?'en revisión':'confirmada')}</h2><dl><dt>Latitud</dt><dd>${esc(x.latitude)}</dd><dt>Longitud</dt><dd>${esc(x.longitude)}</dd><dt>Precisión</dt><dd>${esc(x.accuracy_m ?? 'No informada')}</dd><dt>Adquisición</dt><dd>${esc(x.captured_at)}</dd></dl>${x.confirmed?'':'<button data-id="'+esc(x.operation_id)+'">Confirmar sin conexión</button>'}</article>`).join('');
       out.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{ const w=db.transaction('location-captures','readwrite'); const s=w.objectStore('location-captures'); const g=s.get(b.dataset.id); g.onsuccess=()=>{if(g.result)s.put({...g.result,confirmed:true,status:'PENDING'});}; w.oncomplete=()=>location.reload(); });
     };
   };
