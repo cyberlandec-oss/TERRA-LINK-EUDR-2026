@@ -167,7 +167,8 @@ export function LocationCapture({ orgId, plotId, rowVersion, ownerKey, onSaved, 
           await removeOfflineCapture(item.operation_id);
         } catch (err) {
           const error = err as ApiError;
-          await updateOfflineCapture(item.operation_id, { status: error.status === 409 ? 'CONFLICT' : 'ERROR', last_error: error.body?.code ?? 'NETWORK' });
+          const needsReauthentication = error.status === 401 || error.body?.code === 'UNAUTHENTICATED';
+          await updateOfflineCapture(item.operation_id, { status: needsReauthentication ? 'PENDING' : error.status === 409 ? 'CONFLICT' : 'ERROR', last_error: error.body?.code ?? 'NETWORK' });
         }
       }
     } finally {
