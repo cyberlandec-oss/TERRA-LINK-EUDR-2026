@@ -8,6 +8,7 @@ import { accuracyLabel } from './location-capture';
 import { GeometrySketch } from './plots';
 import { type MyLocation } from './mi-ubicacion';
 import { ErrorPanel, StatusBadge } from './ui';
+import { listOfflinePolygonVertices, removeOfflineCapture, saveOfflinePolygonVertex, type OfflinePolygonVertex } from './offline-capture';
 
 const MapCapture = dynamic(() => import('./map-capture').then((m) => m.MapCapture), { ssr: false });
 
@@ -70,15 +71,38 @@ export function PolygonCapture({ orgId, plotId, plotVersion, onConfirmed }: {
   const cancelled = useRef(false);
   const base = `/api/v1/organizations/${orgId}`;
   const ISSUE: Record<string, string> = { LESS_THAN_3_DISTINCT_VERTICES: t('Se necesitan al menos 3 vértices distintos.') };
+  const ownerKey = typeof window === 'undefined' ? 'session' : (sessionStorage.getItem('tl_offline_owner_key') ?? 'session');
+
+  function localDraft(rows: OfflinePolygonVertex[]): Draft | null {
+    if (rows.length === 0) return null;
+    const vertices = rows.sort((a, b) => a.acquisition_seq - b.acquisition_seq).map((row, index) => ({ id: row.operation_id, acquisition_seq: index + 1, source: 'BROWSER_GEOLOCATION', longitude: row.longitude, latitude: row.latitude, horizontal_accuracy_m: row.accuracy_m, captured_at: row.captured_at, received_at: row.captured_at, excluded: false }));
+    const distinct = new Set(vertices.map((v) => `${v.longitude},${v.latitude}`)).size;
+    return { id: `offline:${plotId}`, status: 'DRAFT', row_version: vertices.length, vertices, accuracy_summary: { with_accuracy: vertices.filter((v) => v.horizontal_accuracy_m !== null).length, without_accuracy: vertices.filter((v) => v.horizontal_accuracy_m === null).length, worst_known_m: Math.max(...vertices.map((v) => v.horizontal_accuracy_m ?? 0)), complete: vertices.every((v) => v.horizontal_accuracy_m !== null), label: 'offline' }, preview: { vertex_count: vertices.length, distinct_count: distinct, repeated_vertices: vertices.length - distinct, storable: true, structural_issues: [], technically_valid: null, validity_reason: null, area_calculated_ha: null } };
+  }
 
   const reload = useCallback(async () => {
     try {
       const r = await api<{ draft: Draft | null }>(`${base}/plots/${plotId}/polygon-drafts/current`);
+      const local = await listOfflinePolygonVertices(ownerKey, orgId, plotId);
+      if (r.draft === null && local.length > 0 && navigator.onLine) {
+        let current = await api<Draft>(`${base}/plots/${plotId}/polygon-drafts`, { method: 'POST' });
+        for (const vertex of local.sort((a, b) => a.acquisition_seq - b.acquisition_seq)) {
+          const synced = await api<{ draft: Draft }>(`${base}/polygon-drafts/${current.id}/vertices`, { method: 'POST', body: { expected_version: current.row_version, source: 'BROWSER_GEOLOCATION', operation_id: vertex.operation_id, latitude: vertex.latitude, longitude: vertex.longitude, accuracy_m: vertex.accuracy_m, captured_at: vertex.captured_at } });
+          current = synced.draft;
+          await removeOfflineCapture(vertex.operation_id);
+        }
+        setDraft(current);
+        setError(null);
+        return;
+      }
       setDraft(r.draft);
       setError(null);
-    } catch (e) { setError(e as ApiError); }
+    } catch (e) {
+      if (!navigator.onLine) { setDraft(localDraft(await listOfflinePolygonVertices(ownerKey, orgId, plotId))); setError(null); return; }
+      setError(e as ApiError);
+    }
   }, [base, plotId]);
-  useEffect(() => { void reload(); return () => { cancelled.current = true; }; }, [reload]);
+  useEffect(() => { void reload(); const online = () => { void reload(); }; window.addEventListener('online', online); return () => { cancelled.current = true; window.removeEventListener('online', online); }; }, [reload]);
 
   async function run(fn: () => Promise<void>) {
     setBusy(true); setError(null); setNotice(null);
@@ -89,7 +113,10 @@ export function PolygonCapture({ orgId, plotId, plotVersion, onConfirmed }: {
     } finally { setBusy(false); }
   }
 
-  const start = () => run(async () => { setDraft(await api<Draft>(`${base}/plots/${plotId}/polygon-drafts`, { method: 'POST' })); });
+  const start = () => run(async () => {
+    if (!navigator.onLine) { setDraft(localDraft([]) ?? { id: `offline:${plotId}`, status: 'DRAFT', row_version: 0, vertices: [], accuracy_summary: { with_accuracy: 0, without_accuracy: 0, worst_known_m: null, complete: false, label: 'offline' }, preview: { vertex_count: 0, distinct_count: 0, repeated_vertices: 0, storable: true, structural_issues: [], technically_valid: null, validity_reason: null, area_calculated_ha: null } }); return; }
+    setDraft(await api<Draft>(`${base}/plots/${plotId}/polygon-drafts`, { method: 'POST' }));
+  });
 
   function locate() {
     if (!(typeof window !== 'undefined' && 'geolocation' in navigator && window.isSecureContext)) {
@@ -128,6 +155,13 @@ export function PolygonCapture({ orgId, plotId, plotVersion, onConfirmed }: {
     if (!draft) return;
     setCapture({ kind: 'saving', sample });
     try {
+      if (!navigator.onLine || draft.id.startsWith('offline:')) {
+        await saveOfflinePolygonVertex({ operation_id: sample.operation_id, owner_key: ownerKey, organization_id: orgId, plot_id: plotId, capture_kind: 'POLYGON_VERTEX', acquisition_seq: draft.vertices.length + 1, latitude: sample.latitude, longitude: sample.longitude, accuracy_m: sample.accuracy_m, captured_at: sample.captured_at, status: 'PENDING', confirmed: true });
+        setDraft(localDraft(await listOfflinePolygonVertices(ownerKey, orgId, plotId)));
+        setCapture({ kind: 'idle' });
+        setNotice(t('Vértice guardado en este dispositivo; se sincronizará al recuperar la red.'));
+        return;
+      }
       const r = await api<{ draft: Draft; replayed: boolean }>(`${base}/polygon-drafts/${draft.id}/vertices`, {
         method: 'POST', body: { expected_version: draft.row_version, source: 'BROWSER_GEOLOCATION', ...sample },
       });

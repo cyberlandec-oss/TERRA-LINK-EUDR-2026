@@ -14,7 +14,7 @@ export interface OfflineLocationCapture {
   status: OfflineCaptureStatus;
   confirmed: boolean;
   last_error?: string;
-  capture_kind?: 'LOCATION' | 'ATTACHMENT';
+  capture_kind?: 'LOCATION' | 'ATTACHMENT' | 'POLYGON_VERTEX';
 }
 
 export interface OfflineAttachmentCapture {
@@ -30,6 +30,21 @@ export interface OfflineAttachmentCapture {
   document_type: 'FIELD_EVIDENCE' | 'FIELD_PHOTO';
   status: 'DRAFT' | 'PENDING' | 'SYNCING' | 'ERROR';
   last_error?: string;
+}
+
+export interface OfflinePolygonVertex {
+  operation_id: string;
+  owner_key: string;
+  organization_id: string;
+  plot_id: string;
+  capture_kind: 'POLYGON_VERTEX';
+  acquisition_seq: number;
+  latitude: number;
+  longitude: number;
+  accuracy_m: number | null;
+  captured_at: string;
+  status: 'DRAFT' | 'PENDING' | 'CONFLICT' | 'ERROR';
+  confirmed: boolean;
 }
 
 const DB_NAME = 'terra-link-offline-capture';
@@ -102,4 +117,13 @@ export async function saveOfflineAttachment(capture: OfflineAttachmentCapture): 
 export async function listOfflineAttachments(ownerKey: string, organizationId: string, plotId: string): Promise<OfflineAttachmentCapture[]> {
   const rows = await listAllOfflineCaptures(ownerKey, organizationId, plotId);
   return rows.filter((row) => row.capture_kind === 'ATTACHMENT') as unknown as OfflineAttachmentCapture[];
+}
+
+export async function saveOfflinePolygonVertex(vertex: OfflinePolygonVertex): Promise<void> {
+  await saveOfflineCapture(vertex as unknown as OfflineLocationCapture);
+}
+
+export async function listOfflinePolygonVertices(ownerKey: string, organizationId: string, plotId: string): Promise<OfflinePolygonVertex[]> {
+  const rows = await listAllOfflineCaptures(ownerKey, organizationId, plotId);
+  return rows.filter((row) => row.capture_kind === 'POLYGON_VERTEX') as unknown as OfflinePolygonVertex[];
 }
