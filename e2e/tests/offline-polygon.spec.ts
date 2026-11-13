@@ -105,9 +105,16 @@ test('polígono offline sobrevive a reapertura y sincroniza una sola vez', async
     console.log('stage=server-vertices count=3');
     const current = await ok(`/api/v1/organizations/${orgId}/plots/${plotId}/polygon-drafts/current`, { token: producerToken });
     expect(new Set(current.draft.vertices.map((vertex: { id: string }) => vertex.id)).size).toBe(3);
+    await page.getByRole('button', { name: /Revisar y confirmar/ }).click();
+    await expect(page.getByRole('heading', { name: /Revisi.n antes de confirmar/ })).toBeVisible();
+    await page.getByRole('button', { name: /Confirmar pol.gono/ }).click();
+    await expect(page.getByText(/Pol.gono guardado como versi.n/)).toBeVisible();
+    const versions = await ok(`/api/v1/organizations/${orgId}/plots/${plotId}/geometry-versions`, { token: producerToken });
+    expect(versions.length).toBeGreaterThan(0);
+    expect(versions.at(-1).geometry_type).toBe('POLYGON');
     await page.reload();
     const again = await ok(`/api/v1/organizations/${orgId}/plots/${plotId}/polygon-drafts/current`, { token: producerToken });
-    expect(again.draft.vertices).toHaveLength(3);
+    expect(again.draft).toBeNull();
   } finally {
     await context?.close();
     await rm(userDataDir, { recursive: true, force: true });
