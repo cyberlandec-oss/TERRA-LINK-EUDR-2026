@@ -1032,3 +1032,15 @@ Esta entrega cierra la implementación técnica local del recorrido Offline-Firs
 ### Recuperación del toolchain Android - 2026-11-09
 
 La instalación iniciada anteriormente no dejó un proceso activo: `winget list` confirma Android Studio `2026.2.2.8` instalado. Su JDK incluido está disponible en `C:\Program Files\Android\Android Studio\jbr\bin\java.exe`. No se encontró Android SDK, `sdkmanager`, `adb` ni `android/local.properties`. Con ese JDK, `expo prebuild --platform android --no-install` generó `apps/mobile/android` correctamente; Gradle llegó a configurar Expo con compile/target SDK 36 y NDK `27.1.12297006`, pero no produjo APK. El paso pendiente exacto es instalar desde Android Studio SDK Manager los componentes requeridos por el proyecto (SDK 36, Build Tools 36.0.0, Platform Tools, NDK 27.1.12297006 y una imagen de emulador si se ejecutará). No se registra hash de artefacto porque no existe APK generado.
+### Ratificación de aceptación web/PWA - 2026-11-12
+
+Desde `9dcd3fa` se cerraron las cuatro brechas de aceptación pendientes del sprint Offline-First. La ejecución dirigida final terminó **8/8 aprobadas, 0 fallidas, 0 omitidas, código 0**: 5 de aislamiento/sesión, 2 de polígono y 1 de fotografía. Evidencia: `validation-offline-directed-20261112230600/run.log` y `EXIT_CODE=0`.
+
+La regresión final sobre el candidato QA terminó **17/17 aprobadas, 0 fallidas, 0 omitidas, código 0**: `captura-campo.spec.ts` 7/7, `offline-isolation-session.spec.ts` 5/5, `offline-photo.spec.ts` 3/3 y `offline-polygon.spec.ts` 2/2. Evidencia: `validation-offline-final-20261112232354/run.log`; el capturador registró `EXIT_CODE=0`.
+
+- Aislamiento: cierre de sesión e inicio real con una segunda organización; B no ve ni envía pendientes de A y A recupera su cola.
+- Sesión: 401 conserva `PENDING`, pausa reintentos y la reautenticación del propietario sincroniza una sola operación contra la API.
+- Conflicto: respuesta real `409` seguida de revisión/resolución explícita y `201` usando el mismo `operation_id`; se conserva el historial de geometría.
+- PWA: transición efectiva de caché `terra-link-shell-v3` a `v4`; el pendiente IndexedDB sobrevive activación y reapertura.
+
+La prueba fotográfica actual acredita interrupción de transporte y reintento idempotente; no se presenta como una nueva medición de servidor recibido con respuesta perdida. El porcentaje global permanece **23/30 = 76,7 % provisional**, sin incremento, hasta conciliar formalmente en la matriz la equivalencia de requisitos Android trasladados a web/PWA. Android físico, validación de campo, mapas base offline, operación real y aprobaciones EUDR permanecen separados.

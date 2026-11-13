@@ -45,12 +45,17 @@ async function putRows(page: import('@playwright/test').Page, rows: unknown[]) {
 }
 async function rows(page: import('@playwright/test').Page) { return page.evaluate(() => new Promise<unknown[]>((resolve) => { const r = indexedDB.open('terra-link-offline-capture', 1); r.onsuccess = () => { const t = r.result.transaction('location-captures', 'readonly'); const g = t.objectStore('location-captures').getAll(); g.onsuccess = () => { r.result.close(); resolve(g.result); }; }; })); }
 function pending(f: Fixture, operationId: string, status: 'PENDING' | 'CONFLICT' = 'PENDING') { return { operation_id: operationId, owner_key: f.meId, organization_id: f.orgId, plot_id: f.plotId, expected_version: 0, source: 'BROWSER_GEOLOCATION', latitude: -0.8, longitude: -80.1, accuracy_m: 4, captured_at: new Date().toISOString(), status, confirmed: true, capture_kind: 'LOCATION' }; }
+async function loginThroughUi(page: import('@playwright/test').Page, user: User) {
+  await page.locator('#email').fill(user.email); await page.locator('#password').fill(user.password); await page.getByRole('button', { name: /Iniciar sesi/i }).click();
+  await page.waitForURL(/\/organizaciones/);
+}
 
 test('prepare isolated organization and two producers', async () => {
   const superToken = (await ok('/api/v1/auth/login', { method: 'POST', body: { email: SUPER_EMAIL, password: process.env.E2E_SUPER_PASSWORD } })).access_token;
-  const org = await ok('/api/v1/organizations', { method: 'POST', token: superToken, body: { name: `Offline isolation ${randomBytes(4).toString('hex')}`, organization_type: 'COOPERATIVE', country: 'EC' } });
-  a = await provision(superToken, org.id, 'A');
-  b = await provision(superToken, org.id, 'B');
+  const orgA = await ok('/api/v1/organizations', { method: 'POST', token: superToken, body: { name: `Offline isolation A ${randomBytes(4).toString('hex')}`, organization_type: 'COOPERATIVE', country: 'EC' } });
+  const orgB = await ok('/api/v1/organizations', { method: 'POST', token: superToken, body: { name: `Offline isolation B ${randomBytes(4).toString('hex')}`, organization_type: 'COOPERATIVE', country: 'EC' } });
+  a = await provision(superToken, orgA.id, 'A');
+  b = await provision(superToken, orgB.id, 'B');
 });
 
 test('switching account keeps pending work isolated', async ({ browser }) => {
@@ -59,11 +64,16 @@ test('switching account keeps pending work isolated', async ({ browser }) => {
   const page = await context.newPage();
   await page.goto(`/organizaciones/${a.orgId}/captura?plot_id=${a.plotId}`);
   await putRows(page, [pending(a, 'isolation-a')]);
-  await context.addInitScript(([token, owner]) => { sessionStorage.setItem('tl_token', token); sessionStorage.setItem('tl_offline_owner_key', owner); }, [b.token, b.meId] as const);
-  await page.evaluate(([token, owner]) => { sessionStorage.setItem('tl_token', token); sessionStorage.setItem('tl_offline_owner_key', owner); }, [b.token, b.meId]);
+  await page.getByRole('button', { name: /Cerrar sesi/i }).click(); await page.waitForURL(/\/$/);
+  await loginThroughUi(page, b.user);
+  await expect(page.getByTestId('contexto-usuario')).toHaveText(new RegExp(b.user.email, 'i'));
   await page.goto(`/organizaciones/${b.orgId}/captura?plot_id=${b.plotId}`);
   await expect(page.getByText(/captura\(s\) pendiente|captura pendiente/i)).not.toBeVisible();
   expect((await rows(page)).filter((row: any) => row.owner_key === b.meId)).toHaveLength(0);
+  expect((await rows(page)).some((row: any) => row.operation_id === 'isolation-a')).toBe(true);
+  a.token = (await ok('/api/v1/auth/login', { method: 'POST', body: a.user })).access_token;
+  await page.evaluate(([token, owner]) => { sessionStorage.setItem('tl_token', token); sessionStorage.setItem('tl_offline_owner_key', owner); }, [a.token, a.meId]);
+  await page.goto(`/organizaciones/${a.orgId}/captura?plot_id=${a.plotId}`);
   expect((await rows(page)).some((row: any) => row.operation_id === 'isolation-a')).toBe(true);
   await context.close();
 });
@@ -93,13 +103,20 @@ test('version conflict preserves local capture and exposes resolution', async ({
   const context = await browser.newContext({ serviceWorkers: 'allow' });
   await context.addInitScript(([token, owner]) => { sessionStorage.setItem('tl_token', token); sessionStorage.setItem('tl_offline_owner_key', owner); }, [a.token, a.meId] as const);
   const page = await context.newPage();
-  await page.route('**/api/v1/organizations/*/plots/*/location-samples', (route) => route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ code: 'VERSION_CONFLICT', message: 'version changed' }) }));
+  page.on('response', async (response) => { if (response.url().includes('/location-samples')) console.log(`conflict-response=${response.status()} ${response.request().method()}`); });
+  const before = await ok(`/api/v1/organizations/${a.orgId}/plots/${a.plotId}`, { token: a.token });
+  await ok(`/api/v1/organizations/${a.orgId}/plots/${a.plotId}`, { method: 'PATCH', token: a.token, body: { expected_version: before.row_version, crop: 'Cacao actualizado' } });
   await page.goto(`/organizaciones/${a.orgId}/captura?plot_id=${a.plotId}`);
-  await putRows(page, [pending(a, 'conflict-a', 'PENDING')]);
+  const operationId = '00000000-0000-4000-8000-000000000001';
+  await putRows(page, [{ ...pending(a, operationId, 'PENDING'), expected_version: before.row_version }]);
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
   await page.reload();
   await expect.poll(() => rows(page).then((r) => (r[0] as any)?.status)).toBe('CONFLICT');
   await expect(page.getByText(/conflicto.*revisi|captura local se conserva/i).first()).toBeVisible();
+  await page.getByRole('button', { name: /Revisar y resolver/i }).click();
+  await expect.poll(() => rows(page).then((r) => r.some((x: any) => x.operation_id === operationId)), { timeout: 15_000 }).toBe(false);
+  const versions = await ok(`/api/v1/organizations/${a.orgId}/plots/${a.plotId}/geometry-versions`, { token: a.token });
+  expect((Array.isArray(versions) ? versions : versions.items ?? versions.data).length).toBeGreaterThan(0);
   await context.close();
 });
 
@@ -107,6 +124,19 @@ test('service worker update does not delete pending storage', async ({ browser }
   const context = await browser.newContext({ serviceWorkers: 'allow' });
   await context.addInitScript(([token, owner]) => { sessionStorage.setItem('tl_token', token); sessionStorage.setItem('tl_offline_owner_key', owner); }, [a.token, a.meId] as const);
   const page = await context.newPage(); await page.goto(`/organizaciones/${a.orgId}/captura?plot_id=${a.plotId}`); await putRows(page, [pending(a, 'pwa-a')]);
-  const before = await rows(page); await page.evaluate(async () => { const registration = await navigator.serviceWorker.ready; await registration.update(); }); await page.reload();
+  const before = await rows(page);
+  await page.evaluate(async () => {
+    await caches.open('terra-link-shell-v3');
+    const old = await navigator.serviceWorker.ready;
+    await old.update();
+    const next = await navigator.serviceWorker.register('/sw.js?version=v4', { updateViaCache: 'none' });
+    if (next.waiting) next.waiting.postMessage({ type: 'SKIP_WAITING' });
+    await navigator.serviceWorker.ready;
+    await new Promise<void>((resolve) => { if (navigator.serviceWorker.controller) resolve(); else navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true }); });
+  });
+  await page.reload();
+  const cacheNames = await page.evaluate(() => caches.keys());
+  expect(cacheNames.some((name) => name === 'terra-link-shell-v4')).toBe(true);
+  expect(cacheNames.some((name) => name === 'terra-link-shell-v3')).toBe(false);
   expect((await rows(page)).some((row: any) => row.operation_id === 'pwa-a')).toBe(true); expect(before).toHaveLength(1); await context.close();
 });

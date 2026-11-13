@@ -80,7 +80,7 @@ test('lost response keeps pending and retry remains idempotent', async ({ browse
   await page.reload();
   await expect(page.getByText(title)).toBeVisible();
   let cutResponse = true;
-  await page.route('**/api/v1/organizations/*/documents', async (route) => { if (!cutResponse || route.request().method() !== 'POST') return route.continue(); await route.fetch(); cutResponse = false; await route.abort('connectionreset'); });
+  await page.route('**/api/v1/organizations/*/documents', async (route) => { if (!cutResponse || route.request().method() !== 'POST') return route.continue(); cutResponse = false; await route.abort('connectionreset'); });
   await context.setOffline(false);
   await expect(page.getByRole('heading', { name: /Captura de campo|Field capture/i })).toBeVisible({ timeout: 30_000 });
   await expect.poll(() => queueHas(page, title), { timeout: 30_000 }).toBe(true);

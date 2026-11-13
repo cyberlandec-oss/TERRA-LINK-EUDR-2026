@@ -178,6 +178,18 @@ export function LocationCapture({ orgId, plotId, rowVersion, ownerKey, onSaved, 
     await onSaved();
   }
 
+  async function resolveConflict(item: OfflineLocationCapture) {
+    try {
+      const current = await api<{ row_version: number }>(`/api/v1/organizations/${orgId}/plots/${plotId}`);
+      await updateOfflineCapture(item.operation_id, { expected_version: current.row_version, status: 'PENDING', last_error: undefined });
+      await loadPending();
+      await syncPending(true);
+    } catch (err) {
+      await updateOfflineCapture(item.operation_id, { status: 'CONFLICT', last_error: err instanceof ApiError ? err.body?.code ?? 'CONFLICT' : 'NETWORK' });
+      await loadPending();
+    }
+  }
+
   async function acquire(sample: Sample) {
     try {
       await saveOfflineCapture({ owner_key: ownerKey, organization_id: orgId, plot_id: plotId,
@@ -261,7 +273,7 @@ export function LocationCapture({ orgId, plotId, rowVersion, ownerKey, onSaved, 
         <div className="alert" role="status">
           <p className="alert-title">{t('Hay una captura en conflicto que requiere revisión.')}</p>
           <p>{t('La captura local se conserva. Recarga la parcela para revisar la versión actual antes de resolverla.')}</p>
-          <button type="button" onClick={() => { void onSaved(); }}>{t('Recargar parcela')}</button>
+          <button type="button" onClick={() => { const item = pending.find((row) => row.status === 'CONFLICT'); if (item) void resolveConflict(item); }}>{t('Revisar y resolver')}</button>
         </div>
       )}
       {(state.kind === 'review' || state.kind === 'saving' || state.kind === 'save-error') && (
