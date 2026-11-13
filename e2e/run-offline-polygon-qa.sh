@@ -3,6 +3,7 @@ set -u
 
 repo_root=${1:-/repo}
 log_dir=${2:-$repo_root/validation-offline-polygon}
+test_target=${3:-tests/offline-polygon.spec.ts}
 mkdir -p "$log_dir"
 
 e2e_db="${DATABASE_URL%/*}/terra_link_e2e"
@@ -55,7 +56,7 @@ if [ "$ready" -ne 0 ]; then
 fi
 
 set +e
-E2E_REUSE_SERVER=true npm run test -w e2e -- tests/offline-polygon.spec.ts 2>&1 | tee "$result"
+E2E_REUSE_SERVER=true npm run test -w e2e -- $test_target 2>&1 | tee "$result"
 code=${PIPESTATUS[0]}
 set -e
 echo "E2E_EXIT_CODE=$code" | tee -a "$result"
