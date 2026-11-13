@@ -13,9 +13,8 @@ result="$log_dir/result.txt"
 
 DATABASE_URL="$e2e_db" API_PORT=4100 WEB_ORIGIN=http://localhost:3100 \
   REDIS_URL=redis://127.0.0.1:6379 REDIS_KEY_PREFIX=tl-e2e-prestarted \
-  S3_BUCKET=terra-link-e2e SSO_ENABLED=false \
+  S3_BUCKET="${TL_QA_S3_BUCKET:-terra-link-e2e}" SSO_ENABLED=false \
   JWT_SECRET=offline-polygon-qa-jwt-secret-0123456789-abcdefghijklmnopqrstuvwxyz \
-  S3_ACCESS_KEY=offline-polygon-qa S3_SECRET_KEY=offline-polygon-qa-secret \
   PII_KEYS=k1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA \
   PII_ACTIVE_KEY_ID=k1 PII_INDEX_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA \
   node "$repo_root/apps/api/dist/main.js" >"$api_log" 2>&1 &

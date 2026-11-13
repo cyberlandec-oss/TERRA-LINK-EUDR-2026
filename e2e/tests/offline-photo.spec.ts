@@ -47,6 +47,9 @@ async function openCapture(browser: import('@playwright/test').Browser, title: s
   const me = await ok('/api/v1/me', { token: producerToken });
   await context.addInitScript(([token, owner]) => { sessionStorage.setItem('tl_token', token); sessionStorage.setItem('tl_offline_owner_key', owner); }, [producerToken, me.id] as const);
   const page = await context.newPage();
+  page.on('console', (message) => console.log(`photo-console=${message.type()}:${message.text().slice(0, 300)}`));
+  page.on('response', (response) => { if (response.url().includes('/documents')) console.log(`photo-response=${response.status()} ${response.request().method()} ${response.url()}`); });
+  page.on('requestfailed', (request) => { if (request.url().includes('/documents')) console.log(`photo-request-failed=${request.method()} ${request.url()}:${request.failure()?.errorText ?? 'unknown'}`); });
   await page.goto(`/organizaciones/${orgId}/captura?plot_id=${plotId}`);
   await page.locator('#cap-plotsel').selectOption(plotId);
   await page.locator('#fe-file').setInputFiles({ name: 'offline-evidence.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n% synthetic\n%%EOF\n') });
