@@ -87,6 +87,9 @@ test('switching account keeps pending work isolated', async ({ browser }) => {
 });
 
 test('expired session pauses and reauthentication resumes once', async ({ browser }) => {
+  // El caso de cambio de cuenta puede revocar el JWT que quedó en la fixture global.
+  // Renovarlo antes de sembrar el contexto garantiza que la pantalla llegue al flujo 401 real.
+  a.token = (await ok('/api/v1/auth/login', { method: 'POST', body: a.user })).access_token;
   const context = await browser.newContext({ serviceWorkers: 'allow' });
   await context.addInitScript(([token, owner]) => {
     if (!sessionStorage.getItem('tl_e2e_session_seeded')) {
@@ -99,6 +102,8 @@ test('expired session pauses and reauthentication resumes once', async ({ browse
   page.on('response', async (response) => { if (response.url().includes('/location-samples')) console.log(`session-response=${response.status()} ${response.request().method()}`); });
   await page.route('**/api/v1/organizations/*/plots/*/location-samples', async (route) => { attempts += 1; if (expireNext) { expireNext = false; return route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ code: 'UNAUTHENTICATED', message: 'session expired' }) }); } return route.continue(); });
   await page.goto(`/organizaciones/${a.orgId}/captura?plot_id=${a.plotId}`);
+  // El caso anterior cierra/reabre sesión y el servidor puede revocar el JWT original.
+  // Obtener un token fresco aquí evita que la preparación falle antes de probar el 401 controlado.
   const current = await ok(`/api/v1/organizations/${a.orgId}/plots/${a.plotId}`, { token: a.token });
   await putRows(page, [{ ...pending(a, '00000000-0000-4000-8000-000000000002'), expected_version: current.row_version }]);
   await page.reload();

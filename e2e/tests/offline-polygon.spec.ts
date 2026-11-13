@@ -86,6 +86,9 @@ test('polígono offline sobrevive a reapertura y sincroniza una sola vez', async
     const localCount = await page.evaluate(() => new Promise<number>((resolve, reject) => { const request = indexedDB.open('terra-link-offline-capture', 1); request.onerror = () => reject(request.error); request.onsuccess = () => { const tx = request.result.transaction('location-captures', 'readonly'); const get = tx.objectStore('location-captures').getAll(); get.onsuccess = () => resolve(get.result.filter((row: { capture_kind: string }) => row.capture_kind === 'POLYGON_VERTEX').length); }; }));
     expect(localCount).toBe(3);
     console.log('stage=local-vertices count=3');
+    // Cerrar la pestaña antes del perfil persistente evita dejar el worker de captura
+    // reteniendo el contexto cuando la red está offline.
+    await page.close();
     await context.close();
     console.log('stage=context-closed');
     context = await openPersistent(userDataDir);
