@@ -257,6 +257,13 @@ export function LocationCapture({ orgId, plotId, rowVersion, ownerKey, onSaved, 
           <button type="button" onClick={() => { void syncPending(); }} disabled={!online}>{t('Sincronizar pendientes')}</button>
         </div>
       )}
+      {pending.some((row) => row.status === 'CONFLICT') && state.kind !== 'save-error' && (
+        <div className="alert" role="status">
+          <p className="alert-title">{t('Hay una captura en conflicto que requiere revisión.')}</p>
+          <p>{t('La captura local se conserva. Recarga la parcela para revisar la versión actual antes de resolverla.')}</p>
+          <button type="button" onClick={() => { void onSaved(); }}>{t('Recargar parcela')}</button>
+        </div>
+      )}
       {(state.kind === 'review' || state.kind === 'saving' || state.kind === 'save-error') && (
         <div className="card capture-review">
           <p className="alert-title">{t('Revisa la muestra antes de guardarla')}</p>

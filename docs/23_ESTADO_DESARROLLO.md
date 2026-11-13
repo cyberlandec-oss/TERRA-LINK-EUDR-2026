@@ -1014,6 +1014,21 @@ La suite integrada real `apps/api/test/operations-alerts.int-spec.ts` no llegó 
 La prueba aislada `apps/mobile/src/adapters/__tests__/expo.sqlcipher.test.ts` cubre: `cipher_version` válido permite continuar; resultado vacío o error rechaza la apertura; la conexión se cierra al rechazar; no se ejecutan las sentencias posteriores de preparación de la aplicación antes de superar la sonda; y no existe fallback sin cifrar. Resultado: **1 suite, 3 pruebas aprobadas**. Esta evidencia es de contrato del adaptador con mocks y no se presenta como cifrado nativo.
 
 El procedimiento nativo de `apps/mobile/README.md` exige JDK 17 y Android SDK. Tras el reinicio se comprobaron las rutas documentadas y no existen Java, SDK, ADB ni proyecto `android/`. Se intentó preparar Android Studio mediante `winget`; la instalación no dejó disponibles esas herramientas en la sesión, por lo que no se generó APK ni se atribuye evidencia de emulador. La separación queda: contrato del adaptador probado; compilación nativa pendiente; ejecución en emulador pendiente; teléfono físico/campo posterior.
+### Offline-First web/PWA: aislamiento y continuidad - 2026-11-12
+
+Desde `ba76dd7` se implementó la continuación de sesión y aislamiento en [e2e/tests/offline-isolation-session.spec.ts](../e2e/tests/offline-isolation-session.spec.ts), junto con la corrección de adjuntos 401 en [apps/web/lib/field-evidence.tsx](../apps/web/lib/field-evidence.tsx) y la resolución visible de conflictos en [apps/web/lib/location-capture.tsx](../apps/web/lib/location-capture.tsx).
+
+Ejecución dirigida final en Linux QA (`mcr.microsoft.com/playwright:v1.64.0-noble`, lockfile y volumen de dependencias aislado): **5/5 pruebas aprobadas, 0 fallidas, 0 omitidas, código 0**. Evidencia: `validation-offline-isolation-20261112205124/run.log` y `exit-code.txt`.
+
+- Cambio de cuenta/organización: pendientes de A invisibles para B y no enviados bajo B; A conserva su cola.
+- Sesión expirada: 401 conserva `PENDING`, pausa el envío sin bucle y la reautenticación del propietario reanuda una sola vez.
+- Conflicto de versión: conserva la captura local en `CONFLICT`, muestra la situación y ofrece recargar para resolverla explícitamente.
+- Actualización PWA: `registration.update()` y reapertura conservan IndexedDB; el service worker no elimina borradores ni adjuntos.
+
+Regresión conjunta sobre un único candidato QA: **17/17 pruebas aprobadas, 0 fallidas, 0 omitidas, código 0**: `captura-campo.spec.ts` 7/7, `offline-isolation-session.spec.ts` 5/5, `offline-photo.spec.ts` 3/3 y `offline-polygon.spec.ts` 2/2. Evidencia: `validation-offline-acceptance-20261112210149/run.log` y `exit-code.txt`.
+
+Esta entrega cierra la implementación técnica local del recorrido Offline-First web/PWA. No acredita Android físico, validación de campo, mapas base offline, operación real ni aprobación EUDR. El porcentaje histórico 23/30 se mantiene sin incremento hasta conciliar formalmente la equivalencia de estos requisitos trasladados en la matriz vigente.
+
 ### Recuperación del toolchain Android - 2026-11-09
 
 La instalación iniciada anteriormente no dejó un proceso activo: `winget list` confirma Android Studio `2026.2.2.8` instalado. Su JDK incluido está disponible en `C:\Program Files\Android\Android Studio\jbr\bin\java.exe`. No se encontró Android SDK, `sdkmanager`, `adb` ni `android/local.properties`. Con ese JDK, `expo prebuild --platform android --no-install` generó `apps/mobile/android` correctamente; Gradle llegó a configurar Expo con compile/target SDK 36 y NDK `27.1.12297006`, pero no produjo APK. El paso pendiente exacto es instalar desde Android Studio SDK Manager los componentes requeridos por el proyecto (SDK 36, Build Tools 36.0.0, Platform Tools, NDK 27.1.12297006 y una imagen de emulador si se ejecutará). No se registra hash de artefacto porque no existe APK generado.

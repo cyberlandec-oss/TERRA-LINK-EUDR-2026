@@ -50,7 +50,11 @@ export function FieldEvidence({ orgId, plotId, canUpload, ownerKey = 'session' }
       } catch (e) {
         const transportFailure = !(e instanceof ApiError) || e.status === 0;
         console.warn('[offline-sync]', JSON.stringify({ operation_id: row.operation_id, phase: 'error', status: e instanceof ApiError ? e.status : 0, code: e instanceof ApiError ? e.body.code : 'CLIENT_ERROR' }));
-        await updateOfflineCapture(row.operation_id, { status: transportFailure ? 'PENDING' : 'ERROR', last_error: e instanceof ApiError ? e.body.code : 'NETWORK' });
+        const needsReauthentication = e instanceof ApiError && (e.status === 401 || e.body?.code === 'UNAUTHENTICATED');
+        // La sesión vencida no invalida el trabajo confirmado: se pausa hasta que
+        // el propietario vuelva a autenticarse. Igual que la ubicación, no se
+        // reintenta en bucle ni se elimina el adjunto.
+        await updateOfflineCapture(row.operation_id, { status: transportFailure || needsReauthentication ? 'PENDING' : 'ERROR', last_error: e instanceof ApiError ? e.body.code : 'NETWORK' });
       }
     }
     await loadPending(); await load();
@@ -95,7 +99,7 @@ export function FieldEvidence({ orgId, plotId, canUpload, ownerKey = 'session' }
       await load();
     } catch (err) {
       const ae = err as ApiError;
-      if (ae.status === 0) { await loadPending(); setDone(file.name); setError(null); }
+      if (ae.status === 0 || ae.status === 401 || ae.body?.code === 'UNAUTHENTICATED') { await loadPending(); setDone(file.name); setError(ae.status === 401 ? ae : null); }
       else await updateOfflineCapture(operationId, { status: 'ERROR', last_error: ae.body?.code ?? 'UPLOAD_FAILED' });
       if (!(ae.status === 0 || ae.status >= 500)) op.current = null; // un rechazo exige otro archivo; un corte se reintenta igual
       if (ae.status !== 0) setError(ae);
