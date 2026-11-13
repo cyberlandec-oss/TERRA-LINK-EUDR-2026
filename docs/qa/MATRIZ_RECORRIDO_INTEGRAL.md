@@ -189,3 +189,17 @@ estrecho y más útil: **el bloque D-32/D-33 ya no depende de dónde esté**.
 
 **No se reejecutó `npm run validate` completa** por este cambio: es código de prueba y documentación, sin cambios en
 el producto. Lo ejecutado fue el archivo E2E afectado (dos veces) y el recorrido integral de integración.
+
+## Cierre del sprint Offline-First web/PWA (2026-11-14)
+
+El candidato web QA `5202b3e` se validó con el lanzador [`e2e/run-offline-polygon-qa.sh`](../../e2e/run-offline-polygon-qa.sh), API en `4100`, web en `3100`, base y almacenamiento QA aislados. La aceptación conjunta terminó con **17/17 aprobadas, 0 fallidas, 0 omitidas, código 0**. Evidencia: `validation-qa-final-20261114011500/`.
+
+| Capacidad | Evidencia | Resultado |
+| --- | --- | --- |
+| Punto desde Mi finca, permisos, persistencia y reconexión | `captura-campo.spec.ts`, 7/7 | Demostrado |
+| Aislamiento entre cuentas/organizaciones, 401, reautenticación y conflicto | `offline-isolation-session.spec.ts`, 5/5 | Demostrado |
+| Fotografía offline y replay idempotente tras respuesta perdida | `offline-photo.spec.ts`, 3/3 | Demostrado |
+| Polígono offline, reapertura persistente, tres vértices y sincronización | `offline-polygon.spec.ts`, 2/2 | Demostrado |
+
+Este cierre acredita preparación técnica local web/PWA con datos sintéticos. No acredita Android físico, validación de campo, piloto, operación real ni presentación oficial EUDR. La suspensión de Android/Expo conserva sus evidencias y pendientes separados.
+
