@@ -1,6 +1,6 @@
 // OPS-04: ejecutor reproducible de restauración QA.
 // No crea respaldos ni imprime secretos: recibe una carpeta protegida fuera de Git.
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -13,6 +13,8 @@ const compose = resolve(arg('--compose', 'infra/qa16/docker-compose.ensayo.yml')
 const envFile = resolve(arg('--env-file', ''));
 const project = arg('--project', `tl-ops04-${Date.now()}`);
 const reportPath = resolve(arg('--informe', join(backup || '.', `ops04-${project}.json`)));
+const objectivesPath = arg('--objetivos', null) ? resolve(arg('--objetivos')) : null;
+const referenceAt = arg('--referencia', null);
 const objectsOnly = process.argv.includes('--solo-objetos');
 const pg = `${project}-postgres-1`;
 const objects = `${project}-object-storage-1`;
@@ -103,7 +105,8 @@ try {
   const unavailable = keyRows.filter((kid) => !keyring.has(kid));
   check('claves referenciadas disponibles', unavailable.length === 0, `ids=${keyRows.length}; no_disponibles=${unavailable.length}`);
   check('descifrado sintetico con llavero recuperado', keyring.size > 0, 'alcance: material sintetico; no se imprimen datos personales');
-  report.recovery.objects = { references: refRows.length, verified, missing, altered };
+  const objectsVerifiedAt = new Date().toISOString();
+  report.recovery.objects = { references: refRows.length, verified, missing, altered, verified_at: objectsVerifiedAt };
   if (refRows.length) {
     const [, key, expected] = refRows[0].split('|');
     const qaObject = s3Hash(api, 'http://object-storage:9000', qaEnv.S3_BUCKET, key);
@@ -128,8 +131,36 @@ try {
   if (health.status !== 'ok') report.limitations.push('API responde, pero no es recuperación completa: health distinto de ok');
   report.recovery.finished_at = new Date().toISOString();
   report.recovery.rto_minutes = (Date.parse(report.recovery.finished_at) - Date.parse(report.recovery.started_at)) / 60000;
-  report.recovery.rpo = { reference_at: startedRecovery.toISOString(), recoverable_point: report.backup.captured_at, status: report.backup.captured_at ? 'observed_from_backup_manifest' : 'unavailable' };
-  if (!report.backup.captured_at) report.limitations.push('RPO no calculable: falta punto recuperable en el manifiesto del respaldo');
+  const measurement = {
+    recovery_run_id: project,
+    reference_at: referenceAt,
+    recoverable_point_at: report.backup.captured_at,
+    recoverable_point_source: report.backup.captured_at ? 'estado-actual.txt:CAPTURED_AT' : null,
+    recovery_started_at: report.recovery.started_at,
+    service_restored_at: report.recovery.finished_at,
+    objects_verified_at: objectsVerifiedAt,
+    objects_verified: verified === refRows.length && missing === 0 && altered === 0,
+    keys_verified: unavailable.length === 0,
+    healthcheck: health.status === 'ok',
+  };
+  report.recovery.measurement = measurement;
+  report.recovery.rpo = referenceAt && report.backup.captured_at
+    ? { reference_at: referenceAt, recoverable_point: report.backup.captured_at, status: 'ready_for_validator', source: 'ensayo-ops04-integrado' }
+    : { reference_at: referenceAt ?? null, recoverable_point: report.backup.captured_at, status: 'NOT_DETERMINABLE', source: report.backup.captured_at ? 'estado-actual.txt:CAPTURED_AT' : null };
+  if (!referenceAt) report.limitations.push('RPO no determinable: falta instante de referencia del incidente; no se reconstruye retrospectivamente');
+  if (!report.backup.captured_at) report.limitations.push('RPO no determinable: falta punto recuperable en el manifiesto del respaldo');
+  if (objectivesPath) {
+    if (!referenceAt || !report.backup.captured_at) {
+      report.objectives_validation = { status: 'NOT_EVALUATED', reason: 'RPO no determinable: falta referencia o punto recuperable' };
+    } else {
+      const measurementPath = `${reportPath}.measurement.json`;
+      writeFileSync(measurementPath, JSON.stringify(measurement, null, 2));
+      const validation = spawnSync(process.execPath, ['scripts/validar-rpo-rto.mjs', '--objetivos', objectivesPath, '--medicion', measurementPath], { encoding: 'utf8' });
+      report.objectives_validation = { status: validation.status === 0 ? 'PASS' : 'FAIL', exit_code: validation.status, stdout: validation.stdout?.trim() ?? '', stderr: validation.stderr?.trim() ?? '' };
+    }
+  } else {
+    report.objectives_validation = { status: 'NOT_EVALUATED', reason: 'No se proporcionaron objetivos aprobados; la recuperación técnica se informa por separado' };
+  }
   report.status = report.checks.every((item) => item.ok) ? 'PASS' : 'PARTIAL';
   }
 } catch (error) { report.error = error.message; report.status = 'FAIL'; }

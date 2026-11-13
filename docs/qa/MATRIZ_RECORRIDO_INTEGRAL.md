@@ -207,5 +207,5 @@ Este cierre acredita preparación técnica local web/PWA con datos sintéticos. 
 
 El candidato web `5202b3e` queda validado en Linux QA mediante `validation-qa-final-20261114011500`: 17/17 pruebas aprobadas, 0 fallidas, 0 omitidas, código 0. El cierre cubre punto, fotografía, polígono, aislamiento, sesión, conflictos, reapertura y actualización PWA. Android/Expo, SQLCipher nativo, dispositivo físico y campo permanecen separados y suspendidos.
 
-Siguiente sprint: OPS-04. El verificador RPO/RTO exige procedencia (`recovery_run_id`, `recoverable_point_source`) y fecha válida de aprobación antes de calcular resultados. Prueba: `node --test scripts/validar-rpo-rto.test.mjs`, 5/5, código 0. Los objetivos siguen pendientes de decisión y la recuperación 0078 no se repite.
+Siguiente sprint: OPS-04. El ejecutor integrado deriva `recovery_run_id` del proyecto y `recoverable_point_source` del manifiesto `estado-actual.txt:CAPTURED_AT`; el validador exige ambos antes de calcular resultados y separa recuperación técnica de objetivos aprobados. Pruebas dirigidas: `node --test scripts/validar-rpo-rto.test.mjs`, 5/5, código 0; `node --check scripts/ensayo-ops04-integrado.mjs`, código 0. La aceptación integrada del cableado queda pendiente de ejecutar con un respaldo protegido disponible; los objetivos siguen sin aprobación y la recuperación 0078 no se repite.
 
