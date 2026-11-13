@@ -17,7 +17,7 @@ export default defineConfig({
       command: 'node --env-file-if-exists=../../.env dist/main.js',
       cwd: '../apps/api',
       url: `${API_URL}/health/live`,
-      reuseExistingServer: false,
+      reuseExistingServer: process.env.E2E_REUSE_SERVER === 'true',
       timeout: 60_000,
       env: {
         DATABASE_URL: E2E_DATABASE_URL,
@@ -35,7 +35,7 @@ export default defineConfig({
       command: `npm run build && npx next start -p ${WEB_PORT}`,
       cwd: '../apps/web',
       url: WEB_URL,
-      reuseExistingServer: false,
+      reuseExistingServer: process.env.E2E_REUSE_SERVER === 'true',
       timeout: 240_000,
       env: { NEXT_PUBLIC_API_URL: API_URL },
     },

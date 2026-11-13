@@ -84,11 +84,14 @@ export function PolygonCapture({ orgId, plotId, plotVersion, onConfirmed }: {
     try {
       const r = await api<{ draft: Draft | null }>(`${base}/plots/${plotId}/polygon-drafts/current`);
       const local = await listOfflinePolygonVertices(ownerKey, orgId, plotId);
+      console.info('[offline-polygon-sync]', JSON.stringify({ phase: 'loaded', local_count: local.length, has_server_draft: r.draft !== null }));
       if (r.draft === null && local.length > 0 && navigator.onLine) {
         let current = await api<Draft>(`${base}/plots/${plotId}/polygon-drafts`, { method: 'POST' });
+        console.info('[offline-polygon-sync]', JSON.stringify({ phase: 'draft-created', draft_id: current.id }));
         for (const vertex of local.sort((a, b) => a.acquisition_seq - b.acquisition_seq)) {
           const synced = await api<{ draft: Draft }>(`${base}/polygon-drafts/${current.id}/vertices`, { method: 'POST', body: { expected_version: current.row_version, source: 'BROWSER_GEOLOCATION', operation_id: vertex.operation_id, latitude: vertex.latitude, longitude: vertex.longitude, accuracy_m: vertex.accuracy_m, captured_at: vertex.captured_at } });
           current = synced.draft;
+          console.info('[offline-polygon-sync]', JSON.stringify({ phase: 'vertex-sent', operation_id: vertex.operation_id, vertex_count: current.preview.vertex_count }));
           await removeOfflineCapture(vertex.operation_id);
         }
         setDraft(current);
@@ -98,6 +101,7 @@ export function PolygonCapture({ orgId, plotId, plotVersion, onConfirmed }: {
       setDraft(r.draft);
       setError(null);
     } catch (e) {
+      console.warn('[offline-polygon-sync]', JSON.stringify({ phase: 'error', status: e instanceof ApiError ? e.status : 0, code: e instanceof ApiError ? e.body.code : 'CLIENT_ERROR' }));
       if (!navigator.onLine) { setDraft(localDraft(await listOfflinePolygonVertices(ownerKey, orgId, plotId))); setError(null); return; }
       setError(e as ApiError);
     }

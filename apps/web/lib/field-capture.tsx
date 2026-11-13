@@ -7,6 +7,7 @@ import { useI18n } from './i18n';
 import { LocationCapture } from './location-capture';
 import { ManualCapture } from './manual-capture';
 import { PolygonCapture } from './polygon-capture';
+import { listOfflinePolygonVertices } from './offline-capture';
 import { positions, type Plot } from './plots';
 import { Alert } from './ui';
 import { useWorkspace } from './workspace';
@@ -31,6 +32,10 @@ export function FieldCapture({ orgId, plot, onChanged }: { orgId: string; plot: 
     const base = `/api/v1/organizations/${orgId}/plots/${plot.id}`;
     (async () => {
       try {
+        const localVertices = await listOfflinePolygonVertices(ws.me.id, orgId, plot.id);
+        if (vivo && localVertices.length > 0 && !chosen.current) { setMethod('POLYGON'); return; }
+      } catch { /* el componente conserva el método por defecto si IndexedDB no está disponible */ }
+      try {
         const d = await api<{ draft: unknown | null }>(`${base}/polygon-drafts/current`);
         if (vivo && d.draft && !chosen.current) { setMethod('POLYGON'); return; }
       } catch { /* sin acceso a borradores: no se sugiere nada */ }
@@ -40,7 +45,7 @@ export function FieldCapture({ orgId, plot, onChanged }: { orgId: string; plot: 
       } catch { /* idem */ }
     })();
     return () => { vivo = false; };
-  }, [orgId, plot.id]);
+  }, [orgId, plot.id, ws.me.id]);
 
   // Centro del croquis: la geometría vigente si la hay (para corregirla), si no el croquis arranca en Ecuador.
   const center = useMemo(() => {
