@@ -203,3 +203,9 @@ El candidato web QA `5202b3e` se validó con el lanzador [`e2e/run-offline-polyg
 
 Este cierre acredita preparación técnica local web/PWA con datos sintéticos. No acredita Android físico, validación de campo, piloto, operación real ni presentación oficial EUDR. La suspensión de Android/Expo conserva sus evidencias y pendientes separados.
 
+# Estado posterior al cierre Offline-First (2026-11-14)
+
+El candidato web `5202b3e` queda validado en Linux QA mediante `validation-qa-final-20261114011500`: 17/17 pruebas aprobadas, 0 fallidas, 0 omitidas, código 0. El cierre cubre punto, fotografía, polígono, aislamiento, sesión, conflictos, reapertura y actualización PWA. Android/Expo, SQLCipher nativo, dispositivo físico y campo permanecen separados y suspendidos.
+
+Siguiente sprint: OPS-04. El verificador RPO/RTO exige procedencia (`recovery_run_id`, `recoverable_point_source`) y fecha válida de aprobación antes de calcular resultados. Prueba: `node --test scripts/validar-rpo-rto.test.mjs`, 5/5, código 0. Los objetivos siguen pendientes de decisión y la recuperación 0078 no se repite.
+

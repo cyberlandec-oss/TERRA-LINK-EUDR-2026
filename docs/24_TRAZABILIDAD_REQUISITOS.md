@@ -1,5 +1,13 @@
 # Matriz fuente → requisito → historia → prueba
 
+### Conciliación web/PWA y siguiente sprint (2026-11-14)
+
+El cierre Offline-First web/PWA se acredita sobre `5202b3e` con la aceptación conjunta Linux QA `validation-qa-final-20261114011500`: 17/17, código 0. Los equivalentes web demostrados cubren captura de punto, vértices/polígono, fotografías, persistencia local, sincronización, idempotencia, sesión, aislamiento, conflictos y actualización controlada del service worker. El alcance Android/Expo queda suspendido: APK, SQLCipher nativo, Android físico y campo no se marcan como demostrados por esta evidencia.
+
+La línea histórica `23/30 = 76,7 %` se conserva sin incremento hasta conciliar uno a uno los 30 criterios con esta matriz; el cierre del sprint no elimina obligaciones ni convierte PILOTO, VALIDACIÓN DE CAMPO, OPERACIÓN REAL o aprobaciones jurídicas en criterios técnicos locales.
+
+El siguiente sprint ejecutable es OPS-04. `scripts/validar-rpo-rto.mjs` exige ahora `recovery_run_id` y `recoverable_point_source`, valida la fecha de aprobación formal y emite por separado objetivos/aprobación, mediciones observadas y comprobaciones de recuperación. Prueba dirigida: `node --test scripts/validar-rpo-rto.test.mjs`, 5/5, código 0. Esto mejora el contrato de evidencia; no adopta objetivos RPO/RTO ni acredita producción. La recuperación 0078 y su evidencia previa se conservan sin repetición.
+
 ### Evidencia E2E Offline-First (2026-11-11)
 
 `captura-campo.spec.ts` ejecutada en Linux con Playwright 1.64 y Chromium: `7 passed`, código `0`. El caso nuevo demuestra Mi finca → captura → desconexión → recarga → confirmación offline → reconexión automática → una versión en servidor. No acredita aún conflictos, cambio de cuenta, cierre completo del navegador ni offline de polígonos/fotografías. Ver `docs/qa/EVIDENCIA_OFFLINE_FIRST_WEB_2026-11-11.md`.

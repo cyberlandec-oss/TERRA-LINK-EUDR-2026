@@ -5,9 +5,13 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const objectives = { rpo_minutes: 15, rto_minutes: 30, approval: { status: 'APPROVED', actor_id: 'user-123', approved_at: '2026-11-09T12:00:00Z' } };
-const measurement = (overrides = {}) => ({ reference_at: '2026-11-10T10:00:00Z', recoverable_point_at: '2026-11-10T09:45:00Z', recovery_started_at: '2026-11-10T10:05:00Z', service_restored_at: '2026-11-10T10:35:00Z', objects_verified_at: '2026-11-10T10:40:00Z', objects_verified: true, keys_verified: true, healthcheck: true, ...overrides });
+const measurement = (overrides = {}) => ({ recovery_run_id: 'ops04-run-20261110-001', recoverable_point_source: 'backup-manifest:sha256:synthetic-test', reference_at: '2026-11-10T10:00:00Z', recoverable_point_at: '2026-11-10T09:45:00Z', recovery_started_at: '2026-11-10T10:05:00Z', service_restored_at: '2026-11-10T10:35:00Z', objects_verified_at: '2026-11-10T10:40:00Z', objects_verified: true, keys_verified: true, healthcheck: true, ...overrides });
 const run = (o, m) => { const dir = mkdtempSync(join(tmpdir(), 'tl-rpo-rto-')); try { const a = join(dir, 'o.json'); const b = join(dir, 'm.json'); writeFileSync(a, JSON.stringify(o)); writeFileSync(b, JSON.stringify(m)); return spawnSync(process.execPath, ['scripts/validar-rpo-rto.mjs', '--objetivos', a, '--medicion', b], { encoding: 'utf8' }); } finally { rmSync(dir, { recursive: true, force: true }); } };
 test('pasa con aprobación formal y medición dentro de límites', () => { const r = run(objectives, measurement()); assert.equal(r.status, 0); assert.match(r.stdout, /"status":"PASS"/); });
 test('rechaza nombre sin aprobación formal y objetivos incumplidos', () => { assert.notEqual(run({ rpo_minutes: 15, rto_minutes: 30, approved_by: 'nombre' }, measurement()).status, 0); const r = run({ ...objectives, rpo_minutes: 14, rto_minutes: 29 }, measurement()); assert.notEqual(r.status, 0); assert.match(r.stdout, /"status":"FAIL"/); });
 test('acepta el límite exacto y rechaza inconsistencias o evidencia incompleta', () => { assert.equal(run(objectives, measurement()).status, 0); assert.notEqual(run(objectives, measurement({ recoverable_point_at: '2026-11-10T10:01:00Z' })).status, 0); assert.notEqual(run(objectives, measurement({ keys_verified: false })).status, 0); });
 test('rechaza verificar objetos antes de recuperar el servicio', () => { const r = run(objectives, measurement({ objects_verified_at: '2026-11-10T10:30:00Z' })); assert.notEqual(r.status, 0); assert.match(r.stderr, /objects_verified_at anterior/); });
+test('rechaza una medición sin identidad del ensayo o procedencia del punto recuperable', () => {
+  assert.notEqual(run(objectives, measurement({ recovery_run_id: '' })).status, 0);
+  assert.notEqual(run(objectives, measurement({ recoverable_point_source: '' })).status, 0);
+});

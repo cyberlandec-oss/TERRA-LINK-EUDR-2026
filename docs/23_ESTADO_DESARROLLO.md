@@ -1044,3 +1044,17 @@ La regresión final sobre el candidato QA terminó **17/17 aprobadas, 0 fallidas
 - PWA: transición efectiva de caché `terra-link-shell-v3` a `v4`; el pendiente IndexedDB sobrevive activación y reapertura.
 
 La prueba fotográfica actual acredita interrupción de transporte y reintento idempotente; no se presenta como una nueva medición de servidor recibido con respuesta perdida. El porcentaje global permanece **23/30 = 76,7 % provisional**, sin incremento, hasta conciliar formalmente en la matriz la equivalencia de requisitos Android trasladados a web/PWA. Android físico, validación de campo, mapas base offline, operación real y aprobaciones EUDR permanecen separados.
+# Estado vigente — cierre Offline-First web/PWA y Sprint OPS-04 (2026-11-14)
+
+El sprint Offline-First web/PWA queda **cerrado técnicamente en local** con el candidato `5202b3e`: la aceptación conjunta ejecutó 17/17 pruebas, 0 fallidas, 0 omitidas y código 0 en el arnés Linux QA. La evidencia reproducible está en `validation-qa-final-20261114011500/` y la matriz de recorrido en `docs/qa/MATRIZ_RECORRIDO_INTEGRAL.md`. Android/Expo permanece suspendido y no se cuenta como web/PWA ni como validación de dispositivo o campo.
+
+La conciliación de alcance conserva los requisitos móviles originales: persistencia, cola, idempotencia, conflictos, captura de punto, polígono y fotografía tienen equivalente web/PWA demostrado; SQLCipher nativo, APK, Android físico y operación prolongada en campo no se trasladan automáticamente. El histórico `23/30 = 76,7 %` se conserva como referencia del denominador anterior; no se incrementa por el cierre web hasta reconciliar formalmente cada criterio de la línea base con la matriz vigente.
+
+## Sprint siguiente — OPS-04: procedencia de mediciones RPO/RTO
+
+Brecha ejecutable seleccionada: el verificador aceptaba una medición temporal sin exigir que estuviera vinculada a un ensayo identificable ni que el punto recuperable tuviera procedencia explícita. `scripts/validar-rpo-rto.mjs` ahora exige `recovery_run_id` y `recoverable_point_source`, valida `approved_at` como fecha y separa en su salida objetivos/aprobación, mediciones observadas y comprobaciones de objetos, claves y servicio.
+
+Evidencia dirigida: `node --test scripts/validar-rpo-rto.test.mjs` — **5/5 aprobadas, código 0**. Esta entrega no adopta objetivos RPO/RTO, no designa responsable y no repite la recuperación 0078; el RPO/RTO operativo queda pendiente de aprobación y de una medición de producción controlada.
+
+Pendientes separados: D-05.B/D-09.B y aceptación jurídica; consulta real satelital y términos/credenciales del proveedor; decisión D-34 sobre el régimen del destino; PILOTO, VALIDACIÓN DE CAMPO y OPERACIÓN REAL. El siguiente trabajo técnico del sprint es conectar el informe integrado OPS-04 con estos campos de procedencia sin alterar respaldos protegidos.
+
