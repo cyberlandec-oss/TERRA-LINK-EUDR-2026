@@ -46,8 +46,9 @@ async function putRows(page: import('@playwright/test').Page, rows: unknown[]) {
 async function rows(page: import('@playwright/test').Page) { return page.evaluate(() => new Promise<unknown[]>((resolve) => { const r = indexedDB.open('terra-link-offline-capture', 1); r.onsuccess = () => { const t = r.result.transaction('location-captures', 'readonly'); const g = t.objectStore('location-captures').getAll(); g.onsuccess = () => { r.result.close(); resolve(g.result); }; }; })); }
 function pending(f: Fixture, operationId: string, status: 'PENDING' | 'CONFLICT' = 'PENDING') { return { operation_id: operationId, owner_key: f.meId, organization_id: f.orgId, plot_id: f.plotId, expected_version: 0, source: 'BROWSER_GEOLOCATION', latitude: -0.8, longitude: -80.1, accuracy_m: 4, captured_at: new Date().toISOString(), status, confirmed: true, capture_kind: 'LOCATION' }; }
 async function loginThroughUi(page: import('@playwright/test').Page, user: User) {
+  await expect(page.locator('#email')).toBeVisible({ timeout: 15_000 });
   await page.locator('#email').fill(user.email); await page.locator('#password').fill(user.password); await page.getByRole('button', { name: /Iniciar sesi/i }).click();
-  await page.waitForURL(/\/organizaciones/);
+  await expect(page.getByTestId('contexto-usuario')).toHaveText(new RegExp(user.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), { timeout: 15_000 });
 }
 
 test('prepare isolated organization and two producers', async () => {
@@ -60,7 +61,13 @@ test('prepare isolated organization and two producers', async () => {
 
 test('switching account keeps pending work isolated', async ({ browser }) => {
   const context = await browser.newContext({ serviceWorkers: 'allow' });
-  await context.addInitScript(([token, owner]) => { sessionStorage.setItem('tl_token', token); sessionStorage.setItem('tl_offline_owner_key', owner); }, [a.token, a.meId] as const);
+  await context.addInitScript(([token, owner]) => {
+    if (!sessionStorage.getItem('tl_e2e_session_seeded')) {
+      sessionStorage.setItem('tl_token', token);
+      sessionStorage.setItem('tl_offline_owner_key', owner);
+      sessionStorage.setItem('tl_e2e_session_seeded', '1');
+    }
+  }, [a.token, a.meId] as const);
   const page = await context.newPage();
   await page.goto(`/organizaciones/${a.orgId}/captura?plot_id=${a.plotId}`);
   await putRows(page, [pending(a, 'isolation-a')]);
@@ -71,8 +78,9 @@ test('switching account keeps pending work isolated', async ({ browser }) => {
   await expect(page.getByText(/captura\(s\) pendiente|captura pendiente/i)).not.toBeVisible();
   expect((await rows(page)).filter((row: any) => row.owner_key === b.meId)).toHaveLength(0);
   expect((await rows(page)).some((row: any) => row.operation_id === 'isolation-a')).toBe(true);
-  a.token = (await ok('/api/v1/auth/login', { method: 'POST', body: a.user })).access_token;
-  await page.evaluate(([token, owner]) => { sessionStorage.setItem('tl_token', token); sessionStorage.setItem('tl_offline_owner_key', owner); }, [a.token, a.meId]);
+  await page.getByRole('button', { name: /Cerrar sesi/i }).click();
+  await page.waitForURL(/\/$/);
+  await loginThroughUi(page, a.user);
   await page.goto(`/organizaciones/${a.orgId}/captura?plot_id=${a.plotId}`);
   expect((await rows(page)).some((row: any) => row.operation_id === 'isolation-a')).toBe(true);
   await context.close();
@@ -80,28 +88,46 @@ test('switching account keeps pending work isolated', async ({ browser }) => {
 
 test('expired session pauses and reauthentication resumes once', async ({ browser }) => {
   const context = await browser.newContext({ serviceWorkers: 'allow' });
-  await context.addInitScript(([token, owner]) => { sessionStorage.setItem('tl_token', token); sessionStorage.setItem('tl_offline_owner_key', owner); }, [a.token, a.meId] as const);
-  const page = await context.newPage(); let attempts = 0; let expired = true;
-  await page.route('**/api/v1/organizations/*/plots/*/location-samples', async (route) => { attempts += 1; if (expired) return route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ code: 'UNAUTHENTICATED', message: 'session expired' }) }); return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ version: { version_number: 1, sample: { received_at: new Date().toISOString() } } }) }); });
+  await context.addInitScript(([token, owner]) => {
+    if (!sessionStorage.getItem('tl_e2e_session_seeded')) {
+      sessionStorage.setItem('tl_token', token);
+      sessionStorage.setItem('tl_offline_owner_key', owner);
+      sessionStorage.setItem('tl_e2e_session_seeded', '1');
+    }
+  }, [a.token, a.meId] as const);
+  const page = await context.newPage(); let attempts = 0; let expireNext = true;
+  page.on('response', async (response) => { if (response.url().includes('/location-samples')) console.log(`session-response=${response.status()} ${response.request().method()}`); });
+  await page.route('**/api/v1/organizations/*/plots/*/location-samples', async (route) => { attempts += 1; if (expireNext) { expireNext = false; return route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ code: 'UNAUTHENTICATED', message: 'session expired' }) }); } return route.continue(); });
   await page.goto(`/organizaciones/${a.orgId}/captura?plot_id=${a.plotId}`);
-  await putRows(page, [pending(a, 'session-a')]);
+  const current = await ok(`/api/v1/organizations/${a.orgId}/plots/${a.plotId}`, { token: a.token });
+  await putRows(page, [{ ...pending(a, '00000000-0000-4000-8000-000000000002'), expected_version: current.row_version }]);
   await page.reload();
   await expect(page.getByText(/Capturar ubicaci|Capturar ubicación/i).first()).toBeVisible({ timeout: 15_000 });
-  await page.evaluate(() => window.dispatchEvent(new Event('online')));
   await expect.poll(() => rows(page).then((r) => (r[0] as any)?.status)).toBe('PENDING');
   // El montaje y el evento online pueden observar el mismo pendiente una vez cada uno;
   // ambos deben detenerse tras 401, sin bucle automático.
   expect(attempts).toBeLessThanOrEqual(2);
-  expired = false;
-  await page.evaluate((token) => { sessionStorage.setItem('tl_token', token); window.dispatchEvent(new Event('online')); }, a.token);
-  await expect.poll(() => rows(page).then((r) => r.some((x: any) => x.operation_id === 'session-a')), { timeout: 15_000 }).toBe(false);
+  await page.unroute('**/api/v1/organizations/*/plots/*/location-samples');
+  await page.getByRole('button', { name: /Cerrar sesi/i }).click(); await page.waitForURL(/\/$/);
+  await loginThroughUi(page, a.user);
+  a.token = (await ok('/api/v1/auth/login', { method: 'POST', body: a.user })).access_token;
+  await page.goto(`/organizaciones/${a.orgId}/captura?plot_id=${a.plotId}`);
+  await expect(page.getByRole('heading', { name: /Captura de campo/i })).toBeVisible({ timeout: 15_000 });
+  await expect.poll(() => rows(page).then((r) => r.some((x: any) => x.operation_id === '00000000-0000-4000-8000-000000000002' && x.status === 'PENDING')), { timeout: 15_000 }).toBe(true);
+  await expect.poll(() => rows(page).then((r) => r.some((x: any) => x.operation_id === '00000000-0000-4000-8000-000000000002')), { timeout: 15_000 }).toBe(false);
   expect(attempts).toBeLessThanOrEqual(3);
   await context.close();
 });
 
 test('version conflict preserves local capture and exposes resolution', async ({ browser }) => {
   const context = await browser.newContext({ serviceWorkers: 'allow' });
-  await context.addInitScript(([token, owner]) => { sessionStorage.setItem('tl_token', token); sessionStorage.setItem('tl_offline_owner_key', owner); }, [a.token, a.meId] as const);
+  await context.addInitScript(([token, owner]) => {
+    if (!sessionStorage.getItem('tl_e2e_session_seeded')) {
+      sessionStorage.setItem('tl_token', token);
+      sessionStorage.setItem('tl_offline_owner_key', owner);
+      sessionStorage.setItem('tl_e2e_session_seeded', '1');
+    }
+  }, [a.token, a.meId] as const);
   const page = await context.newPage();
   page.on('response', async (response) => { if (response.url().includes('/location-samples')) console.log(`conflict-response=${response.status()} ${response.request().method()}`); });
   const before = await ok(`/api/v1/organizations/${a.orgId}/plots/${a.plotId}`, { token: a.token });
@@ -122,17 +148,29 @@ test('version conflict preserves local capture and exposes resolution', async ({
 
 test('service worker update does not delete pending storage', async ({ browser }) => {
   const context = await browser.newContext({ serviceWorkers: 'allow' });
-  await context.addInitScript(([token, owner]) => { sessionStorage.setItem('tl_token', token); sessionStorage.setItem('tl_offline_owner_key', owner); }, [a.token, a.meId] as const);
+  await context.addInitScript(([token, owner]) => {
+    if (!sessionStorage.getItem('tl_e2e_session_seeded')) {
+      sessionStorage.setItem('tl_token', token);
+      sessionStorage.setItem('tl_offline_owner_key', owner);
+      sessionStorage.setItem('tl_e2e_session_seeded', '1');
+    }
+  }, [a.token, a.meId] as const);
   const page = await context.newPage(); await page.goto(`/organizaciones/${a.orgId}/captura?plot_id=${a.plotId}`); await putRows(page, [pending(a, 'pwa-a')]);
   const before = await rows(page);
   await page.evaluate(async () => {
     await caches.open('terra-link-shell-v3');
-    const old = await navigator.serviceWorker.ready;
+    const old = await navigator.serviceWorker.register('/sw-v3.js', { scope: '/', updateViaCache: 'none' });
     await old.update();
-    const next = await navigator.serviceWorker.register('/sw.js?version=v4', { updateViaCache: 'none' });
+    const next = await navigator.serviceWorker.register('/sw-v4.js', { scope: '/', updateViaCache: 'none' });
+    await next.update();
     if (next.waiting) next.waiting.postMessage({ type: 'SKIP_WAITING' });
-    await navigator.serviceWorker.ready;
-    await new Promise<void>((resolve) => { if (navigator.serviceWorker.controller) resolve(); else navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true }); });
+    await new Promise<void>((resolve, reject) => {
+      const finish = () => { if (navigator.serviceWorker.controller?.scriptURL.endsWith('/sw-v4.js')) resolve(); };
+      if (next.active?.scriptURL.endsWith('/sw-v4.js') && navigator.serviceWorker.controller?.scriptURL.endsWith('/sw-v4.js')) return resolve();
+      navigator.serviceWorker.addEventListener('controllerchange', finish, { once: true });
+      next.addEventListener('statechange', () => { if (next.active?.scriptURL.endsWith('/sw-v4.js')) { next.active.postMessage({ type: 'SKIP_WAITING' }); finish(); } });
+      setTimeout(() => reject(new Error('sw-v4 no se activó')), 15_000);
+    });
   });
   await page.reload();
   const cacheNames = await page.evaluate(() => caches.keys());

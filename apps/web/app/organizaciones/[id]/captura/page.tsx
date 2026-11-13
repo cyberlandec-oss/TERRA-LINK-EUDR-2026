@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError, api } from '../../../../lib/api';
 import { FieldCapture } from '../../../../lib/field-capture';
 import { FieldEvidence } from '../../../../lib/field-evidence';
@@ -32,6 +32,7 @@ export default function CapturaPage() {
   const [plot, setPlot] = useState<Plot | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [q, setQ] = useState('');
+  const plotLoadSequence = useRef(0);
   const requestedProducer = search.get('producer_id') ?? '';
   const requestedPlot = search.get('plot_id') ?? '';
 
@@ -68,8 +69,14 @@ export default function CapturaPage() {
 
   const loadPlot = useCallback(async () => {
     if (!orgId || !plotId) { setPlot(null); return; }
-    try { setPlot(await api<Plot>(`/api/v1/organizations/${orgId}/plots/${plotId}`)); setError(null); }
-    catch (err) { setError(err as ApiError); }
+    const sequence = ++plotLoadSequence.current;
+    try {
+      const next = await api<Plot>(`/api/v1/organizations/${orgId}/plots/${plotId}`);
+      if (sequence !== plotLoadSequence.current) return;
+      setPlot(next); setError(null);
+    } catch (err) {
+      if (sequence === plotLoadSequence.current) setError(err as ApiError);
+    }
   }, [orgId, plotId]);
   useEffect(() => { void loadPlot(); }, [loadPlot]);
 
