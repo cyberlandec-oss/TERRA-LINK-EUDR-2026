@@ -61,6 +61,19 @@ Estos tres IDs son criterios activos del alcance actual y no duplican MOB-01..03
 
 Fórmula vigente: **21 criterios del subconjunto web/API/operación + WEB-01..03 demostrados = 24/28 criterios activos = 85,7 %**. Los cuatro parciales son `DD-04`, `SAT-05`, `MOV-05` y `OPS-04`; `MOB-04..05` permanecen suspendidos fuera del denominador.
 
+### Candidato limpio y decisiones restantes (2026-11-14)
+
+El API se construyó desde `HEAD=1537627` en un worktree desprendido, sin incluir cambios locales del árbol principal. Imagen: `terra-link-api:clean-1537627`, ID local `sha256:613187dd…`. `/health/live` quedó saludable y `/version` devolvió `commit=1537627`, `commit_source=BUILD_ARG`, esquema `0078_marco_gobernanza_legal`. La web se identifica por separado y no se reconstruyó.
+
+| Criterio | Decisión requerida | Opciones y consecuencia | Trabajo técnico posterior |
+|---|---|---|---|
+| DD-04 | Propietario regulatorio: configuración aplicable D-05.B y conclusión de riesgo | Mantener `NOT_EVALUABLE` hasta decisión versionada (recomendado) o adoptar configuración con ámbito/vigencia; no default silencioso | Cadena autorizada hasta READY, con auditoría y bloqueo negativo |
+| SAT-05 | Propietario de integración y responsable jurídico: proveedor, geometrías, términos y credencial | Mantener sintético; autorizar consulta real con credencial custodiada; o seleccionar proveedor compatible | Consulta real controlada, respuesta original/hash/procedencia y vínculo DD |
+| MOV-05 | Propietario operativo/regulatorio: expediente que habilita despacho | Mantener bloqueo hasta READY válido (recomendado) o aprobar perfil explícito; fixture no autoriza | Evidencia→riesgo→DD→paquete→reserva→preflight→despacho, revalidación e idempotencia |
+| OPS-04 | Propietario de operación: pérdida máxima, tiempo máximo, ámbito y responsable | Aprobar objetivos sustentados en medición o mantener capacidad técnica sin cumplimiento declarado | Ensayo con objetivo aprobado y punto recuperable acreditado; RPO no determinable sin referencia temporal |
+
+No queda configuración local independiente de estas decisiones que cierre los cuatro criterios sin falsear compuertas. PILOTO, VALIDACIÓN DE CAMPO y OPERACIÓN REAL permanecen separados.
+
 ### Evidencia E2E Offline-First (2026-11-11)
 
 `captura-campo.spec.ts` ejecutada en Linux con Playwright 1.64 y Chromium: `7 passed`, código `0`. El caso nuevo demuestra Mi finca → captura → desconexión → recarga → confirmación offline → reconexión automática → una versión en servidor. No acredita aún conflictos, cambio de cuenta, cierre completo del navegador ni offline de polígonos/fotografías. Ver `docs/qa/EVIDENCIA_OFFLINE_FIRST_WEB_2026-11-11.md`.
