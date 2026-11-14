@@ -85,7 +85,7 @@ Metadatos de credencial satelital: `.env` y `.env.example` no contienen variable
 
 ### Respuesta recibida para OPS-04 (2026-11-14)
 
-Se elige la **opción B** como objetivo propuesto para el servicio completo de Terra Link: **RPO máximo 1 hora** y **RTO máximo 4 horas**, aplicable a base de datos, archivos/evidencias, API y acceso web conjuntamente. El rol indicado para aceptar el resultado es **responsable regulatorio**. Esta respuesta registra el objetivo y su ámbito; no acredita que la infraestructura lo cumpla ni sustituye la medición integrada, la designación operativa ni la aceptación formal exigida por el procedimiento.
+Se confirma la **opción B** como objetivo para el servicio completo de Terra Link: **RPO máximo 1 hora** y **RTO máximo 4 horas**, aplicable a base de datos, archivos/evidencias, API y acceso web conjuntamente. El rol indicado para aceptar el resultado es **responsable regulatorio**. Esta confirmación registra el objetivo y su ámbito; no acredita que la infraestructura lo cumpla ni sustituye la medición integrada ni el resultado formal del procedimiento.
 
 ### Evidencia E2E Offline-First (2026-11-11)
 
