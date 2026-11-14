@@ -175,6 +175,12 @@ try {
   if (!health) fail(`API no alcanzó healthcheck dentro del límite: ${lastHealthError}`);
   report.recovery.health = health;
   check('servicio recuperado', health.status === 'ok', `status=${health.status}; scanner=${health.checks?.scanner ?? 'desconocido'}`);
+  docker([...composeArgs, 'up', '-d', 'web']);
+  let webOk = false; let lastWebError = 'sin respuesta';
+  for (let i = 0; i < 30 && !webOk; i += 1) {
+    try { run('curl.exe', ['-fsS', 'http://localhost:3010/']); webOk = true; } catch (error) { lastWebError = error.message; run('node', ['-e', 'setTimeout(()=>{},1000)']); }
+  }
+  check('web QA disponible', webOk, webOk ? 'HTTP 200 local' : lastWebError);
   if (health.status !== 'ok') report.limitations.push('API responde, pero no es recuperación completa: health distinto de ok');
   report.recovery.finished_at = new Date().toISOString();
   report.recovery.rto_minutes = (Date.parse(report.recovery.finished_at) - Date.parse(report.recovery.started_at)) / 60000;

@@ -81,6 +81,11 @@ services:
       # Marca de la instancia, visible en la configuración efectiva.
       TL_INSTANCIA: ENSAYO_DE_RESTAURACION_QA16
     ports: ["4010:4000"]
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:4000/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
