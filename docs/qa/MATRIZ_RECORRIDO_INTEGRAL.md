@@ -207,5 +207,15 @@ Este cierre acredita preparación técnica local web/PWA con datos sintéticos. 
 
 El candidato web `5202b3e` queda validado en Linux QA mediante `validation-qa-final-20261114011500`: 17/17 pruebas aprobadas, 0 fallidas, 0 omitidas, código 0. El cierre cubre punto, fotografía, polígono, aislamiento, sesión, conflictos, reapertura y actualización PWA. Android/Expo, SQLCipher nativo, dispositivo físico y campo permanecen separados y suspendidos.
 
+### Criterios web/PWA trasladados
+
+| ID vigente | Criterio | Evidencia | Estado |
+|---|---|---|---|
+| WEB-01 | Persistencia offline y cola durable | `5202b3e`, aceptación QA 17/17 | Demostrado |
+| WEB-02 | Sincronización, idempotencia, conflictos y aislamiento | `5202b3e`, 5/5 dirigidas y 17/17 conjunta | Demostrado |
+| WEB-03 | Captura responsive de punto, polígono y fotografía | `5202b3e`, 17/17 conjunta | Demostrado |
+
+La medición actual incluye estos tres criterios una sola vez: **24/28 = 85,7 %**. MOB-01..03 son referencias históricas trasladadas; no acreditan SQLCipher, APK, Android físico ni campo. MOB-04..05 permanecen suspendidos fuera del denominador.
+
 Siguiente sprint: OPS-04. El ejecutor integrado deriva `recovery_run_id` del proyecto y `recoverable_point_source` del manifiesto `estado-actual.txt:CAPTURED_AT`; el validador exige ambos antes de calcular resultados y separa recuperación técnica de objetivos aprobados. Pruebas controladas: `node --test scripts/ensayo-ops04-integrado.test.mjs scripts/validar-rpo-rto.test.mjs`, 8/8, código 0; `node --check scripts/ensayo-ops04-integrado.mjs`, código 0. La aceptación integrada con recuperación real queda pendiente de ejecutar con un respaldo protegido disponible; los objetivos siguen sin aprobación y la recuperación 0078 no se repite.
 

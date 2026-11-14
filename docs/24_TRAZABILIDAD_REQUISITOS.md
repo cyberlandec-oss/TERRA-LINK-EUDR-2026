@@ -49,6 +49,18 @@ La tabla conserva el denominador histórico y no convierte una equivalencia web 
 
 Resultado reproducible actual: **23/30 = 76,7 % histórico**, sin incremento en esta entrega. Los criterios móviles con equivalencia web/PWA no se suman de nuevo ni acreditan Android; la correspondencia queda trazada para una futura conciliación formal de alcance.
 
+### Criterios activos trasladados a web/PWA
+
+Estos tres IDs son criterios activos del alcance actual y no duplican MOB-01..03; los IDs originales conservan la trazabilidad histórica y no acreditan Android nativo.
+
+| ID vigente | Relación | Aceptación y evidencia | Estado | Inclusión |
+|---|---|---|---|---|
+| WEB-01 | MOB-01 | Punto, polígono y fotografía persistidos offline, reapertura, cola por identidad y estados visibles; `5202b3e`, `validation-qa-final-20261114011500/` | Demostrado | Sí |
+| WEB-02 | MOB-02 | Reconexión automática, idempotencia, conflicto explícito, sesión expirada y aislamiento; `5202b3e`, 5/5 dirigidas y 17/17 conjunta | Demostrado | Sí |
+| WEB-03 | MOB-03 | Captura responsive desde Mi finca con GPS/foto, revisión y sincronización server-authoritative; `5202b3e`, aceptación 17/17 | Demostrado | Sí |
+
+Fórmula vigente: **21 criterios del subconjunto web/API/operación + WEB-01..03 demostrados = 24/28 criterios activos = 85,7 %**. Los cuatro parciales son `DD-04`, `SAT-05`, `MOV-05` y `OPS-04`; `MOB-04..05` permanecen suspendidos fuera del denominador.
+
 ### Evidencia E2E Offline-First (2026-11-11)
 
 `captura-campo.spec.ts` ejecutada en Linux con Playwright 1.64 y Chromium: `7 passed`, código `0`. El caso nuevo demuestra Mi finca → captura → desconexión → recarga → confirmación offline → reconexión automática → una versión en servidor. No acredita aún conflictos, cambio de cuenta, cierre completo del navegador ni offline de polígonos/fotografías. Ver `docs/qa/EVIDENCIA_OFFLINE_FIRST_WEB_2026-11-11.md`.
