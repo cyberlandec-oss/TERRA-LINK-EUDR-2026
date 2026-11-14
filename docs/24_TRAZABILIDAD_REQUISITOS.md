@@ -74,6 +74,15 @@ El API se construyó desde `HEAD=1537627` en un worktree desprendido, sin inclui
 
 No queda configuración local independiente de estas decisiones que cierre los cuatro criterios sin falsear compuertas. PILOTO, VALIDACIÓN DE CAMPO y OPERACIÓN REAL permanecen separados.
 
+Metadatos de credencial satelital: `.env` y `.env.example` no contienen variables `WHISP_*` ni `SATELLITE_*`; no se imprimió ningún valor. La documentación confirma que el mecanismo de credencial por organización existe y que registrarla no activa llamadas reales. Para continuar se debe consultar, con permiso de lectura de metadatos y sobre una organización de ensayo, si existe una credencial registrada, su proveedor/estado/fecha de vigencia y su ámbito; después el propietario debe indicar organización y parcelas sintéticas autorizadas. No se solicita ni se expone una nueva clave por defecto.
+
+### Ficha única para responder
+
+1. **D-05.B:** el responsable regulatorio debe adoptar o mantener bloqueada la configuración geográfica aplicable, indicando ámbito, versión, vigencia y conclusión. Adoptarla habilita solo `GEOLOCATION_PROFILE`; mantenerla bloqueada conserva `NOT_EVALUABLE`.
+2. **D-09.B:** el propietario debe decidir si Whisp puede usarse para las parcelas indicadas, aceptar sus términos y designar la custodia de la credencial. La autorización de geometría sintética no autoriza parcelas reales ni activación permanente.
+3. **MOV-05:** el propietario operativo/regulatorio debe indicar qué expediente jurídicamente habilitado permite reservar y despachar; una fixture READY no sustituye esa decisión.
+4. **OPS-04:** el responsable de operación debe responder: “¿cuál es la pérdida máxima de datos aceptable y cuánto tiempo máximo puede estar indisponible Terra Link?, ¿aplica a qué componentes y quién acepta el resultado?”. La capacidad técnica está demostrada separadamente; sin esos valores no se declara cumplimiento RPO/RTO.
+
 ### Evidencia E2E Offline-First (2026-11-11)
 
 `captura-campo.spec.ts` ejecutada en Linux con Playwright 1.64 y Chromium: `7 passed`, código `0`. El caso nuevo demuestra Mi finca → captura → desconexión → recarga → confirmación offline → reconexión automática → una versión en servidor. No acredita aún conflictos, cambio de cuenta, cierre completo del navegador ni offline de polígonos/fotografías. Ver `docs/qa/EVIDENCIA_OFFLINE_FIRST_WEB_2026-11-11.md`.
