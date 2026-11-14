@@ -6,7 +6,7 @@ El cierre Offline-First web/PWA se acredita sobre `5202b3e` con la aceptación c
 
 La línea histórica `23/30 = 76,7 %` se conserva sin incremento hasta conciliar uno a uno los 30 criterios con esta matriz; el cierre del sprint no elimina obligaciones ni convierte PILOTO, VALIDACIÓN DE CAMPO, OPERACIÓN REAL o aprobaciones jurídicas en criterios técnicos locales.
 
-El siguiente sprint ejecutable es OPS-04. `scripts/validar-rpo-rto.mjs` exige ahora `recovery_run_id` y `recoverable_point_source`, valida la fecha de aprobación formal y emite por separado objetivos/aprobación, mediciones observadas y comprobaciones de recuperación. `scripts/ensayo-ops04-integrado.mjs` deriva esas referencias del proyecto y de `estado-actual.txt:CAPTURED_AT`, y solo valida objetivos cuando recibe una referencia del incidente y un archivo de objetivos. Pruebas: `node --test scripts/validar-rpo-rto.test.mjs`, 5/5, código 0; `node --check scripts/ensayo-ops04-integrado.mjs`, código 0. La aceptación integrada del nuevo cableado requiere un respaldo protegido disponible; no se repite 0078 ni se inventa evidencia.
+El siguiente sprint ejecutable es OPS-04. `scripts/validar-rpo-rto.mjs` exige ahora `recovery_run_id` y `recoverable_point_source`, valida la fecha de aprobación formal y emite por separado objetivos/aprobación, mediciones observadas y comprobaciones de recuperación. `scripts/ensayo-ops04-integrado.mjs --validar-medicion` deriva esas referencias del proyecto y de `estado-actual.txt:CAPTURED_AT`, y solo valida objetivos cuando recibe una referencia del incidente y un archivo de objetivos. Pruebas controladas: `node --test scripts/ensayo-ops04-integrado.test.mjs scripts/validar-rpo-rto.test.mjs`, 8/8, código 0; `node --check scripts/ensayo-ops04-integrado.mjs`, código 0. La aceptación integrada con recuperación real requiere un respaldo protegido disponible; no se repite 0078 ni se inventa evidencia.
 
 ### Conciliación de los 30 criterios vigentes
 
@@ -42,7 +42,7 @@ La tabla conserva el denominador histórico y no convierte una equivalencia web 
 | OPS-01 | Web/API local | salud y procedimiento de despliegue | Demostrado local | Sí |
 | OPS-02 | Web/API local | logs, métricas y redacción | Demostrado local | Sí |
 | OPS-03 | Infraestructura local | TLS, proxy y secretos de ensayo | Demostrado local | Sí |
-| OPS-04 | Procedimiento ejecutable | `validar-rpo-rto` 5/5; ensayo integrado pendiente | Parcial | Sí |
+| OPS-04 | Procedimiento ejecutable | integración sintética 8/8; ensayo con recuperación protegida pendiente | Parcial | Sí |
 | OPS-05 | Web/API local | fallo, alerta, runbook y recuperación | Demostrado local | Sí |
 
 Resultado reproducible actual: **23/30 = 76,7 % histórico**, sin incremento en esta entrega. Los criterios móviles con equivalencia web/PWA no se suman de nuevo ni acreditan Android; la correspondencia queda trazada para una futura conciliación formal de alcance.

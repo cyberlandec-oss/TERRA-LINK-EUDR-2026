@@ -33,6 +33,50 @@ const check = (name, ok, detail) => { report.checks.push({ name, ok, detail }); 
 const save = () => writeFileSync(reportPath, JSON.stringify(report, null, 2));
 const fail = (message) => { report.status = 'FAIL'; report.error = message; save(); throw new Error(message); };
 
+// Modo acotado para probar manifiesto → medición → informe → validador sin Docker ni restauración.
+// Solo acepta artefactos sintéticos explícitos y no sustituye el ensayo integrado de recuperación.
+if (process.argv.includes('--validar-medicion')) {
+  try {
+    const manifestPath = resolve(arg('--manifiesto', ''));
+    if (!manifestPath || !existsSync(manifestPath)) throw new Error('falta --manifiesto');
+    const manifest = readFileSync(manifestPath, 'utf8');
+    const capturedAt = manifest.match(/^CAPTURED_AT\|(.+)$/m)?.[1] ?? null;
+    const measurement = {
+      recovery_run_id: project,
+      reference_at: referenceAt,
+      recoverable_point_at: capturedAt,
+      recoverable_point_source: capturedAt ? 'manifiesto-sintetico:CAPTURED_AT' : null,
+      recovery_started_at: arg('--recuperacion-inicio', null),
+      service_restored_at: arg('--servicio-restaurado', null),
+      objects_verified_at: arg('--objetos-verificados', null),
+      objects_verified: process.argv.includes('--objetos-ok'),
+      keys_verified: process.argv.includes('--claves-ok'),
+      healthcheck: process.argv.includes('--salud-ok'),
+    };
+    report.synthetic_scope = true;
+    report.backup = { manifest_path: 'redacted-synthetic-manifest', captured_at: capturedAt, source: 'synthetic-fixture' };
+    report.recovery = { measurement };
+    if (!objectivesPath) {
+      report.objectives_validation = { status: 'NOT_EVALUATED', reason: 'No se proporcionaron objetivos aprobados' };
+    } else if (!referenceAt || !capturedAt) {
+      report.objectives_validation = { status: 'NOT_EVALUATED', reason: 'RPO no determinable: falta referencia o CAPTURED_AT' };
+      report.recovery.rpo = { status: 'NOT_DETERMINABLE' };
+    } else {
+      const measurementPath = `${reportPath}.measurement.json`;
+      writeFileSync(measurementPath, JSON.stringify(measurement, null, 2));
+      const validation = spawnSync(process.execPath, ['scripts/validar-rpo-rto.mjs', '--objetivos', objectivesPath, '--medicion', measurementPath], { encoding: 'utf8' });
+      report.objectives_validation = { status: validation.status === 0 ? 'PASS' : 'FAIL', exit_code: validation.status, stdout: validation.stdout?.trim() ?? '', stderr: validation.stderr?.trim() ?? '' };
+    }
+    report.status = report.objectives_validation.status === 'PASS' ? 'PASS' : report.objectives_validation.status === 'FAIL' ? 'FAIL' : 'NOT_EVALUATED';
+    save();
+    console.log(JSON.stringify(report, null, 2));
+    process.exitCode = report.status === 'PASS' ? 0 : 1;
+  } catch (error) {
+    report.status = 'FAIL'; report.error = error.message; save(); console.error(error.message); process.exitCode = 1;
+  }
+  process.exit();
+}
+
 if (!backup || !existsSync(join(backup, 'terra_link.dump')) || !existsSync(join(backup, 'object-data.tar.gz') || '') || !envFile || !existsSync(envFile)) fail('faltan respaldo, objetos o env QA; no se muestran rutas de secretos');
 mkdirSync(resolve(backup), { recursive: true });
 report.backup.captured_at = readFileSync(join(backup, 'estado-actual.txt'), 'utf8').match(/^CAPTURED_AT\|(.+)$/m)?.[1] ?? null;
