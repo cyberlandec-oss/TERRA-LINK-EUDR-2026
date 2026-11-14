@@ -1,5 +1,11 @@
 # Matriz fuente → requisito → historia → prueba
 
+### OPS-04: aceptación local final (2026-11-14)
+
+La aceptación integrada `tl-ops04-qa-accept-synthetic-final-20261114` terminó con código 0 sobre un conjunto QA creado para este ensayo, separado de DEMO y de los volúmenes operativos. El generador creó un volumen de objetos nuevo con un único objeto sintético, registró `writes_before=8500` y `writes_after=8500` durante la captura, y solo entonces emitió `WRITES_PAUSED=true` y `CAPTURED_AT`. El ejecutor verificó localización 1/1, PutObject/GetObject y SHA-256 1/1, API `health.status=ok`, ClamAV y web HTTP 200. El descifrado AES-GCM sintético fue positivo con la clave QA y rechazó una clave incorrecta. RPO observado: 0,126 minutos; RTO observado: 1,414 minutos. El validador con objetivos aprobados de 60/240 minutos devolvió `PASS`; el resultado aplica solo al conjunto QA local y no extrapola capacidad productiva.
+
+El primer control basado en `pg_stat_database.xact_commit` se conserva como diagnóstico no aceptado: cambió durante `pg_dump` porque cuenta transacciones de lectura. La implementación usa contadores de modificaciones de filas (`n_tup_ins+n_tup_upd+n_tup_del`) antes/después y aborta si cambian. No se publican claves ni respaldos.
+
 ### Conciliación web/PWA y siguiente sprint (2026-11-14)
 
 El cierre Offline-First web/PWA se acredita sobre `5202b3e` con la aceptación conjunta Linux QA `validation-qa-final-20261114011500`: 17/17, código 0. Los equivalentes web demostrados cubren captura de punto, vértices/polígono, fotografías, persistencia local, sincronización, idempotencia, sesión, aislamiento, conflictos y actualización controlada del service worker. El alcance Android/Expo queda suspendido: APK, SQLCipher nativo, Android físico y campo no se marcan como demostrados por esta evidencia.
@@ -8,7 +14,7 @@ La línea histórica `23/30 = 76,7 %` se conserva sin incremento hasta conciliar
 
 Medición del alcance vigente: **28 criterios activos**, **24 demostrados** y **4 parciales**; fórmula **24/28 × 100 = 85,7 %**. Incluye los 25 criterios web/API/operación local y tres equivalentes móviles demostrados por web/PWA (captura, continuidad offline y evidencias). Los dos criterios Android nativos restantes (APK/SQLCipher nativo y operación física/campo) permanecen suspendidos fuera de este denominador y se conservan en la tabla como alcance pendiente. `23/30 = 76,7 %` queda únicamente como referencia histórica.
 
-El siguiente sprint ejecutable es OPS-04. `scripts/validar-rpo-rto.mjs` exige ahora `recovery_run_id` y `recoverable_point_source`, valida la fecha de aprobación formal y emite por separado objetivos/aprobación, mediciones observadas y comprobaciones de recuperación. `scripts/ensayo-ops04-integrado.mjs --validar-medicion` deriva esas referencias del proyecto y de `estado-actual.txt:CAPTURED_AT`, y solo valida objetivos cuando recibe una referencia del incidente y un archivo de objetivos. Pruebas controladas: `node --test scripts/ensayo-ops04-integrado.test.mjs scripts/validar-rpo-rto.test.mjs`, 8/8, código 0; `node --check scripts/ensayo-ops04-integrado.mjs`, código 0. La aceptación integrada con recuperación real requiere un respaldo protegido disponible; no se repite 0078 ni se inventa evidencia.
+OPS-04 queda demostrado localmente con el ensayo QA sintético descrito arriba. `scripts/validar-rpo-rto.mjs` exige `recovery_run_id` y `recoverable_point_source`, valida la aprobación formal y separa objetivos, mediciones y comprobaciones. Pruebas controladas: `node --test scripts/ensayo-ops04-integrado.test.mjs scripts/validar-rpo-rto.test.mjs`, 8/8, código 0; la aceptación integrada final terminó con código 0. No se repite 0078 ni se inventa evidencia.
 
 ### Conciliación de los 30 criterios vigentes
 
@@ -44,7 +50,7 @@ La tabla conserva el denominador histórico y no convierte una equivalencia web 
 | OPS-01 | Web/API local | salud y procedimiento de despliegue | Demostrado local | Sí |
 | OPS-02 | Web/API local | logs, métricas y redacción | Demostrado local | Sí |
 | OPS-03 | Infraestructura local | TLS, proxy y secretos de ensayo | Demostrado local | Sí |
-| OPS-04 | Procedimiento ejecutable | integración sintética 8/8; ensayo con recuperación protegida pendiente | Parcial | Sí |
+| OPS-04 | Procedimiento ejecutable | aceptación QA sintética final, código 0, objeto 1/1, descifrado positivo/negativo, API/web saludables, RPO/RTO PASS; 2026-11-14 | Demostrado local | Sí |
 | OPS-05 | Web/API local | fallo, alerta, runbook y recuperación | Demostrado local | Sí |
 
 Resultado reproducible actual: **23/30 = 76,7 % histórico**, sin incremento en esta entrega. Los criterios móviles con equivalencia web/PWA no se suman de nuevo ni acreditan Android; la correspondencia queda trazada para una futura conciliación formal de alcance.
@@ -59,7 +65,7 @@ Estos tres IDs son criterios activos del alcance actual y no duplican MOB-01..03
 | WEB-02 | MOB-02 | Reconexión automática, idempotencia, conflicto explícito, sesión expirada y aislamiento; `5202b3e`, 5/5 dirigidas y 17/17 conjunta | Demostrado | Sí |
 | WEB-03 | MOB-03 | Captura responsive desde Mi finca con GPS/foto, revisión y sincronización server-authoritative; `5202b3e`, aceptación 17/17 | Demostrado | Sí |
 
-Fórmula vigente: **21 criterios del subconjunto web/API/operación + WEB-01..03 demostrados = 24/28 criterios activos = 85,7 %**. Los cuatro parciales son `DD-04`, `SAT-05`, `MOV-05` y `OPS-04`; `MOB-04..05` permanecen suspendidos fuera del denominador.
+Fórmula vigente: **22 criterios del subconjunto web/API/operación + WEB-01..03 demostrados = 25/28 criterios activos = 89,3 %**. Los tres parciales restantes son `DD-04`, `SAT-05` y `MOV-05`; `MOB-04..05` permanecen suspendidos fuera del denominador. `23/30 = 76,7 %` queda únicamente como referencia histórica.
 
 ### Candidato limpio y decisiones restantes (2026-11-14)
 

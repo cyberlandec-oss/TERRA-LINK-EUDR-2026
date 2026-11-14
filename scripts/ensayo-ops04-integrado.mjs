@@ -1,6 +1,7 @@
 // OPS-04: ejecutor reproducible de restauración QA.
 // No crea respaldos ni imprime secretos: recibe una carpeta protegida fuera de Git.
 import { execFileSync, spawnSync } from 'node:child_process';
+import { createDecipheriv } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -26,6 +27,16 @@ const report = { project, started_at: started, backup: {}, recovery: { incident_
 const run = (command, args, options = {}) => execFileSync(command, args, { encoding: 'utf8', stdio: options.stdio ?? 'pipe', ...options });
 const docker = (args, options = {}) => run('docker', args, options);
 const parseEnv = (text) => Object.fromEntries(text.split(/\r?\n/).filter((line) => line && !line.startsWith('#')).map((line) => { const i = line.indexOf('='); return i < 0 ? [line, ''] : [line.slice(0, i), line.slice(i + 1)]; }));
+const decryptSynthetic = (fixture, envText, wrong = false) => {
+  const envValue = envText.match(/^PII_KEYS=([^\n]+)$/m)?.[1] ?? '';
+  const parts = envValue.split(',').map((item) => item.split(':')).find(([kid]) => kid === fixture.key_id);
+  if (!parts) throw new Error('clave sintética no disponible');
+  const key = Buffer.from(parts[1], 'base64');
+  const [, kid, iv, tag, ciphertext] = fixture.token.split('.');
+  const decipher = createDecipheriv('aes-256-gcm', wrong ? Buffer.alloc(32, 7) : key, Buffer.from(iv, 'base64url'));
+  decipher.setAAD(Buffer.from(fixture.aad)); decipher.setAuthTag(Buffer.from(tag, 'base64url'));
+  return Buffer.concat([decipher.update(Buffer.from(ciphertext, 'base64url')), decipher.final()]).toString('utf8');
+};
 const s3Hash = (container, endpoint, bucket, key) => {
   const code = "import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'; import { createHash } from 'node:crypto'; const [endpoint,bucket,key]=process.argv.slice(1); const c=new S3Client({endpoint,region:'us-east-1',forcePathStyle:true,credentials:{accessKeyId:process.env.S3_ACCESS_KEY,secretAccessKey:process.env.S3_SECRET_KEY}}); try { const r=await c.send(new GetObjectCommand({Bucket:bucket,Key:key})); const b=Buffer.from(await r.Body.transformToByteArray()); console.log('SHA:'+createHash('sha256').update(b).digest('hex')); } catch (e) { console.log('ERROR:'+((e && e.name) || 'unknown')+':'+((e && e.Code) || '')+':'+((e && e.$metadata && e.$metadata.httpStatusCode) || '')+':'+((e && e.message) || '')); process.exit(3); } finally { c.destroy(); }";
   try { const output = docker(['exec', container, 'node', '--input-type=module', '-e', code, endpoint, bucket, key]).trim(); return output.startsWith('SHA:') ? { ok: true, sha256: output.slice(4) } : { ok: false, error: output }; } catch (error) { const output = String(error?.stdout ?? '').trim(); return { ok: false, error: output || 'S3_READ_FAILED' }; }
@@ -124,6 +135,10 @@ try {
   run('tar', ['-xzf', join(backup, 'object-data.tar.gz'), '-C', extractDir]);
   const refsSql = "SELECT 'document_versions', object_key, sha256 FROM document_versions WHERE object_key IS NOT NULL UNION ALL SELECT 'geometry_imports', object_key, sha256 FROM geometry_imports WHERE object_key IS NOT NULL UNION ALL SELECT 'satellite_results', raw_object_key, raw_sha256 FROM satellite_results WHERE raw_object_key IS NOT NULL";
   const refRows = docker(['exec', pg, 'psql', '-U', qaEnv.ENSAYO_PG_USER, '-d', 'restore_copy', '-At', '-F', '|', '-c', refsSql]).trim().split(/\r?\n/).filter(Boolean);
+  try {
+    const syntheticObject = JSON.parse(readFileSync(join(backup, 'synthetic-object.json'), 'utf8'));
+    if (syntheticObject.scope === 'synthetic-only') refRows.push(`synthetic|${syntheticObject.key}|${syntheticObject.sha256}`);
+  } catch { /* un respaldo histórico puede no contener la fixture sintética; no se inventa */ }
   let missing = 0; let altered = 0; let verified = 0;
   const objectStages = [];
   for (const row of refRows) {
@@ -151,7 +166,15 @@ try {
   const keyring = new Set((envText.match(/^PII_KEYS=(.*)$/m)?.[1] ?? '').split(',').map((v) => v.split(':')[0]).filter(Boolean));
   const unavailable = keyRows.filter((kid) => !keyring.has(kid));
   check('claves referenciadas disponibles', unavailable.length === 0, `ids=${keyRows.length}; no_disponibles=${unavailable.length}`);
-  check('descifrado sintetico con llavero recuperado', keyring.size > 0, 'alcance: material sintetico; no se imprimen datos personales');
+  let syntheticDecryptOk = false; let wrongKeyRejected = false; let syntheticDetail = 'falta synthetic-encrypted.json';
+  try {
+    const fixture = JSON.parse(readFileSync(join(backup, 'synthetic-encrypted.json'), 'utf8'));
+    const plain = decryptSynthetic(fixture, envText);
+    try { decryptSynthetic(fixture, envText, true); } catch { wrongKeyRejected = true; }
+    syntheticDecryptOk = fixture.scope === 'synthetic-only' && plain === 'QA-SYNTHETIC-RECOVERY-DATA' && wrongKeyRejected;
+    syntheticDetail = `scope=${fixture.scope}; descifrado=${syntheticDecryptOk}; clave_incorrecta_rechazada=${wrongKeyRejected}`;
+  } catch (error) { syntheticDetail = `error=${error.message}`; }
+  check('descifrado sintetico con llavero recuperado', syntheticDecryptOk, syntheticDetail);
   const objectsVerifiedAt = new Date().toISOString();
   report.recovery.objects = { references: refRows.length, verified, missing, altered, verified_at: objectsVerifiedAt };
   if (refRows.length) {
