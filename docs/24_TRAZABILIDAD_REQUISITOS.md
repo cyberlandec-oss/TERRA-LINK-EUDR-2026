@@ -83,6 +83,10 @@ Metadatos de credencial satelital: `.env` y `.env.example` no contienen variable
 3. **MOV-05:** el propietario operativo/regulatorio debe indicar qué expediente jurídicamente habilitado permite reservar y despachar; una fixture READY no sustituye esa decisión.
 4. **OPS-04:** el responsable de operación debe responder: “¿cuál es la pérdida máxima de datos aceptable y cuánto tiempo máximo puede estar indisponible Terra Link?, ¿aplica a qué componentes y quién acepta el resultado?”. La capacidad técnica está demostrada separadamente; sin esos valores no se declara cumplimiento RPO/RTO.
 
+### Respuesta recibida para OPS-04 (2026-11-14)
+
+Se elige la **opción B** como objetivo propuesto para el servicio completo de Terra Link: **RPO máximo 1 hora** y **RTO máximo 4 horas**, aplicable a base de datos, archivos/evidencias, API y acceso web conjuntamente. El rol indicado para aceptar el resultado es **responsable regulatorio**. Esta respuesta registra el objetivo y su ámbito; no acredita que la infraestructura lo cumpla ni sustituye la medición integrada, la designación operativa ni la aceptación formal exigida por el procedimiento.
+
 ### Evidencia E2E Offline-First (2026-11-11)
 
 `captura-campo.spec.ts` ejecutada en Linux con Playwright 1.64 y Chromium: `7 passed`, código `0`. El caso nuevo demuestra Mi finca → captura → desconexión → recarga → confirmación offline → reconexión automática → una versión en servidor. No acredita aún conflictos, cambio de cuenta, cierre completo del navegador ni offline de polígonos/fotografías. Ver `docs/qa/EVIDENCIA_OFFLINE_FIRST_WEB_2026-11-11.md`.
