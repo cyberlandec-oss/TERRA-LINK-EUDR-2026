@@ -1050,7 +1050,7 @@ El sprint Offline-First web/PWA queda **cerrado técnicamente en local** con el 
 
 ### Conciliación numérica vigente
 
-Para el alcance actual web/API/operación local se mantienen 25 criterios activos: los cinco criterios Android/Expo nativos se conservan como suspendidos y fuera de este cálculo, sin eliminar sus requisitos. Hay 21 criterios demostrados y 4 parciales (DD-04, SAT-05, MOV-05 y OPS-04). Fórmula reproducible: **21 / 25 × 100 = 84,0 %**. El histórico `23/30 = 76,7 %` queda conservado solo como referencia del alcance anterior y no se presenta como medición actual web/PWA.
+Para el alcance vigente se mantienen los 25 criterios web/API/operación local y se incorporan explícitamente tres criterios móviles trasladados a web/PWA (captura, continuidad offline y evidencias). Los dos criterios Android nativos restantes (APK/SQLCipher nativo y operación física/campo) se conservan suspendidos fuera del cálculo, sin eliminar sus requisitos. Resultado reproducible: **24 / 28 × 100 = 85,7 %**: 21 criterios del subconjunto web/API/operación y 3 equivalentes web/PWA demostrados; quedan 4 parciales (DD-04, SAT-05, MOV-05 y OPS-04). El histórico `23/30 = 76,7 %` queda conservado como referencia del alcance anterior.
 
 La conciliación de alcance conserva los requisitos móviles originales: persistencia, cola, idempotencia, conflictos, captura de punto, polígono y fotografía tienen equivalente web/PWA demostrado; SQLCipher nativo, APK, Android físico y operación prolongada en campo no se trasladan automáticamente. El histórico `23/30 = 76,7 %` se conserva como referencia del denominador anterior; no se incrementa por el cierre web hasta reconciliar formalmente cada criterio de la línea base con la matriz vigente.
 
