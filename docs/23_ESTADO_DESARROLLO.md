@@ -1048,6 +1048,10 @@ La prueba fotográfica actual acredita interrupción de transporte y reintento i
 
 El sprint Offline-First web/PWA queda **cerrado técnicamente en local** con el candidato `5202b3e`: la aceptación conjunta ejecutó 17/17 pruebas, 0 fallidas, 0 omitidas y código 0 en el arnés Linux QA. La evidencia reproducible está en `validation-qa-final-20261114011500/` y la matriz de recorrido en `docs/qa/MATRIZ_RECORRIDO_INTEGRAL.md`. Android/Expo permanece suspendido y no se cuenta como web/PWA ni como validación de dispositivo o campo.
 
+### Conciliación numérica vigente
+
+Para el alcance actual web/API/operación local se mantienen 25 criterios activos: los cinco criterios Android/Expo nativos se conservan como suspendidos y fuera de este cálculo, sin eliminar sus requisitos. Hay 21 criterios demostrados y 4 parciales (DD-04, SAT-05, MOV-05 y OPS-04). Fórmula reproducible: **21 / 25 × 100 = 84,0 %**. El histórico `23/30 = 76,7 %` queda conservado solo como referencia del alcance anterior y no se presenta como medición actual web/PWA.
+
 La conciliación de alcance conserva los requisitos móviles originales: persistencia, cola, idempotencia, conflictos, captura de punto, polígono y fotografía tienen equivalente web/PWA demostrado; SQLCipher nativo, APK, Android físico y operación prolongada en campo no se trasladan automáticamente. El histórico `23/30 = 76,7 %` se conserva como referencia del denominador anterior; no se incrementa por el cierre web hasta reconciliar formalmente cada criterio de la línea base con la matriz vigente.
 
 ## Sprint siguiente — OPS-04: procedencia de mediciones RPO/RTO
