@@ -14,14 +14,15 @@ const envFile = resolve(arg('--env-file', ''));
 const project = arg('--project', `tl-ops04-${Date.now()}`);
 const reportPath = resolve(arg('--informe', join(backup || '.', `ops04-${project}.json`)));
 const objectivesPath = arg('--objetivos', null) ? resolve(arg('--objetivos')) : null;
-const referenceAt = arg('--referencia', null);
+const suppliedReferenceAt = arg('--referencia', null);
+const referenceAt = suppliedReferenceAt ?? (process.argv.includes('--validar-medicion') ? null : new Date().toISOString());
 const objectsOnly = process.argv.includes('--solo-objetos');
 const pg = `${project}-postgres-1`;
 const objects = `${project}-object-storage-1`;
 const scanner = `${project}-scanner-1`;
 const api = `${project}-api-1`;
 const started = new Date().toISOString();
-const report = { project, started_at: started, backup: {}, recovery: {}, checks: [], limitations: [] };
+const report = { project, started_at: started, backup: {}, recovery: { incident_at: referenceAt }, checks: [], limitations: [] };
 const run = (command, args, options = {}) => execFileSync(command, args, { encoding: 'utf8', stdio: options.stdio ?? 'pipe', ...options });
 const docker = (args, options = {}) => run('docker', args, options);
 const parseEnv = (text) => Object.fromEntries(text.split(/\r?\n/).filter((line) => line && !line.startsWith('#')).map((line) => { const i = line.indexOf('='); return i < 0 ? [line, ''] : [line.slice(0, i), line.slice(i + 1)]; }));
@@ -136,7 +137,7 @@ try {
       if (matches.length !== 1) { missing += 1; continue; }
       try { docker(['cp', matches[0].file, `${api}:/tmp/ops04-remap-object`]); stage.transfer = { ok: true }; }
       catch (error) { stage.transfer = { ok: false, error: String(error?.stderr || error?.message || 'TRANSFER_FAILED').trim() }; missing += 1; continue; }
-      const putCode = "import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'; import { createReadStream } from 'node:fs'; const key=process.argv[1]; const c=new S3Client({endpoint:process.env.S3_ENDPOINT,region:process.env.S3_REGION||'us-east-1',forcePathStyle:true,credentials:{accessKeyId:process.env.S3_ACCESS_KEY,secretAccessKey:process.env.S3_SECRET_KEY}}); try { const r=await c.send(new PutObjectCommand({Bucket:process.env.S3_BUCKET||'terra-link-private',Key:key,Body:createReadStream('/tmp/ops04-remap-object')})); console.log(JSON.stringify({ok:true,etag:r.ETag||null})); } catch(e) { console.error(JSON.stringify({ok:false,name:e.name,code:e.Code||null,http:e.$metadata?.httpStatusCode||null,message:e.message})); process.exit(4); } finally { c.destroy(); }";
+      const putCode = "import { S3Client, CreateBucketCommand, HeadBucketCommand, PutObjectCommand } from '@aws-sdk/client-s3'; import { createReadStream } from 'node:fs'; const key=process.argv[1]; const bucket=process.env.S3_BUCKET||'terra-link-private'; const c=new S3Client({endpoint:process.env.S3_ENDPOINT,region:process.env.S3_REGION||'us-east-1',forcePathStyle:true,credentials:{accessKeyId:process.env.S3_ACCESS_KEY,secretAccessKey:process.env.S3_SECRET_KEY}}); try { try { await c.send(new HeadBucketCommand({Bucket:bucket})); } catch (e) { if (e?.$metadata?.httpStatusCode !== 404 && e?.name !== 'NotFound' && e?.name !== 'NoSuchBucket') throw e; await c.send(new CreateBucketCommand({Bucket:bucket})); } const r=await c.send(new PutObjectCommand({Bucket:bucket,Key:key,Body:createReadStream('/tmp/ops04-remap-object')})); console.log(JSON.stringify({ok:true,etag:r.ETag||null})); } catch(e) { console.error(JSON.stringify({ok:false,name:e.name,code:e.Code||null,http:e.$metadata?.httpStatusCode||null,message:e.message})); process.exit(4); } finally { c.destroy(); }";
       try { stage.put_object = { ok: true, output: docker(['exec', api, 'node', '--input-type=module', '-e', putCode, key]).trim() }; }
       catch (error) { stage.put_object = { ok: false, error: String(error?.stderr || error?.stdout || error?.message || 'PUT_OBJECT_FAILED').trim() }; missing += 1; continue; }
       const actual = s3Hash(api, qaEnv?.S3_ENDPOINT || 'http://object-storage:9000', qaEnv?.S3_BUCKET || 'terra-link-private', key);
@@ -211,7 +212,7 @@ try {
   }
 } catch (error) { report.error = error.message; report.status = 'FAIL'; }
 finally { try { docker([...composeArgs, 'down', '-v', '--remove-orphans']); rmSync(resolve(runtimeEnvFile, '..'), { recursive: true, force: true }); report.cleanup = { completed: true }; } catch (error) { report.cleanup = { completed: false, error: error.message }; } }
-if (report.status !== 'FAIL') report.status = report.checks.every((item) => item.ok) ? 'PASS' : 'PARTIAL';
+if (report.status !== 'FAIL') report.status = report.checks.every((item) => item.ok) && (!objectivesPath || report.objectives_validation?.status === 'PASS') ? 'PASS' : 'PARTIAL';
 save();
 console.log(JSON.stringify(report, null, 2));
 process.exitCode = report.status === 'PASS' ? 0 : 1;

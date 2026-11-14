@@ -38,7 +38,7 @@ if (auto) {
     `PII_KEYS=qa-ops04:${token(32)}`,
     'PII_ACTIVE_KEY_ID=qa-ops04',
     `PII_INDEX_KEY=${token(32)}`,
-    'NODE_ENV=production',
+    'NODE_ENV=development',
     'S3_ENDPOINT=http://object-storage:9000',
     `S3_BUCKET=${bucket}`,
     'WEB_ORIGIN=https://localhost:3010',
@@ -59,6 +59,7 @@ run('docker', ['cp', `${postgres}:/tmp/ops04-qa.dump`, dump]);
 run('docker', ['exec', postgres, 'rm', '-f', '/tmp/ops04-qa.dump']);
 
 const volume = required('--object-volume');
+if (!/^tl-ops04-qa-[a-z0-9-]+$/.test(volume)) throw new Error('object-volume debe ser un volumen QA exclusivo tl-ops04-qa-*');
 run('docker', ['run', '--rm', '-v', `${volume}:/data:ro`, '-v', `${output}:/out`, 'alpine:3.20', 'sh', '-c', 'tar czf /out/object-data.tar.gz -C /data .']);
 
 const manifest = [
