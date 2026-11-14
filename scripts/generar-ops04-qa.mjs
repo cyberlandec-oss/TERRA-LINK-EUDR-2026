@@ -3,6 +3,9 @@
 import { execFileSync } from 'node:child_process';
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { mkdtempSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { tmpdir } from 'node:os';
 
 const arg = (name) => { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : null; };
 const required = (name) => { const value = arg(name); if (!value) throw new Error(`falta ${name}`); return value; };
@@ -12,13 +15,38 @@ const postgres = required('--postgres');
 const database = required('--database');
 const bucket = required('--bucket');
 const output = resolve(required('--output'));
-const envFile = resolve(required('--qa-env'));
+const suppliedEnv = arg('--qa-env');
+const auto = process.argv.includes('--auto');
+const envFile = suppliedEnv ? resolve(suppliedEnv) : (auto ? join(mkdtempSync(join(tmpdir(), 'tl-ops04-qa-')), 'qa.env') : null);
 
 if (!/^tl-ops04-qa-[a-z0-9-]+$/.test(project)) throw new Error('project debe ser tl-ops04-qa-*');
 if (!/(^|_)(qa|test)($|_)/i.test(database)) throw new Error('database debe ser QA/test');
 if (!/(^|[-_])(qa|test)($|[-_])/i.test(bucket)) throw new Error('bucket debe ser QA/test');
 if (/terra-link-(private|e2e)$/i.test(bucket)) throw new Error('bucket operativo/prohibido');
+if (!envFile) throw new Error('falta --qa-env o --auto');
 if (envFile === resolve('.env') || /[\\/]\.env$/.test(envFile)) throw new Error('no se permite .env operativo');
+
+if (auto) {
+  const token = (bytes = 32) => randomBytes(bytes).toString('base64url');
+  const qaEnv = [
+    'ENSAYO_PG_USER=qa_restore',
+    `ENSAYO_PG_PASSWORD=${token()}`,
+    `ENSAYO_PG_DB=${database}`,
+    `S3_ACCESS_KEY=qa_${token(12)}`,
+    `S3_SECRET_KEY=${token(32)}`,
+    `JWT_SECRET=${token(48)}`,
+    `PII_KEYS=qa-ops04:${token(32)}`,
+    'PII_ACTIVE_KEY_ID=qa-ops04',
+    `PII_INDEX_KEY=${token(32)}`,
+    'NODE_ENV=production',
+    'S3_ENDPOINT=http://object-storage:9000',
+    `S3_BUCKET=${bucket}`,
+    'WEB_ORIGIN=https://localhost:3010',
+  ].join('\n') + '\n';
+  mkdirSync(resolve(envFile, '..'), { recursive: true });
+  writeFileSync(envFile, qaEnv, { mode: 0o600 });
+  try { chmodSync(envFile, 0o600); } catch { /* ACL Windows se aplica fuera del script */ }
+}
 
 mkdirSync(output, { recursive: true });
 const dump = join(output, 'terra_link.dump');

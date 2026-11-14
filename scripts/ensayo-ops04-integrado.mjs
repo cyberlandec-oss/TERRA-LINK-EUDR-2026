@@ -86,7 +86,11 @@ for (const file of ['terra_link.dump', 'object-data.tar.gz']) {
   check(`${file}: hash calculable`, Boolean(hash), hash ? 'SHA-256 local calculado' : 'no calculable');
 }
 
-const composeArgs = ['compose', '-p', project, '-f', compose, '--env-file', envFile];
+const envText = readFileSync(envFile, 'utf8');
+const qaEnv = parseEnv(envText);
+const runtimeEnvFile = join(mkdtempSync(join(tmpdir(), 'tl-ops04-runtime-')), 'ensayo.env');
+writeFileSync(runtimeEnvFile, envText.replace(/^ENSAYO_PG_DB=.*$/m, 'ENSAYO_PG_DB=restore_copy'));
+const composeArgs = ['compose', '-p', project, '-f', compose, '--env-file', runtimeEnvFile];
 const startedRecovery = new Date(); report.recovery.started_at = startedRecovery.toISOString();
 try {
   docker([...composeArgs, 'up', '-d', 'postgres', 'redis', 'object-storage', 'scanner']);
@@ -103,14 +107,14 @@ try {
     if (scannerHealth === 'starting') run('node', ['-e', 'setTimeout(()=>{},1000)']);
   }
   if (!check('scanner ClamAV saludable', scannerHealth === 'healthy', `estado=${scannerHealth}`)) fail('ClamAV no alcanzo estado saludable');
-  docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'postgres', '-c', 'DROP DATABASE IF EXISTS restore_copy WITH (FORCE);']);
-  docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'postgres', '-c', 'CREATE DATABASE restore_copy OWNER restore;']);
+  docker(['exec', pg, 'psql', '-U', qaEnv.ENSAYO_PG_USER, '-d', 'postgres', '-c', 'DROP DATABASE IF EXISTS restore_copy WITH (FORCE);']);
+  docker(['exec', pg, 'psql', '-U', qaEnv.ENSAYO_PG_USER, '-d', 'postgres', '-c', `CREATE DATABASE restore_copy OWNER ${qaEnv.ENSAYO_PG_USER};`]);
   docker(['cp', join(backup, 'terra_link.dump'), `${pg}:/tmp/terra_link.dump`]);
-  const restore = run('docker', ['exec', pg, 'pg_restore', '-U', 'restore', '-d', 'restore_copy', '--no-owner', '--no-privileges', '/tmp/terra_link.dump'], { stdio: 'pipe' });
+  const restore = run('docker', ['exec', pg, 'pg_restore', '-U', qaEnv.ENSAYO_PG_USER, '-d', 'restore_copy', '--no-owner', '--no-privileges', '/tmp/terra_link.dump'], { stdio: 'pipe' });
   check('pg_restore', true, restore.includes('errors ignored') ? 'terminó con advertencias; revisar salida conservada por el lanzador' : 'código 0');
-  const migrations = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-tAc', 'SELECT count(*) FROM kysely_migration']).trim();
-  const tables = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-tAc', "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r' AND n.nspname='public'"]).trim();
-  const refs = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-tAc', 'SELECT count(*) FROM public_references']).trim();
+  const migrations = docker(['exec', pg, 'psql', '-U', qaEnv.ENSAYO_PG_USER, '-d', 'restore_copy', '-tAc', 'SELECT count(*) FROM kysely_migration']).trim();
+  const tables = docker(['exec', pg, 'psql', '-U', qaEnv.ENSAYO_PG_USER, '-d', 'restore_copy', '-tAc', "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r' AND n.nspname='public'"]).trim();
+  const refs = docker(['exec', pg, 'psql', '-U', qaEnv.ENSAYO_PG_USER, '-d', 'restore_copy', '-tAc', 'SELECT count(*) FROM public_references']).trim();
   check('base restaurada', migrations !== '' && tables !== '', `migraciones=${migrations}; tablas=${tables}; referencias=${refs}`);
   docker([...composeArgs, 'up', '-d', 'api']);
   docker(['cp', join(backup, 'object-data.tar.gz'), `${objects}:/tmp/object-data.tar.gz`]);
@@ -118,9 +122,7 @@ try {
   const extractDir = mkdtempSync(join(tmpdir(), 'tl-ops04-extract-'));
   run('tar', ['-xzf', join(backup, 'object-data.tar.gz'), '-C', extractDir]);
   const refsSql = "SELECT 'document_versions', object_key, sha256 FROM document_versions WHERE object_key IS NOT NULL UNION ALL SELECT 'geometry_imports', object_key, sha256 FROM geometry_imports WHERE object_key IS NOT NULL UNION ALL SELECT 'satellite_results', raw_object_key, raw_sha256 FROM satellite_results WHERE raw_object_key IS NOT NULL";
-  const refRows = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-At', '-F', '|', '-c', refsSql]).trim().split(/\r?\n/).filter(Boolean);
-  const envText = readFileSync(envFile, 'utf8');
-  const qaEnv = parseEnv(envText);
+  const refRows = docker(['exec', pg, 'psql', '-U', qaEnv.ENSAYO_PG_USER, '-d', 'restore_copy', '-At', '-F', '|', '-c', refsSql]).trim().split(/\r?\n/).filter(Boolean);
   let missing = 0; let altered = 0; let verified = 0;
   const objectStages = [];
   for (const row of refRows) {
@@ -144,7 +146,7 @@ try {
   }
   report.recovery.object_stages = objectStages;
   check('objetos referenciados integros', missing === 0 && altered === 0 && verified === refRows.length, `referencias=${refRows.length}; verificadas=${verified}; ausentes=${missing}; alteradas=${altered}`);
-  const keyRows = docker(['exec', pg, 'psql', '-U', 'restore', '-d', 'restore_copy', '-At', '-c', "SELECT DISTINCT split_part(document_number_enc,'.',2) FROM producers WHERE document_number_enc IS NOT NULL"]).trim().split(/\r?\n/).filter(Boolean);
+  const keyRows = docker(['exec', pg, 'psql', '-U', qaEnv.ENSAYO_PG_USER, '-d', 'restore_copy', '-At', '-c', "SELECT DISTINCT split_part(document_number_enc,'.',2) FROM producers WHERE document_number_enc IS NOT NULL"]).trim().split(/\r?\n/).filter(Boolean);
   const keyring = new Set((envText.match(/^PII_KEYS=(.*)$/m)?.[1] ?? '').split(',').map((v) => v.split(':')[0]).filter(Boolean));
   const unavailable = keyRows.filter((kid) => !keyring.has(kid));
   check('claves referenciadas disponibles', unavailable.length === 0, `ids=${keyRows.length}; no_disponibles=${unavailable.length}`);
@@ -208,7 +210,7 @@ try {
   report.status = report.checks.every((item) => item.ok) ? 'PASS' : 'PARTIAL';
   }
 } catch (error) { report.error = error.message; report.status = 'FAIL'; }
-finally { try { docker([...composeArgs, 'down', '-v', '--remove-orphans']); report.cleanup = { completed: true }; } catch (error) { report.cleanup = { completed: false, error: error.message }; } }
+finally { try { docker([...composeArgs, 'down', '-v', '--remove-orphans']); rmSync(resolve(runtimeEnvFile, '..'), { recursive: true, force: true }); report.cleanup = { completed: true }; } catch (error) { report.cleanup = { completed: false, error: error.message }; } }
 if (report.status !== 'FAIL') report.status = report.checks.every((item) => item.ok) ? 'PASS' : 'PARTIAL';
 save();
 console.log(JSON.stringify(report, null, 2));
