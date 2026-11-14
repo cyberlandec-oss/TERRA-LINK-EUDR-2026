@@ -17,7 +17,8 @@
     "test:e2e": "npm run test -w e2e",
     "validate": "node scripts/validate-local.mjs",
     "carga": "node scripts/carga-piloto.mjs",
-    "carga:prueba": "node --test scripts/carga-piloto.test.mjs"
+    "carga:prueba": "node --test scripts/carga-piloto.test.mjs",
+    "ops04:generar-qa": "node scripts/generar-ops04-qa.mjs"
   },
   "overrides": { "@nestjs/swagger": { "js-yaml": "5.5.0" } }
 }
