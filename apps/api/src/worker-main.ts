@@ -54,6 +54,7 @@ async function main(): Promise<void> {
   const providers = registeredProviders();
   let satellite: SatelliteRunner | null = null;
   if (providers.length) {
+    console.log(`WHISP_API_KEY=${process.env.WHISP_API_KEY?.trim() ? 'configurada' : 'ausente'}`);
     const piiCfg = parsePiiConfig(process.env);
     satellite = new SatelliteRunner(db, providers, {
       store,
