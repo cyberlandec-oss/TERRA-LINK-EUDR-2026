@@ -18,12 +18,15 @@ const secret = (label) => new Promise((resolve, reject) => {
   if (!input.isTTY || typeof input.setRawMode !== 'function') return reject(new Error('La entrada debe ser una terminal interactiva; no se acepta secreto redirigido.'));
   process.stdout.write(label);
   let value = '';
+  let done = false;
   const onData = (chunk) => {
-    const text = chunk.toString();
-    if (text === '\u0003') { cleanup(); reject(new Error('cancelado')); return; }
-    if (text === '\r' || text === '\n') { cleanup(); process.stdout.write('\n'); resolve(value); return; }
-    if (text === '\u007f') { value = value.slice(0, -1); return; }
-    if (text.length === 1) value += text;
+    for (const ch of chunk.toString()) {
+      if (done) return;
+      if (ch === '\u0003') { cleanup(); done = true; reject(new Error('cancelado')); return; }
+      if (ch === '\r' || ch === '\n') { cleanup(); done = true; process.stdout.write('\n'); resolve(value); return; }
+      if (ch === '\u007f' || ch === '\b') { value = value.slice(0, -1); continue; }
+      if (ch >= ' ') value += ch;
+    }
   };
   const cleanup = () => { input.off('data', onData); input.setRawMode(false); input.pause(); };
   input.setRawMode(true); input.resume(); input.on('data', onData);
@@ -43,7 +46,8 @@ try {
   const put = await fetch(`${BASE}/api/v1/organizations/${ORG}/satellite/credentials/WHISP`, { method: 'PUT', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ secret: key }) });
   const body = await put.json().catch(() => null);
   if (!put.ok) throw new Error(`carga rechazada (${put.status})`);
-  const meta = body?.providers?.find((p) => p.provider_code === 'WHISP') ?? { provider_code: 'WHISP', configured: true };
+  const meta = body?.providers?.find((p) => p.provider_code === 'WHISP');
+  if (!meta) throw new Error('La API no devolvió metadatos de WHISP tras la carga.');
   console.log(JSON.stringify({ status: put.status, provider_code: meta.provider_code, configured: meta.configured, created_at: meta.created_at ?? null, rotated_at: meta.rotated_at ?? null }));
 } catch (error) {
   rl.close();
