@@ -1,5 +1,5 @@
 import { EgressBlocked, redact, requestExternal } from './egress';
-import { outcomeFromError, outcomeFromStatus, type AnalysisRequest, type ProviderOutcome, type ProviderResult, type SatelliteProviderPort } from './provider';
+import { outcomeFromError, outcomeFromStatus, providerDiagnostic, type AnalysisRequest, type ProviderOutcome, type ProviderResult, type SatelliteProviderPort } from './provider';
 
 // P0-028 · adaptador de **Whisp** (Open Foris / FAO · Forest Data Partnership).
 //
@@ -71,15 +71,16 @@ const tokenOf = (p: Json): string | null => (isObj(p.data) && typeof p.data.toke
  * Desenlace de una respuesta de error según el contrato 2.3.1: el `code` del sobre precisa lo que el estado HTTP no dice
  * (408 `analysis_timeout`; 400/413 `validation_*` sobre la geometría enviada). Sin `code` reconocible se usa el estado.
  */
-function outcomeFromResponse(status: number, body: Json | null): ProviderOutcome | null {
+function outcomeFromResponse(status: number, body: Json | null, stage: 'config' | 'submit' | 'status' | 'cancel' | 'download', secrets: readonly string[]): ProviderOutcome | null {
   if (status < 400) return null;
   const code = body && typeof body.code === 'string' ? body.code : '';
-  if (code === NOT_FOUND) return { kind: 'PROVIDER_ERROR', errorCode: 'PROVIDER_JOB_NOT_FOUND', note: 'El proveedor no reconoce el trabajo enviado (sus resultados son temporales).' };
-  if (status === 408 || code === TIMEOUT) return { kind: 'TIMEOUT', errorCode: 'PROVIDER_ANALYSIS_TIMEOUT', note: 'El proveedor declaró que su análisis venció por plazo. Sin resultado: no evaluable.' };
+  const diagnostic = providerDiagnostic(stage, status, body, secrets);
+  if (code === NOT_FOUND) return { kind: 'PROVIDER_ERROR', errorCode: 'PROVIDER_JOB_NOT_FOUND', note: 'El proveedor no reconoce el trabajo enviado (sus resultados son temporales).', diagnostic };
+  if (status === 408 || code === TIMEOUT) return { kind: 'TIMEOUT', errorCode: 'PROVIDER_ANALYSIS_TIMEOUT', note: 'El proveedor declaró que su análisis venció por plazo. Sin resultado: no evaluable.', diagnostic };
   if (status === 400 || status === 413 || status === 422) {
-    if (code.startsWith('validation_')) return { kind: 'GEOMETRY_UNSUPPORTED', errorCode: `PROVIDER_${code.toUpperCase()}`.slice(0, 80), note: 'El proveedor rechazó la geometría enviada según su validación. Sin resultado: no evaluable.' };
+    if (code.startsWith('validation_')) return { kind: 'GEOMETRY_UNSUPPORTED', errorCode: `PROVIDER_${code.toUpperCase()}`.slice(0, 80), note: 'El proveedor rechazó la geometría enviada según su validación. Sin resultado: no evaluable.', diagnostic };
   }
-  return outcomeFromStatus(status);
+  return outcomeFromStatus(status, body, stage, secrets);
 }
 
 export class WhispSatelliteProvider implements SatelliteProviderPort {
@@ -142,7 +143,7 @@ export class WhispSatelliteProvider implements SatelliteProviderPort {
       // 2) Límites declarados por el proveedor, ANTES de enviar la geometría. Si no se pueden leer, no se envía:
       //    no se adivina un límite que el proveedor publica.
       const cfgRes = await this.call(req, '/api/config');
-      const byStatus = outcomeFromStatus(cfgRes.status);
+      const byStatus = outcomeFromResponse(cfgRes.status, this.parseJson(cfgRes.body), 'config', secrets);
       if (byStatus) return byStatus;
       const cfg = this.parseJson(cfgRes.body) as unknown as WhispConfig | null;
       if (!cfg || typeof cfg.geometryLimitSync !== 'number') {
@@ -194,7 +195,7 @@ export class WhispSatelliteProvider implements SatelliteProviderPort {
         }
         first = this.parseJson(submit.body);
         // Un HTTP de error es un RECHAZO definitivo: el proveedor no recibió trabajo, y solo entonces se limpia la marca de «enviando».
-        const bySubmit = outcomeFromResponse(submit.status, first);
+        const bySubmit = outcomeFromResponse(submit.status, first, 'submit', secrets);
         if (bySubmit) {
           await req.hooks?.onSubmitAnswered();
           return bySubmit;
@@ -233,7 +234,7 @@ export class WhispSatelliteProvider implements SatelliteProviderPort {
         // La descarga pasa por la MISMA política de salida: mismo host de la lista blanca, sin seguir redirecciones.
         const dl = await this.call(req, `/api/generate-geojson/${encodeURIComponent(token)}`);
         const parsed = this.parseJson(dl.body);
-        const byDl = outcomeFromResponse(dl.status, parsed);
+        const byDl = outcomeFromResponse(dl.status, parsed, 'download', secrets);
         if (byDl) return byDl;
         if (!parsed) return { kind: 'PROVIDER_ERROR', errorCode: 'PROVIDER_DOWNLOAD_NOT_JSON', note: 'La descarga del resultado no es JSON conforme al contrato.' };
         payload = isFeatureCollection(parsed.data) ? parsed : { data: parsed };
@@ -261,7 +262,7 @@ export class WhispSatelliteProvider implements SatelliteProviderPort {
       }
       const res = await this.call(req, `/api/status/${encodeURIComponent(token)}`, { auth: true });
       const payload = this.parseJson(res.body);
-      const byStatus = outcomeFromResponse(res.status, payload);
+      const byStatus = outcomeFromResponse(res.status, payload, 'status', secrets);
       if (byStatus) return byStatus;
       if (!payload) return { kind: 'PROVIDER_ERROR', errorCode: 'PROVIDER_STATUS_NOT_JSON', note: 'El estado del trabajo no es JSON conforme al contrato.' };
       const code = typeof payload.code === 'string' ? payload.code : '';

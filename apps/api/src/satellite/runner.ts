@@ -4,7 +4,7 @@ import type { Database, SatelliteOutcome } from '../db/schema';
 import type { PiiCipher } from '../crypto/pii';
 import { EventStore } from '../events/events';
 import { sha256, type ObjectStore } from '../storage/object-store';
-import { FixtureSatelliteProvider, type AnalysisHooks, type AnalysisRequest, type ProviderOutcome, type SatelliteProviderPort } from './provider';
+import { FixtureSatelliteProvider, type AnalysisHooks, type AnalysisRequest, type ProviderDiagnostic, type ProviderOutcome, type SatelliteProviderPort } from './provider';
 import { WhispSatelliteProvider } from './whisp';
 
 // P0-028 · corredor de trabajos satelitales. S1 §54: «No bloquear una petición HTTP durante un análisis satelital».
@@ -227,7 +227,7 @@ export class SatelliteRunner {
         if (Number(r.numUpdatedRows) === 1) out.retried++;
         continue;
       }
-      if (await this.finish(j, outcome.kind, outcome.errorCode, null)) out.failed++;
+      if (await this.finish(j, outcome.kind, outcome.errorCode, null, outcome.diagnostic ?? null)) out.failed++;
     }
     return out;
   }
@@ -238,6 +238,7 @@ export class SatelliteRunner {
     outcome: SatelliteOutcome,
     errorCode: string | null,
     result: null | { dataset: string | null; datasetVersion: string | null; analysisDate: Date | null; resolutionM: string | null; method: string | null; coverageStatus: 'COVERED' | 'PARTIAL' | 'NOT_COVERED' | 'UNKNOWN'; coverageNote: string; confidence: string | null; limitations: string; indicators: Record<string, unknown>; rawKey: string | null; rawSha256: string | null; isSynthetic: boolean },
+    providerDiagnostic: ProviderDiagnostic | null = null,
   ): Promise<boolean> {
     return await this.db.transaction().execute(async (trx) => {
       const r = await trx.updateTable('satellite_jobs')
@@ -259,7 +260,7 @@ export class SatelliteRunner {
         organizationId: j.organization_id,
         eventType: outcome === 'RESULT_AVAILABLE' ? 'SatelliteAnalysisCompleted' : 'SatelliteAnalysisFailed',
         schemaVersion: 1, aggregateType: 'SATELLITE_JOB', aggregateId: j.id, aggregateVersion: 2, actorId: null,
-        payload: { job_id: j.id, plot_id: j.plot_id, plot_version_id: j.plot_version_id, provider_code: j.provider_code, outcome, error_code: errorCode, is_synthetic: result?.isSynthetic ?? null },
+        payload: { job_id: j.id, plot_id: j.plot_id, plot_version_id: j.plot_version_id, provider_code: j.provider_code, outcome, error_code: errorCode, is_synthetic: result?.isSynthetic ?? null, provider_diagnostic: providerDiagnostic },
       });
       return true;
     });

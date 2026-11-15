@@ -68,7 +68,26 @@ export type ProviderOutcome =
   | { kind: 'RESULT'; result: ProviderResult }
   // Un adapter puede terminar en cualquier desenlace salvo los que decide Terra Link: que haya resultado, que no
   // haya proveedor o que la geometría quedara superada. `CANCELLED`: la organización pidió cancelar y el proveedor lo confirmó.
-  | { kind: Exclude<SatelliteOutcome, 'RESULT_AVAILABLE' | 'NO_PROVIDER_SELECTED' | 'SUPERSEDED_GEOMETRY'>; errorCode: string; note: string };
+  | { kind: Exclude<SatelliteOutcome, 'RESULT_AVAILABLE' | 'NO_PROVIDER_SELECTED' | 'SUPERSEDED_GEOMETRY'>; errorCode: string; note: string; diagnostic?: ProviderDiagnostic };
+
+/** Diagnóstico mínimo y redactado de una respuesta externa; nunca contiene cuerpo crudo ni credenciales. */
+export interface ProviderDiagnostic {
+  stage: 'config' | 'submit' | 'status' | 'cancel' | 'download' | 'transport';
+  httpStatus?: number;
+  providerCode?: string | null;
+  providerMessage?: string | null;
+}
+
+function safeText(value: unknown, secrets: readonly string[]): string | null {
+  if (typeof value !== 'string') return null;
+  const cleaned = redact(value, secrets).replace(/[\r\n\t]+/g, ' ').trim();
+  return cleaned ? cleaned.slice(0, 240) : null;
+}
+
+export function providerDiagnostic(stage: ProviderDiagnostic['stage'], status: number, body: unknown, secrets: readonly string[] = []): ProviderDiagnostic {
+  const obj = body && typeof body === 'object' && !Array.isArray(body) ? body as Record<string, unknown> : {};
+  return { stage, httpStatus: status, providerCode: safeText(obj.code, secrets), providerMessage: safeText(obj.message, secrets) };
+}
 
 export interface SatelliteProviderPort {
   readonly code: string;
@@ -94,10 +113,11 @@ export function outcomeFromError(err: unknown, secrets: readonly string[] = []):
 }
 
 /** Traduce el código HTTP de un proveedor a un desenlace. 2xx lo interpreta cada adapter. */
-export function outcomeFromStatus(status: number): ProviderOutcome | null {
+export function outcomeFromStatus(status: number, body?: unknown, stage: ProviderDiagnostic['stage'] = 'transport', secrets: readonly string[] = []): ProviderOutcome | null {
+  const diagnostic = body === undefined ? undefined : providerDiagnostic(stage, status, body, secrets);
   if (status === 429) return { kind: 'RATE_LIMITED', errorCode: 'PROVIDER_RATE_LIMITED', note: 'Cupo del proveedor agotado. Sin resultado: no evaluable.' };
-  if (status === 401 || status === 403) return { kind: 'PROVIDER_ERROR', errorCode: `PROVIDER_HTTP_${status}`, note: 'El proveedor rechazó la credencial o el permiso.' };
-  if (status >= 400) return { kind: 'PROVIDER_ERROR', errorCode: `PROVIDER_HTTP_${status}`, note: 'El proveedor devolvió un error.' };
+  if (status === 401 || status === 403) return { kind: 'PROVIDER_ERROR', errorCode: `PROVIDER_HTTP_${status}`, note: 'El proveedor rechazó la credencial o el permiso.', ...(diagnostic ? { diagnostic } : {}) };
+  if (status >= 400) return { kind: 'PROVIDER_ERROR', errorCode: `PROVIDER_HTTP_${status}`, note: 'El proveedor devolvió un error.', ...(diagnostic ? { diagnostic } : {}) };
   return null;
 }
 

@@ -195,13 +195,16 @@ describeTls('P0-028 · adaptador Whisp (servidor controlado; evidencia SINTÉTIC
     }
   });
 
-  it('un HTTP de error del proveedor no produce resultado; 429 es cupo agotado', async () => {
+  it('un HTTP de error del proveedor no produce resultado; conserva diagnóstico 401 redactado', async () => {
     ruta = (r, res) => (r.url === '/api/config' ? json(res, 200, CONFIG) : json(res, 429, { code: 'rate_limited' }));
     expect((await adapter().analyze(req())).kind).toBe('RATE_LIMITED');
     ruta = (r, res) => (r.url === '/api/config' ? json(res, 200, CONFIG) : json(res, 503, { code: 'unavailable' }));
     expect((await adapter().analyze(req())).kind).toBe('PROVIDER_ERROR');
-    ruta = (r, res) => (r.url === '/api/config' ? json(res, 200, CONFIG) : json(res, 401, { code: 'unauthorized' }));
-    expect((await adapter().analyze(req())).kind).toBe('PROVIDER_ERROR');
+    ruta = (r, res) => (r.url === '/api/config' ? json(res, 200, CONFIG) : json(res, 401, { code: 'unauthorized', message: 'invalid key' }));
+    const o = await adapter().analyze(req());
+    expect(o).toMatchObject({ kind: 'PROVIDER_ERROR', errorCode: 'PROVIDER_HTTP_401', diagnostic: { stage: 'submit', httpStatus: 401, providerCode: 'unauthorized', providerMessage: 'invalid key' } });
+    expect(JSON.stringify(o)).not.toContain(API_KEY);
+    expect(srv.recibidas.find((x) => x.url === '/api/submit/geojson')?.headers['x-api-key']).toBe(API_KEY);
   });
 
   it('un formato inesperado no se interpreta: ni HTML, ni JSON fuera de contrato, ni resultado vacío', async () => {
