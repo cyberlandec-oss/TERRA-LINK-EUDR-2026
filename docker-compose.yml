@@ -160,6 +160,7 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:?definir en .env}
       S3_BUCKET: ${S3_BUCKET:-terra-link-private}
       STORAGE_SWEEP_MS: ${STORAGE_SWEEP_MS:-600000}
+      WHISP_API_KEY: ${WHISP_API_KEY:-}
       # El worker ejecuta los trabajos satelitales: aquí importa igual o más que en la API.
       SATELLITE_LIVE_CALLS: ${SATELLITE_LIVE_CALLS:-disabled}
       # A-01: proveedor local de ENSAYO (datos sintéticos rotulados). Apagado por omisión; solo se enciende para la demostración.
