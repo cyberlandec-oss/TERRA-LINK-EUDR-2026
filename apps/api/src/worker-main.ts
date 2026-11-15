@@ -15,14 +15,15 @@ async function main(): Promise<void> {
   if (!url) throw new Error('DATABASE_URL no definida');
   const db = createDb(url, undefined, 1000, instrumentarConsulta);
   const cipher = new PiiCipher(parsePiiConfig(process.env) ?? (() => { throw new Error('PII: faltan claves'); })());
-  const worker = new OutboxWorker(db, consumidoresDeProduccion(db, cipher), {
+  const satelliteOnce = process.env.SATELLITE_ONCE === 'true';
+  const worker = satelliteOnce ? null : new OutboxWorker(db, consumidoresDeProduccion(db, cipher), {
     maxAttempts: Number(process.env.OUTBOX_MAX_ATTEMPTS ?? 8),
     leaseSeconds: Number(process.env.OUTBOX_LEASE_SECONDS ?? 60),
   });
   // Barrido del almacenamiento privado (P0-009/P0-010): solo huérfanos antiguos y descartados.
   let sweepTimer: NodeJS.Timeout | null = null;
   let store: S3ObjectStore | null = null;
-  if (process.env.S3_ACCESS_KEY && process.env.S3_SECRET_KEY) {
+  if (!satelliteOnce && process.env.S3_ACCESS_KEY && process.env.S3_SECRET_KEY) {
     store = new S3ObjectStore({
       endpoint: process.env.S3_ENDPOINT ?? `http://localhost:${process.env.S3_PORT ?? '9000'}`, region: process.env.S3_REGION ?? 'us-east-1',
       accessKey: process.env.S3_ACCESS_KEY, secretKey: process.env.S3_SECRET_KEY, bucket: process.env.S3_BUCKET ?? 'terra-link-private',
@@ -64,12 +65,13 @@ async function main(): Promise<void> {
       allowLegacyCredentialFallback: false,
     }, { jobId: process.env.SATELLITE_JOB_ID });
     console.log(`Corredor satelital ${satellite.runnerId} iniciado con adapters: ${providers.map((p) => p.code).join(', ')}`);
-    if (process.env.SATELLITE_ONCE === 'true') {
+    if (satelliteOnce) {
       const result = await satellite.runOnce();
       console.log(`Corredor satelital QA terminado: reclamados=${result.claimed} completados=${result.completed} fallidos=${result.failed} reintentados=${result.retried} obsoletos=${result.superseded}`);
       satellite.stop();
       store?.close();
       await db.destroy();
+      process.exitCode = result.claimed === 1 && result.completed === 1 && result.failed === 0 && result.retried === 0 && result.superseded === 0 ? 0 : 1;
       return;
     }
     void satellite.start(Number(process.env.SATELLITE_POLL_MS ?? 2000), (err) => console.error('Error del corredor satelital:', describeForLog(err)));
@@ -79,10 +81,11 @@ async function main(): Promise<void> {
   const shutdown = () => {
     if (sweepTimer) clearInterval(sweepTimer);
     satellite?.stop();
-    worker.stop();
+    worker?.stop();
   };
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
+  if (!worker) throw new Error('SATELLITE_ONCE requiere un proveedor satelital');
   console.log(`Worker de outbox ${worker.workerId} iniciado`);
   await worker.start(Number(process.env.OUTBOX_POLL_MS ?? 1000), (err) =>
     console.error('Error del worker:', describeForLog(err)),
