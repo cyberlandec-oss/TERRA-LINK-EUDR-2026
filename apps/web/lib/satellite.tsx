@@ -98,6 +98,11 @@ export function datasetsNoDisponibles(ind: Record<string, unknown> | null | unde
   return Array.isArray(u) ? u.filter((x): x is string => typeof x === 'string') : [];
 }
 
+const FOREST_INDICATORS = new Set(['Forest_FDaP', 'Cocoa_FDaP', 'GFC_TC_2020', 'Ind_01_treecover', 'Ind_02_commodities', 'Ind_03_disturbance_before_2020', 'Ind_04_disturbance_after_2020', 'risk_pcrop', 'more_info_needed']);
+export function resumenForestal(ind: Record<string, unknown> | null | undefined): Array<[string, string]> {
+  return valoresDelProveedor(ind).filter(([key]) => FOREST_INDICATORS.has(key));
+}
+
 export const SAT_SCENARIO: Record<string, string> = {
   RESULT_COVERED: 'Resultado con cobertura completa',
   RESULT_FINDINGS: 'Resultado CON hallazgos',
@@ -113,6 +118,7 @@ export const SAT_SCENARIO: Record<string, string> = {
 /** Resultado de un análisis con su procedencia, límites y valores del proveedor (sin interpretar). Lo usan la tarjeta de la parcela y la vista de parcelas autorizadas. */
 export function ResultadoDelAnalisis({ j, busy, onDownload, onDownloadCsv }: { j: Job & { result: Result }; busy: boolean; onDownload: (id: string) => void; onDownloadCsv: (id: string) => void }) {
   const { t, dt } = useI18n();
+  const forestIndicators = resumenForestal(j.result.indicators);
   return (
   <>
         {j.result.synthetic_warning && <Alert tone="review" title={t('Resultado de ENSAYO (fixture sintética)')}>{t(j.result.synthetic_warning)}</Alert>}
@@ -122,6 +128,22 @@ export function ResultadoDelAnalisis({ j, busy, onDownload, onDownloadCsv }: { j
             <p>{t(j.result.indicators.findings.note)}</p>
           </Alert>
         )}
+        <section className="subcard" aria-labelledby={`forest-summary-${j.id}`}>
+          <h4 id={`forest-summary-${j.id}`}>{t('Resumen forestal de la parcela')}</h4>
+          <p className="muted">{t('Datos geoespaciales devueltos por Whisp para esta versión. No es una conclusión de debida diligencia ni una certificación.')}</p>
+          <dl className="props">
+            <dt>{t('Clasificación geoespacial')}</dt><dd><StatusBadge tone={j.result.coverage.status === 'COVERED' ? 'valid' : 'review'}>{t(SAT_COVERAGE[j.result.coverage.status])}</StatusBadge></dd>
+            <dt>{t('Producto/cultivo')}</dt><dd>{j.result.indicators?.Cocoa_FDaP == null ? t('No informado por el proveedor') : String(j.result.indicators.Cocoa_FDaP)}</dd>
+            <dt>{t('Riesgo de cultivo perenne')}</dt><dd>{j.result.indicators?.risk_pcrop == null ? t('No informado por el proveedor') : String(j.result.indicators.risk_pcrop)}</dd>
+          </dl>
+          {forestIndicators.length > 0 ? (
+            <details><summary>{t('Indicadores forestales y de perturbación devueltos')}</summary>
+              <table aria-label={t('Indicadores forestales')}><thead><tr><th>{t('Indicador')}</th><th>{t('Valor original')}</th></tr></thead>
+                <tbody>{forestIndicators.map(([key, value]) => <tr key={key}><td><code>{key}</code></td><td>{value === '' ? t('No informado') : value}</td></tr>)}</tbody>
+              </table>
+            </details>
+          ) : <p className="muted">{t('El proveedor no devolvió indicadores forestales identificables en esta respuesta.')}</p>}
+        </section>
         <dl className="props">
           <dt>{t('Fuente')}</dt><dd>{j.result.provenance.provider_code} · {t('contrato')} {j.provider.adapter_contract_version}</dd>
           <dt>{t('Conjunto de datos')}</dt><dd>{j.result.provenance.dataset ?? t('No informado')}{j.result.provenance.dataset_version ? ` · ${t('versión')} ${j.result.provenance.dataset_version}` : ''}</dd>
@@ -135,6 +157,7 @@ export function ResultadoDelAnalisis({ j, busy, onDownload, onDownloadCsv }: { j
           <dt>{t('Cobertura')}</dt><dd>{t(SAT_COVERAGE[j.result.coverage.status])} · {t(j.result.coverage.note)}</dd>
           <dt>{t('Confianza')}</dt><dd>{j.result.confidence ?? t(j.result.confidence_note ?? '')}</dd>
           <dt>{t('Conclusión')}</dt><dd><StatusBadge tone="neutral">{t('No evaluada')}</StatusBadge> <span className="muted">{t(j.result.conclusion_note)}</span></dd>
+          <dt>{t('Expediente de debida diligencia')}</dt><dd><StatusBadge tone="neutral">{t('Revisión separada')}</StatusBadge> <span className="muted">{t('Este análisis aporta evidencia al expediente; no cambia por sí solo sus requisitos, revisión ni estado READY.')}</span></dd>
           <dt>{t('Límites declarados')}</dt><dd>{t(j.result.limitations)}</dd>
           {!j.result.is_synthetic && datasetsNoDisponibles(j.result.indicators).length > 0 && (<>
             <dt>{t('Datasets no disponibles')}</dt><dd>{datasetsNoDisponibles(j.result.indicators).join(', ')}</dd>
