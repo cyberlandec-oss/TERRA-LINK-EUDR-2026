@@ -143,7 +143,7 @@ export default function PlotDetailPage() {
           {/* Dos dictámenes, a la vista y por separado: el técnico de arriba y el de perfil de destino. Pueden discrepar. */}
           <GeoProfileEvaluation orgId={orgId} plotId={plot.id} canEvaluate={!!plot.can_evaluate_gis} hasVersion={!!plot.current_version} />
 
-          <SatelliteAnalysis orgId={orgId} plotId={plot.id} />
+          <SatelliteAnalysis orgId={orgId} plotId={plot.id} crop={plot.crop} />
           <AutorizarAnalisisPanel orgId={orgId} plotId={plot.id} />
 
               <FieldEvidence orgId={orgId} plotId={plot.id} ownerKey={ws.me.id} canUpload={!!plot.can_update && ws.can('document:upload')} />

@@ -98,9 +98,22 @@ export function datasetsNoDisponibles(ind: Record<string, unknown> | null | unde
   return Array.isArray(u) ? u.filter((x): x is string => typeof x === 'string') : [];
 }
 
-const FOREST_INDICATORS = new Set(['Forest_FDaP', 'Cocoa_FDaP', 'GFC_TC_2020', 'Ind_01_treecover', 'Ind_02_commodities', 'Ind_03_disturbance_before_2020', 'Ind_04_disturbance_after_2020', 'risk_pcrop', 'more_info_needed']);
+export function datasetsRiesgoNoDisponibles(ind: Record<string, unknown> | null | undefined): string[] {
+  const m = ind?.whisp_processing_metadata;
+  const u = m && typeof m === 'object' ? (m as Record<string, unknown>).risk_inputs_unavailable : null;
+  return Array.isArray(u) ? u.filter((x): x is string => typeof x === 'string') : [];
+}
+
+const FOREST_INDICATORS = new Set(['Forest_FDaP', 'Cocoa_FDaP', 'GFC_TC_2020', 'Ind_01_treecover', 'Ind_02_commodities', 'Ind_03_disturbance_before_2020', 'Ind_04_disturbance_after_2020', 'risk_pcrop', 'Risk_PCrop', 'risk_acrop', 'Risk_ACrop', 'more_info_needed']);
 export function resumenForestal(ind: Record<string, unknown> | null | undefined): Array<[string, string]> {
   return valoresDelProveedor(ind).filter(([key]) => FOREST_INDICATORS.has(key));
+}
+
+export function indicadorRiesgoParaCultivo(crop: string): string | null {
+  const value = crop.trim().toLowerCase();
+  if (/(cacao|cocoa|café|cafe|caucho|palma)/u.test(value)) return 'risk_pcrop';
+  if (/(soja|soya|soy)/u.test(value)) return 'risk_acrop';
+  return null;
 }
 
 export const SAT_SCENARIO: Record<string, string> = {
@@ -116,9 +129,13 @@ export const SAT_SCENARIO: Record<string, string> = {
 };
 
 /** Resultado de un análisis con su procedencia, límites y valores del proveedor (sin interpretar). Lo usan la tarjeta de la parcela y la vista de parcelas autorizadas. */
-export function ResultadoDelAnalisis({ j, busy, onDownload, onDownloadCsv }: { j: Job & { result: Result }; busy: boolean; onDownload: (id: string) => void; onDownloadCsv: (id: string) => void }) {
+export function ResultadoDelAnalisis({ j, crop = '', busy, onDownload, onDownloadCsv }: { j: Job & { result: Result }; crop?: string; busy: boolean; onDownload: (id: string) => void; onDownloadCsv: (id: string) => void }) {
   const { t, dt } = useI18n();
   const forestIndicators = resumenForestal(j.result.indicators);
+  const riskKey = indicadorRiesgoParaCultivo(crop);
+  const riskEntry = riskKey ? forestIndicators.find(([key]) => key.toLowerCase() === riskKey) : null;
+  const unavailable = datasetsNoDisponibles(j.result.indicators);
+  const riskUnavailable = datasetsRiesgoNoDisponibles(j.result.indicators);
   return (
   <>
         {j.result.synthetic_warning && <Alert tone="review" title={t('Resultado de ENSAYO (fixture sintética)')}>{t(j.result.synthetic_warning)}</Alert>}
@@ -132,15 +149,16 @@ export function ResultadoDelAnalisis({ j, busy, onDownload, onDownloadCsv }: { j
           <h4 id={`forest-summary-${j.id}`}>{t('Resumen forestal de la parcela')}</h4>
           <p className="muted">{t('Datos geoespaciales devueltos por Whisp para esta versión. No es una conclusión de debida diligencia ni una certificación.')}</p>
           <dl className="props">
-            <dt>{t('Clasificación geoespacial')}</dt><dd><StatusBadge tone={j.result.coverage.status === 'COVERED' ? 'valid' : 'review'}>{t(SAT_COVERAGE[j.result.coverage.status])}</StatusBadge></dd>
-            <dt>{t('Producto/cultivo')}</dt><dd>{j.result.indicators?.Cocoa_FDaP == null ? t('No informado por el proveedor') : String(j.result.indicators.Cocoa_FDaP)}</dd>
-            <dt>{t('Riesgo de cultivo perenne')}</dt><dd>{j.result.indicators?.risk_pcrop == null ? t('No informado por el proveedor') : String(j.result.indicators.risk_pcrop)}</dd>
+            <dt>{t('Cobertura de datos')}</dt><dd><StatusBadge tone={j.result.coverage.status === 'COVERED' ? 'valid' : 'review'}>{t(SAT_COVERAGE[j.result.coverage.status])}</StatusBadge></dd>
+            <dt>{t('Producto/cultivo')}</dt><dd>{crop || t('No informado en la parcela')}</dd>
+            <dt>{t('Riesgo según el producto')}</dt><dd>{riskEntry ? <><code>{riskEntry[0]}</code>: {riskEntry[1] || t('No informado')}</> : t('No hay indicador de riesgo mapeado para este cultivo')}</dd>
           </dl>
           {forestIndicators.length > 0 ? (
             <details><summary>{t('Indicadores forestales y de perturbación devueltos')}</summary>
               <table aria-label={t('Indicadores forestales')}><thead><tr><th>{t('Indicador')}</th><th>{t('Valor original')}</th></tr></thead>
                 <tbody>{forestIndicators.map(([key, value]) => <tr key={key}><td><code>{key}</code></td><td>{value === '' ? t('No informado') : value}</td></tr>)}</tbody>
               </table>
+              <p className="muted">{t('Las unidades solo se muestran cuando las publica el proveedor; esta respuesta no declara unidades adicionales.')}</p>
             </details>
           ) : <p className="muted">{t('El proveedor no devolvió indicadores forestales identificables en esta respuesta.')}</p>}
         </section>
@@ -159,8 +177,11 @@ export function ResultadoDelAnalisis({ j, busy, onDownload, onDownloadCsv }: { j
           <dt>{t('Conclusión')}</dt><dd><StatusBadge tone="neutral">{t('No evaluada')}</StatusBadge> <span className="muted">{t(j.result.conclusion_note)}</span></dd>
           <dt>{t('Expediente de debida diligencia')}</dt><dd><StatusBadge tone="neutral">{t('Revisión separada')}</StatusBadge> <span className="muted">{t('Este análisis aporta evidencia al expediente; no cambia por sí solo sus requisitos, revisión ni estado READY.')}</span></dd>
           <dt>{t('Límites declarados')}</dt><dd>{t(j.result.limitations)}</dd>
-          {!j.result.is_synthetic && datasetsNoDisponibles(j.result.indicators).length > 0 && (<>
-            <dt>{t('Datasets no disponibles')}</dt><dd>{datasetsNoDisponibles(j.result.indicators).join(', ')}</dd>
+          {!j.result.is_synthetic && unavailable.length > 0 && (<>
+            <dt>{t('Datasets no disponibles')}</dt><dd>{unavailable.join(', ')}</dd>
+          </>)}
+          {!j.result.is_synthetic && riskUnavailable.length > 0 && (<>
+            <dt>{t('Fuentes no disponibles para el riesgo')}</dt><dd>{riskUnavailable.join(', ')}</dd>
           </>)}
           {j.result.raw_evidence && (<>
             <dt>{t('Respuesta original')}</dt>
@@ -193,7 +214,7 @@ export function ResultadoDelAnalisis({ j, busy, onDownload, onDownloadCsv }: { j
   );
 }
 
-export function SatelliteAnalysis({ orgId, plotId }: { orgId: string; plotId: string }) {
+export function SatelliteAnalysis({ orgId, plotId, crop }: { orgId: string; plotId: string; crop: string }) {
   const { t, dt } = useI18n();
   const [data, setData] = useState<PlotSatellite | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
@@ -300,7 +321,7 @@ export function SatelliteAnalysis({ orgId, plotId }: { orgId: string; plotId: st
             : data?.can_request && <button type="button" className="secondary" disabled={busy} onClick={() => void cancel(j.id)}>{t('Cancelar este análisis')}</button>}
         </div>
       )}
-      {j.result && <ResultadoDelAnalisis j={j as Job & { result: Result }} busy={busy} onDownload={(id) => void descargar(id)} onDownloadCsv={(id) => void descargarCsv(id)} />}
+      {j.result && <ResultadoDelAnalisis j={j as Job & { result: Result }} crop={crop} busy={busy} onDownload={(id) => void descargar(id)} onDownloadCsv={(id) => void descargarCsv(id)} />}
       {j.status === 'FAILED' && (
         <div className="error" role="alert">
           <p className="alert-title">{t('El análisis no produjo resultado.')}</p>
