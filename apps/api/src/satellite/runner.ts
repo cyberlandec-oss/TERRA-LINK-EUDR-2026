@@ -23,6 +23,15 @@ import { WhispSatelliteProvider } from './whisp';
 const NON_RETRYABLE_CODES: ReadonlySet<string> = new Set(['PROVIDER_SUBMIT_UNCERTAIN', 'PROVIDER_CANCEL_NOT_CONFIRMED']);
 const RETRYABLE: ReadonlySet<SatelliteOutcome> = new Set<SatelliteOutcome>(['TIMEOUT', 'RATE_LIMITED', 'PROVIDER_ERROR']);
 
+/**
+ * La integración Whisp es de plataforma: el worker recibe una sola clave desde
+ * la configuración segura del backend. El fallback conserva compatibilidad con
+ * instalaciones antiguas mientras se migra el almacenamiento por organización.
+ */
+export function resolveSatelliteCredential(globalCredential: string | null | undefined, legacyCredential: string | null | undefined): string | null {
+  return globalCredential?.trim() || legacyCredential?.trim() || null;
+}
+
 export interface RunnerOptions {
   runnerId?: string;
   batchSize?: number;
@@ -46,7 +55,7 @@ export class SatelliteRunner {
     providers: SatelliteProviderPort[],
     // `events`: el mismo registro de eventos de la API, para que el desenlace llegue a los consumidores del outbox
     // igual que cualquier otro hecho de dominio. Sin él (pruebas) se registra el evento sin entregas.
-    private readonly deps: { store?: ObjectStore | null; cipher?: PiiCipher | null; events?: EventStore | null } = {},
+    private readonly deps: { store?: ObjectStore | null; cipher?: PiiCipher | null; events?: EventStore | null; globalCredential?: string | null; allowLegacyCredentialFallback?: boolean } = {},
     options: RunnerOptions = {},
   ) {
     this.runnerId = options.runnerId ?? `sat-${randomUUID().slice(0, 8)}`;
@@ -172,12 +181,12 @@ export class SatelliteRunner {
         continue;
       }
       const prov = await this.db.selectFrom('satellite_providers').select(['allowed_hosts', 'kind']).where('code', '=', j.provider_code).executeTakeFirst();
-      let credential: string | null = null;
-      if (prov?.kind === 'EXTERNAL_HTTP' && this.deps.cipher) {
+      let credential: string | null = resolveSatelliteCredential(this.deps.globalCredential, null);
+      if (!credential && this.deps.allowLegacyCredentialFallback !== false && prov?.kind === 'EXTERNAL_HTTP' && this.deps.cipher) {
         const row = await this.db.selectFrom('satellite_credentials').select('secret_ciphertext')
           .where('organization_id', '=', j.requesting_organization_id).where('provider_code', '=', j.provider_code).executeTakeFirst();
         // La credencial es la de la organización que SOLICITA el servicio (puede no ser la propietaria de la parcela).
-        if (row) credential = this.deps.cipher.decrypt(row.secret_ciphertext, `satellite_credentials:${j.requesting_organization_id}:${j.provider_code}`);
+        if (row) credential = resolveSatelliteCredential(null, this.deps.cipher.decrypt(row.secret_ciphertext, `satellite_credentials:${j.requesting_organization_id}:${j.provider_code}`));
       }
 
       let outcome: ProviderOutcome;

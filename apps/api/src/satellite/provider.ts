@@ -23,7 +23,7 @@ export interface AnalysisRequest {
   geometryHash: string;
   periodStart: string | null;
   periodEnd: string | null;
-  /** Credencial descifrada del proveedor para esta organización, o null si no hay. Nunca se registra. */
+  /** Credencial global inyectada en el backend, o null si no está configurada. Nunca se registra. */
   credential: string | null;
   allowedHosts: readonly string[];
   /** Solo fixture: escenario a reproducir. Ignorado por cualquier adapter real. */
