@@ -34,6 +34,7 @@ export function resolveSatelliteCredential(globalCredential: string | null | und
 
 export interface RunnerOptions {
   runnerId?: string;
+  jobId?: string;
   batchSize?: number;
   leaseSeconds?: number;
   maxAttempts?: number;
@@ -60,6 +61,7 @@ export class SatelliteRunner {
   ) {
     this.runnerId = options.runnerId ?? `sat-${randomUUID().slice(0, 8)}`;
     this.opts = {
+      jobId: options.jobId ?? '',
       batchSize: options.batchSize ?? 5,
       leaseSeconds: options.leaseSeconds ?? 120,
       maxAttempts: options.maxAttempts ?? 4,
@@ -80,6 +82,7 @@ export class SatelliteRunner {
           WHERE ((status = 'REQUESTED' AND next_attempt_at <= now())
              OR (status = 'RUNNING' AND locked_until < now()))
             AND id <> ALL(${exclude}::uuid[])
+            AND (${this.opts.jobId} = '' OR id = ${this.opts.jobId}::uuid)
           ORDER BY next_attempt_at
           LIMIT ${limit}
           FOR UPDATE SKIP LOCKED)

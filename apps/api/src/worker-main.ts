@@ -62,8 +62,16 @@ async function main(): Promise<void> {
       events: new EventStore(consumidoresDeProduccion(db, cipher)),
       globalCredential: process.env.WHISP_API_KEY ?? null,
       allowLegacyCredentialFallback: false,
-    });
+    }, { jobId: process.env.SATELLITE_JOB_ID });
     console.log(`Corredor satelital ${satellite.runnerId} iniciado con adapters: ${providers.map((p) => p.code).join(', ')}`);
+    if (process.env.SATELLITE_ONCE === 'true') {
+      const result = await satellite.runOnce();
+      console.log(`Corredor satelital QA terminado: reclamados=${result.claimed} completados=${result.completed} fallidos=${result.failed} reintentados=${result.retried} obsoletos=${result.superseded}`);
+      satellite.stop();
+      store?.close();
+      await db.destroy();
+      return;
+    }
     void satellite.start(Number(process.env.SATELLITE_POLL_MS ?? 2000), (err) => console.error('Error del corredor satelital:', describeForLog(err)));
   } else {
     console.log('Corredor satelital desactivado: no hay proveedor seleccionado (D-09) ni fixture habilitada');
