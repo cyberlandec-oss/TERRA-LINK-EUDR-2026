@@ -38,11 +38,11 @@ try {
   const email = await ask('Cuenta con integration:manage: ');
   rl.pause();
   const password = await secret('Contraseña: ');
-  const key = await secret('Clave Whisp: ');
-  rl.close();
   const login = await fetch(`${BASE}/api/v1/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password }) });
   if (!login.ok) throw new Error(`inicio de sesión rechazado (${login.status})`);
   const token = (await login.json()).access_token;
+  const key = await secret('Clave Whisp: ');
+  rl.close();
   const put = await fetch(`${BASE}/api/v1/organizations/${ORG}/satellite/credentials/WHISP`, { method: 'PUT', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ secret: key }) });
   const body = await put.json().catch(() => null);
   if (!put.ok) throw new Error(`carga rechazada (${put.status})`);
